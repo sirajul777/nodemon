@@ -1,0 +1,14 @@
+version: "3"
+services:
+  mikhmon-nest:
+    build: .
+    container_name: mikhmon-nest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - PORT=3000
+      - SESSION_SECRET=mikhmon-nest-secret-change-this
+      - CIPHER_KEY=16characterkey!!
