@@ -30,7 +30,7 @@ export class TelegramController implements OnModuleInit {
   getConfig() {
     const cfg = this.telegramService.getConfig();
     if (!cfg) return {};
-    return { ...cfg, token: cfg.token ? cfg.token.slice(0, 8) + '...' : '' };
+    return { ...cfg, token: cfg.token ? cfg.token : '' };
   }
 
   @Post('config')
