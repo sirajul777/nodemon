@@ -2105,7 +2105,9 @@ async function saveTelegramConfig() {
 }
 
 async function testTelegram() {
-  const token = v('tg-token').trim();
+  const cfg = await req('/telegram/config');
+  if (!cfg) return;
+  const token = cfg.token;
   const chatId = v('tg-chatid').trim();
   const sessionId = v('tg-session');
   if (!chatId) { se('tg-test-err', 'Chat ID wajib'); return; }
