@@ -2121,7 +2121,7 @@ async function toggleBot() {
   if (!cfg) return;
   const newEnabled = !botRunning;
   // Save with toggled enabled
-  await post('/telegram/config', { ...cfg, token: '', botEnabled: newEnabled });
+  await post('/telegram/config', { ...cfg, botEnabled: newEnabled });
   toast(newEnabled ? '✓ Bot diaktifkan' : 'Bot dihentikan');
   await loadTgInfo();
 }
@@ -3419,7 +3419,7 @@ function buildPvCard(vcr, idx) {
       <div class="pv-card-row"><span class="val">${vcr.password}</span></div>
       <hr class="pv-card-divider">
       <div class="pv-card-extra">
-        <span>Durasi: <b>${duration/3600}</b></span>
+        <span>Durasi: <b>${duration}</b></span>
         <span>${caption}</span>
       </div>
     </div>
