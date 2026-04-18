@@ -136,7 +136,7 @@ export class TelegramService implements OnModuleInit {
       const bodyStr = JSON.stringify(body);
       const options = {
         hostname: 'api.telegram.org',
-        path: `/bot/${token}/${method}`,
+        path: `/bot${token}/${method}`,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
