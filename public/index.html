@@ -753,42 +753,89 @@ select option{background:var(--sb)}
       <div class="g2">
         <!-- Info Bot -->
         <div class="card">
-          <div class="card-hd"><i class="fa fa-telegram"></i> Info Bot</div>
+          <div class="card-hd" style="justify-content:space-between">
+            <span><i class="fa fa-telegram"></i> Info Bot</span>
+            <button class="btn b-s b-sm" onclick="loadTgInfo()"><i class="fa fa-refresh"></i></button>
+          </div>
           <div class="tg-row"><span class="lbl">Nama Bot</span><span class="val" id="tg-bot-name">—</span></div>
-          <div class="tg-row"><span class="lbl">Username</span><span class="val" id="tg-bot-username">—</span></div>
+          <div class="tg-row"><span class="lbl">Username</span><span class="val" id="tg-bot-username" style="color:var(--acc2)">—</span></div>
           <div class="tg-row"><span class="lbl">Router</span><span class="val" id="tg-bot-router">—</span></div>
           <div class="tg-row"><span class="lbl">Mode</span><span class="val"><span class="tg-badge polling"><i class="fa fa-circle"></i> Long Polling</span></span></div>
-          <div class="tg-row"><span class="lbl">Admin ID</span><span class="val" id="tg-admin-id">—</span></div>
+          <div class="tg-row"><span class="lbl">Telegram ID Admin</span><span class="val" id="tg-admin-id" style="font-family:monospace">—</span></div>
           <div class="tg-row"><span class="lbl">Status</span><span class="val" id="tg-status-badge"><span class="tg-badge stopped">● Stopped</span></span></div>
           <div style="margin-top:14px;display:flex;gap:8px">
-            <button class="btn b-stop" id="tg-toggle-btn" onclick="toggleBot()"><i class="fa fa-stop-circle"></i> Stop Bot</button>
-            <button class="btn b-s" style="flex-shrink:0" onclick="loadTgInfo()" title="Refresh"><i class="fa fa-refresh"></i></button>
+            <button class="btn" id="tg-toggle-btn" onclick="toggleBot()" style="flex:1;justify-content:center;padding:9px;background:#f8514918;color:var(--red);border:1px solid #f8514940"><i class="fa fa-stop-circle"></i> Stop Bot</button>
+            <button class="btn b-s" style="flex-shrink:0;padding:9px 12px" onclick="loadTgInfo()" title="Refresh"><i class="fa fa-refresh"></i></button>
           </div>
         </div>
 
-        <!-- Test Koneksi -->
+        <!-- Test Koneksi (moved here) -->
         <div class="card">
           <div class="card-hd"><i class="fa fa-plug"></i> Test Koneksi Bot</div>
-          <p style="color:var(--muted);font-size:.82rem;margin-bottom:14px">Verifikasi bahwa bot token valid dan dapat terhubung ke Telegram.</p>
-          <button class="btn b-p" style="width:100%;justify-content:center;padding:10px" onclick="testTelegram()"><i class="fa fa-paper-plane"></i> Test Koneksi</button>
+          <p style="color:var(--muted);font-size:.82rem;margin-bottom:12px">Verifikasi bahwa bot token valid dan dapat terhubung ke Telegram API.</p>
+          <button class="btn b-p" style="width:100%;justify-content:center;padding:10px" onclick="testTelegram()">
+            <i class="fa fa-paper-plane"></i> Test Koneksi
+          </button>
           <div class="err" id="tg-test-err" style="margin-top:8px"></div>
         </div>
+
 
         <!-- Pengaturan Bot -->
         <div class="card">
           <div class="card-hd"><i class="fa fa-cog"></i> Pengaturan Bot</div>
-          <div class="fg"><label>Ganti Bot Token <small style="color:var(--muted)">(kosongkan jika tidak diganti)</small></label><input id="tg-token" placeholder="123456:ABC-DEF..." type="password"></div>
-          <div class="fg"><label>Admin Chat ID</label><input id="tg-chatid" placeholder="-100xxxxxxxxx"></div>
-          <div class="fg"><label>Router Session</label><select id="tg-session"><option value="">Pilih router...</option></select></div>
-          <div class="fg"><label>Profile Default Bot</label><input id="tg-def-prof" placeholder="VOCER-1K"></div>
-          <div class="fg"><label>User ID Diizinkan <small style="color:var(--muted)">pisahkan koma</small></label><input id="tg-allowed" placeholder="123456,789012"></div>
-          <div class="fg2">
-            <div class="fg"><label>Laporan Harian</label><select id="tg-notif-daily"><option value="true">Aktif</option><option value="false">Nonaktif</option></select></div>
-            <div class="fg"><label>Jam Laporan</label><input id="tg-daily-time" type="time" value="23:59"></div>
+
+          <div class="fg">
+            <label>Ganti Bot Token <small style="color:var(--muted)">(kosongkan jika tidak diganti)</small></label>
+            <input id="tg-token" placeholder="1234567890:ABCdef..." type="password" autocomplete="off">
           </div>
-          <div class="fg"><label>Notif Penjualan</label><select id="tg-notif-sale"><option value="false">Nonaktif</option><option value="true">Aktif</option></select></div>
-          <div class="fg"><label>Bot Aktif</label><select id="tg-enabled"><option value="true">Aktif</option><option value="false">Nonaktif</option></select></div>
-          <button class="btn b-p" onclick="saveTelegramConfig()"><i class="fa fa-save"></i> Simpan Pengaturan</button>
+
+          <div class="fg">
+            <label>Telegram ID Admin <small style="color:var(--muted)">Admin menerima notif & bisa approve topup / agen</small></label>
+            <input id="tg-chatid" placeholder="5510679225">
+          </div>
+
+          <div class="fg">
+            <label>Router Session</label>
+            <select id="tg-session"><option value="">Pilih router...</option></select>
+          </div>
+
+          <div class="fg">
+            <label>Mode</label>
+            <select id="tg-mode" style="pointer-events:none;opacity:.7">
+              <option value="longpolling">Long Polling (IP, tanpa HTTPS)</option>
+            </select>
+            <small style="color:var(--muted);font-size:.73rem">Mode Long Polling berjalan otomatis di dalam server</small>
+          </div>
+
+          <div class="fg">
+            <label>User ID Diizinkan Beli Voucher <small style="color:var(--muted)">pisahkan koma, kosong = semua reseller terdaftar</small></label>
+            <input id="tg-allowed" placeholder="123456,789012 (opsional)">
+          </div>
+
+          <div class="fg2">
+            <div class="fg">
+              <label>Laporan Harian Otomatis</label>
+              <select id="tg-notif-daily"><option value="true">Aktif</option><option value="false">Nonaktif</option></select>
+            </div>
+            <div class="fg">
+              <label>Jam Laporan</label>
+              <input id="tg-daily-time" type="time" value="23:59">
+            </div>
+          </div>
+
+          <div class="fg">
+            <label>Notifikasi Setiap Penjualan</label>
+            <select id="tg-notif-sale"><option value="false">Nonaktif</option><option value="true">Aktif (kirim ke Admin ID)</option></select>
+          </div>
+
+          <div class="fg">
+            <label>Status Bot</label>
+            <select id="tg-enabled"><option value="true">Aktif — Bot berjalan</option><option value="false">Nonaktif — Bot dihentikan</option></select>
+          </div>
+
+          <button class="btn b-p" style="width:100%;justify-content:center;padding:10px;margin-top:4px" onclick="saveTelegramConfig()">
+            <i class="fa fa-save"></i> Simpan Pengaturan
+          </button>
           <div class="err" id="tg-err" style="margin-top:8px"></div>
         </div>
 
@@ -1986,28 +2033,42 @@ async function loadTgInfo() {
   document.getElementById('tg-chatid').value = cfg.chatId || '';
   const tgSel = document.getElementById('tg-session');
   if (tgSel && cfg.sessionId) tgSel.value = cfg.sessionId;
-  document.getElementById('tg-def-prof').value = cfg.defaultProfile || '';
+
   document.getElementById('tg-allowed').value = (cfg.allowedUsers||[]).join(',');
   document.getElementById('tg-notif-daily').value = cfg.notifDaily !== false ? 'true' : 'false';
   document.getElementById('tg-daily-time').value = cfg.dailyTime || '23:59';
   document.getElementById('tg-notif-sale').value = cfg.notifSale ? 'true' : 'false';
   document.getElementById('tg-enabled').value = cfg.botEnabled !== false ? 'true' : 'false';
 
-  // Bot info (try get bot info from Telegram API if token exists)
+  // Bot info
   botRunning = cfg.botEnabled !== false && !!cfg.token;
   document.getElementById('tg-bot-router').textContent = cfg.sessionId || '—';
-  document.getElementById('tg-admin-id').textContent = cfg.chatId || '—';
-  document.getElementById('tg-bot-name').textContent = cfg.token ? 'Terkonfigurasi' : '—';
-  document.getElementById('tg-bot-username').textContent = cfg.token ? '@bot' : '—';
+  document.getElementById('tg-admin-id').textContent   = cfg.chatId    || '—';
+  // Fetch real bot info from Telegram
+  if (cfg.token && !cfg.token.includes('...')) {
+    fetchBotInfo(cfg.token);
+  } else if (cfg.token) {
+    document.getElementById('tg-bot-name').textContent     = 'Terkonfigurasi';
+    document.getElementById('tg-bot-username').textContent = '(token tersimpan)';
+  } else {
+    document.getElementById('tg-bot-name').textContent     = '—';
+    document.getElementById('tg-bot-username').textContent = '—';
+  }
 
   const statusBadge = document.getElementById('tg-status-badge');
   const toggleBtn = document.getElementById('tg-toggle-btn');
   if (botRunning) {
     statusBadge.innerHTML = '<span class="tg-badge running"><i class="fa fa-circle"></i> Running</span>';
-    toggleBtn.className = 'btn b-stop'; toggleBtn.innerHTML = '<i class="fa fa-stop-circle"></i> Stop Bot';
+    toggleBtn.style.background = '#f8514918';
+    toggleBtn.style.color = 'var(--red)';
+    toggleBtn.style.border = '1px solid #f8514940';
+    toggleBtn.innerHTML = '<i class="fa fa-stop-circle"></i> Stop Bot';
   } else {
     statusBadge.innerHTML = '<span class="tg-badge stopped">● Stopped</span>';
-    toggleBtn.className = 'btn b-start'; toggleBtn.innerHTML = '<i class="fa fa-play-circle"></i> Start Bot';
+    toggleBtn.style.background = '#3fb95018';
+    toggleBtn.style.color = 'var(--green)';
+    toggleBtn.style.border = '1px solid #3fb95040';
+    toggleBtn.innerHTML = '<i class="fa fa-play-circle"></i> Start Bot';
   }
 
   // Logs
@@ -2032,7 +2093,7 @@ async function saveTelegramConfig() {
   const body = {
     ...(token ? { token } : {}),
     chatId, sessionId,
-    defaultProfile: v('tg-def-prof').trim(),
+
     allowedUsers: allowedRaw ? allowedRaw.split(',').map(x=>x.trim()).filter(Boolean) : [],
     notifSale: v('tg-notif-sale') === 'true',
     notifDaily: v('tg-notif-daily') === 'true',
@@ -3433,6 +3494,17 @@ async function fetchProfileMeta(profileName) {
 // ════════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════════
+
+async function fetchBotInfo(token) {
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${token}/getMe`).then(r=>r.json());
+    if (r.ok) {
+      document.getElementById('tg-bot-name').textContent     = r.result.first_name || '—';
+      document.getElementById('tg-bot-username').textContent = '@' + (r.result.username || '—');
+    }
+  } catch {}
+}
+
 initTheme();
 startClock();
 checkAuth();
