@@ -1,0 +1,21 @@
+{
+  "adminUser": "mikhmon",
+  "adminPass": "XWpJ7BgEN5kKBSL8FeoXAw==:zW+CktFEWGSGKU68fQ95oQ==",
+  "sessions": {
+    "SIWARNET": {
+      "id": "SIWARNET",
+      "name": "RB450GX4",
+      "ip": "10.201.1.1",
+      "port": 8728,
+      "user": "JULZ",
+      "password": "d9CNPT16M5fpjd+X/bQzcw==:E+mEO0HIhKRUDHFwpBdCGw==",
+      "hotspotName": "",
+      "dnsName": "",
+      "currency": "Rp",
+      "reloadInterval": 10,
+      "iface": "ether1",
+      "idleTo": 0,
+      "livereport": "enable"
+    }
+  }
+}
