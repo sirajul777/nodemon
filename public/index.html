@@ -1528,6 +1528,7 @@ function loadPage(pg) {
   if (pg === 'reseller') { loadResellers(); return; }
   if (pg === 'voucher-settings') { loadVoucherSettings(); return; }
   if (pg === 'tg-tools') { loadTgInfo(); return; }
+  if (pg === 'tg-reseller') { loadResellerBot(); return; }
   if (!CS) return;
   const map = {
     'dashboard': loadDashboard,
@@ -2519,7 +2520,7 @@ let editRbId = null;
 let rbData   = [];
 
 async function loadResellerBot() {
-  const data = await req('/bot-resellers') || [];
+  const data = await req('/api/bot-resellers') || [];
   rbData = data;
 
   // Stats
