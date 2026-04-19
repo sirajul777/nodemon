@@ -87,6 +87,13 @@ export class ConfigService {
     return user === this.config.adminUser && pass === this.decrypt(this.config.adminPass);
   }
 
+  changeAdminPassword(username: string, newPassword: string): boolean {
+    if (username !== this.config.adminUser) return false;
+    this.config.adminPass = this.encrypt(newPassword);
+    this.save();
+    return true;
+  }
+
   getAdminUser(): string { return this.config.adminUser; }
 
   getSessions(): Record<string, RouterSession> { return this.config.sessions; }
@@ -105,8 +112,8 @@ export class ConfigService {
     this.save();
   }
 
-  getAllSessions():Record<string, RouterSession> {
-    return this.config.sessions;
+  getAllSessions(): Record<string, RouterSession> {
+    return this.config?.sessions;
   }
 
   getDecryptedSession(id: string): RouterSession | null {

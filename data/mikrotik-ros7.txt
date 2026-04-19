@@ -18,19 +18,30 @@ add disabled=no fib name=wan2
 
 ### SETTING BYPASS LAN NETWORK ###
 /ip firewall mangle
-add action=accept chain=prerouting dst-address=172.16.1.0/24 src-address=172.16.1.0/24
+add action=accept chain=prerouting dst-address=192.168.99.0/24 src-address=192.168.99.0/24
 
 
 ### SETTING PCC LOAD BALANCER ###
 /ip firewall mangle
 add action=mark-connection chain=input in-interface=ether1 new-connection-mark=con-wan1 passthrough=yes
 add action=mark-connection chain=input in-interface=ether2 new-connection-mark=con-wan2 passthrough=yes
+add action=mark-connection chain=input in-interface=ether3 new-connection-mark=con-wan3 passthrough=yes
+add action=mark-connection chain=input in-interface=ether4 new-connection-mark=con-wan4 passthrough=yes
 
-add action=mark-connection chain=prerouting in-interface=vlan-20 new-connection-mark=con-wan1 passthrough=yes per-connection-classifier=both-addresses-and-ports:2/0
-add action=mark-connection chain=prerouting in-interface=vlan-20 new-connection-mark=con-wan2 passthrough=yes per-connection-classifier=both-addresses-and-ports:2/1
+add action=mark-connection chain=prerouting in-interface=ether10 new-connection-mark=con-wan1 passthrough=yes per-connection-classifier=both-addresses-and-ports:7/0
+add action=mark-connection chain=prerouting in-interface=ether10 new-connection-mark=con-wan1 passthrough=yes per-connection-classifier=both-addresses-and-ports:7/1
+add action=mark-connection chain=prerouting in-interface=ether10 new-connection-mark=con-wan1 passthrough=yes per-connection-classifier=both-addresses-and-ports:7/2
+add action=mark-connection chain=prerouting in-interface=ether10 new-connection-mark=con-wan2 passthrough=yes per-connection-classifier=both-addresses-and-ports:7/3
+add action=mark-connection chain=prerouting in-interface=ether10 new-connection-mark=con-wan2 passthrough=yes per-connection-classifier=both-addresses-and-ports:7/4
+add action=mark-connection chain=prerouting in-interface=ether10 new-connection-mark=con-wan3 passthrough=yes per-connection-classifier=both-addresses-and-ports:7/5
+add action=mark-connection chain=prerouting in-interface=ether10 new-connection-mark=con-wan3 passthrough=yes per-connection-classifier=both-addresses-and-ports:7/5
+add action=mark-connection chain=prerouting in-interface=ether10 new-connection-mark=con-wan4 passthrough=yes per-connection-classifier=both-addresses-and-ports:7/6
 
-add action=mark-routing chain=prerouting connection-mark=con-wan1 in-interface=vlan-20 new-routing-mark=wan1 passthrough=yes
-add action=mark-routing chain=prerouting connection-mark=con-wan2 in-interface=vlan-20 new-routing-mark=wan2 passthrough=yes
+
+add action=mark-routing chain=prerouting connection-mark=con-wan1 in-interface=ether10 new-routing-mark=wan1 passthrough=yes
+add action=mark-routing chain=prerouting connection-mark=con-wan2 in-interface=ether10 new-routing-mark=wan2 passthrough=yes
+add action=mark-routing chain=prerouting connection-mark=con-wan3 in-interface=ether10 new-routing-mark=wan3 passthrough=yes
+add action=mark-routing chain=prerouting connection-mark=con-wan4 in-interface=ether10 new-routing-mark=wan4 passthrough=yes
 
 
 ### SETTING FIREWALL NAT ###
@@ -42,7 +53,11 @@ add action=masquerade chain=srcnat
 
 ### SETTING GATEWAY & FAILOVER ###
 /ip route
-add disabled=no distance=1 dst-address=0.0.0.0/0 gateway=192.168.100.1 routing-table=wan1
-add disabled=no distance=1 dst-address=0.0.0.0/0 gateway=192.168.200.1 routing-table=wan2
-add check-gateway=ping disabled=no distance=1 dst-address=0.0.0.0/0 gateway=192.168.100.1 routing-table=main
-add check-gateway=ping disabled=no distance=2 dst-address=0.0.0.0/0 gateway=192.168.200.1 routing-table=main
+add disabled=no distance=1 dst-address=0.0.0.0/0 gateway=192.168.3.1 routing-table=wan1
+add disabled=no distance=1 dst-address=0.0.0.0/0 gateway=192.168.2.1 routing-table=wan2
+add disabled=no distance=1 dst-address=0.0.0.0/0 gateway=192.168.4.1 routing-table=wan3
+add disabled=no distance=1 dst-address=0.0.0.0/0 gateway=192.168.1.1 routing-table=wan4
+add check-gateway=ping disabled=no distance=1 dst-address=0.0.0.0/0 gateway=192.168.3.1 routing-table=main
+add check-gateway=ping disabled=no distance=2 dst-address=0.0.0.0/0 gateway=192.168.2.1 routing-table=main
+add check-gateway=ping disabled=no distance=3 dst-address=0.0.0.0/0 gateway=192.168.4.1 routing-table=main
+add check-gateway=ping disabled=no distance=4 dst-address=0.0.0.0/0 gateway=192.168.1.1 routing-table=main

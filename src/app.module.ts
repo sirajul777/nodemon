@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { AuthModule } from './auth/auth.module';
@@ -15,7 +15,9 @@ import { TelegramModule } from './telegram/telegram.module';
 import { BotResellerModule } from './reseller-bot/bot-reseller.module';
 import { BillingModule } from './billing/billing.module';
 import { MobileApiModule } from './mobile-api/mobile-api.module';
-
+import { UserModule } from './user-management/user.module';
+import { AuthService } from './auth/auth.service';
+import { UserService } from './user-management/user.service';
 
 
 @Module({
@@ -23,7 +25,17 @@ import { MobileApiModule } from './mobile-api/mobile-api.module';
     ServeStaticModule.forRoot({ rootPath: join(__dirname, '..', 'public') }),
     ConfigModule, AuthModule, SessionModule, MikrotikModule,
     ReportModule, ResellerModule, VoucherModule,TelegramModule,
-    PppoeModule, VoucherBatchModule,VoucherTypeModule,BotResellerModule,BillingModule,MobileApiModule
+    PppoeModule, VoucherBatchModule,VoucherTypeModule,BotResellerModule,BillingModule,MobileApiModule, UserModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements OnModuleInit {
+  constructor(
+    private readonly authService: AuthService,
+    private readonly userService: UserService,
+  ) {}
+ 
+  onModuleInit() {
+    // Wire UserService into AuthService (avoid circular dependency)
+    this.authService.setUserService(this.userService);
+  }
+}
