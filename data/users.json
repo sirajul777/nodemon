@@ -19,6 +19,28 @@
     },
     "createdAt": "2026-04-19T13:06:06.583Z",
     "note": "",
-    "lastLogin": "2026-04-19T16:03:56.373Z"
+    "lastLogin": "2026-04-19T16:44:54.378Z"
+  },
+  {
+    "id": "USR-1776617241275",
+    "username": "collector",
+    "password": "gXtuCKWC+Vn+EOyBzvYBhw==:4nJasSSP1ZPslZBnRpAvbg==",
+    "name": "MIRZA",
+    "role": "collector",
+    "active": true,
+    "allowedSessions": [],
+    "permissions": {
+      "viewDashboard": false,
+      "manageVoucher": false,
+      "manageBilling": true,
+      "manageReseller": false,
+      "managePppoe": false,
+      "manageHotspot": false,
+      "viewReport": false,
+      "manageSystem": false
+    },
+    "createdAt": "2026-04-19T16:47:21.276Z",
+    "note": "",
+    "lastLogin": "2026-04-19T16:51:24.081Z"
   }
 ]

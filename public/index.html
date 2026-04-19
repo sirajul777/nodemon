@@ -2713,8 +2713,8 @@ async function saveRb() {
 
   showL();
   const d = editRbId
-    ? await fetch(`${API}/reseller-bot/${editRbId}`, { method:'PUT', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }).then(r=>r.json())
-    : await fetch(`${API}/reseller-bot`, { method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }).then(r=>r.json());
+    ? await fetch(`${API}/bot-resellers/${editRbId}`, { method:'PUT', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }).then(r=>r.json())
+    : await fetch(`${API}/bot-resellers`, { method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }).then(r=>r.json());
   hideL();
 
   if (d?.id || d?.name) {
@@ -2726,13 +2726,13 @@ async function saveRb() {
 }
 
 async function toggleRb(id) {
-  const d = await fetch(`${API}/reseller-bot/${id}/toggle`, { method:'PATCH', credentials:'include' }).then(r=>r.json());
+  const d = await fetch(`${API}/bot-resellers/${id}/toggle`, { method:'PATCH', credentials:'include' }).then(r=>r.json());
   if (d?.success) { loadResellerBot(); toast(d.status==='active'?'Reseller diaktifkan':'Reseller dinonaktifkan'); }
 }
 
 async function deleteRb(id) {
   if (!confirm('Hapus reseller ini?')) return;
-  const d = await fetch(`${API}/reseller-bot/${id}`, { method:'DELETE', credentials:'include' }).then(r=>r.json());
+  const d = await fetch(`${API}/bot-resellers/${id}`, { method:'DELETE', credentials:'include' }).then(r=>r.json());
   d?.success ? (loadResellerBot(), toast('Reseller dihapus')) : toast('Gagal', true);
 }
 
@@ -2770,7 +2770,7 @@ async function doTopup() {
   if (!amount || amount < 1) { document.getElementById('tu-err').textContent = 'Jumlah harus lebih dari 0'; return; }
 
   showL();
-  const d = await fetch(`${API}/reseller-bot/${id}/topup`, {
+  const d = await fetch(`${API}/bot-resellers/${id}/topup`, {
     method:'POST', credentials:'include',
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ amount, note, by: document.getElementById('tb-un')?.textContent || 'Admin' })

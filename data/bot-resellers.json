@@ -9,10 +9,9 @@
     "totalVoucher": 10,
     "totalIncome": 9400,
     "status": "active",
-    "markup": 0,
+    "markup": 15,
     "discount": 0,
     "createdAt": "2026-04-19T03:11:13.859Z",
-    "note": "",
-    "lastActive": "2026-04-19T16:14:06.417Z"
+    "note": ""
   }
 ]
