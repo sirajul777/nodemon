@@ -6,7 +6,8 @@ export interface BotReseller {
   id: string;             // unique ID
   name: string;           // display name
   username?: string;      // telegram @username
-  telegramId: string;     // telegram user ID (numeric string)
+  telegramId: string; 
+  session: string,    // telegram user ID (numeric string)
   saldo: number;          // current balance
   totalVoucher: number;   // total vouchers sold
   totalIncome: number;    // total income generated
@@ -72,6 +73,7 @@ export class BotResellerService {
       name:         data.name,
       username:     data.username || '',
       telegramId:   data.telegramId,
+      session: data.session,
       saldo:        data.saldo         ?? (idx >= 0 ? list[idx].saldo : 0),
       totalVoucher: data.totalVoucher  ?? (idx >= 0 ? list[idx].totalVoucher : 0),
       totalIncome:  data.totalIncome   ?? (idx >= 0 ? list[idx].totalIncome : 0),
