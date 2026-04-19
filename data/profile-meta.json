@@ -41,6 +41,12 @@
       "validity": "31d",
       "profileColor": "#eb1eaa",
       "caption": ""
+    },
+    "VOCER-20k": {
+      "price": 16000,
+      "validity": "15d",
+      "profileColor": "#760572",
+      "caption": ""
     }
   }
 }

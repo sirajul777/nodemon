@@ -1,0 +1,32 @@
+[
+  {
+    "reselerId": "RS-1776568273859",
+    "amount": -1000,
+    "type": "purchase",
+    "note": "VOCER-1K",
+    "by": "bot",
+    "at": "2026-04-19T03:54:14.967Z",
+    "balanceBefore": 499000,
+    "balanceAfter": 498000
+  },
+  {
+    "reselerId": "RS-1776568273859",
+    "amount": -1000,
+    "type": "purchase",
+    "note": "Beli VOCER-1K (sr483)",
+    "by": "bot",
+    "at": "2026-04-19T03:28:19.747Z",
+    "balanceBefore": 500000,
+    "balanceAfter": 499000
+  },
+  {
+    "reselerId": "RS-1776568273859",
+    "amount": 500000,
+    "type": "topup",
+    "note": "Topup saldo",
+    "by": "mikhmon",
+    "at": "2026-04-19T03:11:25.655Z",
+    "balanceBefore": 0,
+    "balanceAfter": 500000
+  }
+]

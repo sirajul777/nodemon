@@ -1,0 +1,12 @@
+{
+  "token": "8568577164:AAESiEXw3F2Y1icDQ3AEWfkrxNFQ0ydL-jw",
+  "chatId": "5510679225",
+  "sessionId": "SIWARNET",
+  "notifSale": true,
+  "notifDaily": true,
+  "dailyTime": "23:59",
+  "botEnabled": true,
+  "allowedUsers": [],
+  "defaultProfile": "",
+  "welcomeMsg": ""
+}

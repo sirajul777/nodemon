@@ -5,8 +5,8 @@
     "SIWARNET": {
       "id": "SIWARNET",
       "name": "RB450GX4",
-      "ip": "10.201.1.1",
-      "port": 8728,
+      "ip": "id-27.tunnel.web.id",
+      "port": 5572,
       "user": "JULZ",
       "password": "d9CNPT16M5fpjd+X/bQzcw==:E+mEO0HIhKRUDHFwpBdCGw==",
       "hotspotName": "",
