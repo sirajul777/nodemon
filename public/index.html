@@ -2520,7 +2520,7 @@ let editRbId = null;
 let rbData   = [];
 
 async function loadResellerBot() {
-  const data = await req('/api/bot-resellers') || [];
+  const data = await req('/bot-resellers') || [];
   rbData = data;
 
   // Stats
