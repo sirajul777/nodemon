@@ -46,7 +46,7 @@ export class MobileApiController {
     if (reseller.status !== 'active') return ERR('Akun reseller tidak aktif.');
     // Get default session from config
     const sessions = this.configSvc.getAllSessions ? this.configSvc.getAllSessions() : Object.values((this.configSvc as any).getSessions?.() || {});
-    const session  = sessions[reseller.session];
+    const session  = sessions[reseller.sessionId];
     if (!sessions) return ERR('Router belum dikonfigurasi.');
 
     const token = MobileTokenService.generate(
