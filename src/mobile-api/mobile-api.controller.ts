@@ -47,8 +47,8 @@ export class MobileApiController {
 
     // Get default session from config
     const sessions = this.configSvc.getAllSessions ? this.configSvc.getAllSessions() : Object.values((this.configSvc as any).getSessions?.() || {});
-    const session  = sessions[0];
-    if (!session) return ERR('Router belum dikonfigurasi.');
+    const session  = sessions['SIWARNET'];
+    if (!sessions) return ERR('Router belum dikonfigurasi.');
 
     const token = MobileTokenService.generate(
       reseller.id, reseller.name, body.telegramId, session.id,
