@@ -5,7 +5,7 @@
   "notifSale": true,
   "notifDaily": true,
   "dailyTime": "23:59",
-  "botEnabled": false,
+  "botEnabled": true,
   "allowedUsers": [],
   "defaultProfile": "",
   "welcomeMsg": ""

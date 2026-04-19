@@ -2,13 +2,25 @@
   {
     "id": "vt_1776122428982",
     "name": "VOCER 1K",
-    "price": 800,
+    "price": 1000,
     "profile": "VOCER-1K",
     "duration": "3h",
     "codeLength": 6,
     "codeFormat": "upper+digit",
     "maxPerOrder": 10,
     "active": true,
-    "createdAt": "2026-04-19T03:51:37.380Z"
+    "createdAt": "2026-04-19T15:12:03.708Z"
+  },
+  {
+    "id": "vt_1776612903836",
+    "name": "VOCER 2K",
+    "price": 2000,
+    "profile": "VOCER-2k",
+    "duration": "6h",
+    "codeLength": 6,
+    "codeFormat": "upper+digit",
+    "maxPerOrder": 10,
+    "active": true,
+    "createdAt": "2026-04-19T15:35:03.836Z"
   }
 ]

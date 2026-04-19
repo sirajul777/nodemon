@@ -1,6 +1,86 @@
 [
   {
     "reselerId": "RS-1776568273859",
+    "amount": -800,
+    "type": "purchase",
+    "note": "Beli VOCER-1K (xteup)",
+    "by": "bot",
+    "at": "2026-04-19T16:14:06.418Z",
+    "balanceBefore": 491400,
+    "balanceAfter": 490600
+  },
+  {
+    "reselerId": "RS-1776568273859",
+    "amount": -1000,
+    "type": "purchase",
+    "note": "Beli VOCER-1K (6uyjh)",
+    "by": "bot",
+    "at": "2026-04-19T16:13:29.821Z",
+    "balanceBefore": 492400,
+    "balanceAfter": 491400
+  },
+  {
+    "reselerId": "RS-1776568273859",
+    "amount": -800,
+    "type": "purchase",
+    "note": "VOCER-1K",
+    "by": "bot",
+    "at": "2026-04-19T16:05:24.769Z",
+    "balanceBefore": 493200,
+    "balanceAfter": 492400
+  },
+  {
+    "reselerId": "RS-1776568273859",
+    "amount": -1000,
+    "type": "purchase",
+    "note": "Beli VOCER-1K (kzcsz)",
+    "by": "bot",
+    "at": "2026-04-19T15:29:58.187Z",
+    "balanceBefore": 494200,
+    "balanceAfter": 493200
+  },
+  {
+    "reselerId": "RS-1776568273859",
+    "amount": -800,
+    "type": "purchase",
+    "note": "VOCER-1K",
+    "by": "bot",
+    "at": "2026-04-19T15:29:25.714Z",
+    "balanceBefore": 495000,
+    "balanceAfter": 494200
+  },
+  {
+    "reselerId": "RS-1776568273859",
+    "amount": -1000,
+    "type": "purchase",
+    "note": "VOCER-1K",
+    "by": "bot",
+    "at": "2026-04-19T15:25:46.083Z",
+    "balanceBefore": 496000,
+    "balanceAfter": 495000
+  },
+  {
+    "reselerId": "RS-1776568273859",
+    "amount": -1000,
+    "type": "purchase",
+    "note": "Beli VOCER-1K (nutxx)",
+    "by": "bot",
+    "at": "2026-04-19T15:24:56.124Z",
+    "balanceBefore": 497000,
+    "balanceAfter": 496000
+  },
+  {
+    "reselerId": "RS-1776568273859",
+    "amount": -1000,
+    "type": "purchase",
+    "note": "Beli VOCER-1K (hekuv)",
+    "by": "bot",
+    "at": "2026-04-19T15:18:10.991Z",
+    "balanceBefore": 498000,
+    "balanceAfter": 497000
+  },
+  {
+    "reselerId": "RS-1776568273859",
     "amount": -1000,
     "type": "purchase",
     "note": "VOCER-1K",

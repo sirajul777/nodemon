@@ -247,6 +247,7 @@ export class TelegramService implements OnModuleInit {
     this.logger.log('Telegram bot polling stopped');
   }
 
+
   // ── Message Handler ───────────────────────────────────
 
   private async handleMessage(msg: any): Promise<void> {
@@ -369,13 +370,13 @@ export class TelegramService implements OnModuleInit {
       const isIndo = INDO_CURR.includes(s.currency);
 
       // Use VoucherType config if available, else fallback to MikroTik profiles
-      let items: Array<{ id: string; name: string; price: number; profile: string; duration: string; _vt?: VoucherType }> = [];
+      let items: Array<{ id: string; name: string; price: number;sprice:number; profile: string; duration: string;validty?: string; _vt?: VoucherType, }> = [];
 
       if (this.vtService) {
         const vtList = this.vtService.getActive();
         if (vtList.length > 0) {
           items = vtList.map(vt => ({
-            id: vt.id, name: vt.name, price: vt.price,
+            id: vt.id, name: vt.name, price: vt.price,sprice: vt.price,
             profile: vt.profile, duration: vt.duration, _vt: vt,
           }));
         }
@@ -391,7 +392,7 @@ export class TelegramService implements OnModuleInit {
         items = profiles
           .map(p => {
             const ol = this.parseOnLogin(p['on-login'] || '');
-            return { id: p.name, name: p.name, price: ol.sprice || ol.price, profile: p.name, duration: ol.validity };
+            return { id: p.name, name: p.name, price: ol.price, sprice: ol.sprice, profile: p.name, duration: ol.validity, validity: p.validity };
           })
           .filter(p => p.price > 0);
       }
@@ -415,8 +416,8 @@ export class TelegramService implements OnModuleInit {
         for (let j = i; j < Math.min(i + 2, items.length); j++) {
           const item = items[j];
           const fmtPrice = isIndo
-            ? `Rp ${Math.round(item.price).toLocaleString('id-ID')}`
-            : `${s.currency} ${item.price.toFixed(2)}`;
+            ? `Rp ${Math.round(item.sprice).toLocaleString('id-ID')}`
+            : `${s.currency} ${item.sprice.toFixed(2)}`;
           const label = `${emoji} ${item.name} — ${fmtPrice}`;
           row.push({ text: label, callback_data: `${prefix}:${item.id}` });
         }
@@ -456,19 +457,22 @@ export class TelegramService implements OnModuleInit {
     const isIndo = INDO_CURR.includes(s?.currency || '');
 
     // Resolve price and duration from VoucherType or profile on-login
-    const price    = p.price ?? (p._ol ? (p._ol.sprice || p._ol.price) : 0);
-    const duration = p.duration || p._ol?.validity || '';
+    const price    = p.price;
+    const sprice = p.sprice;
+    const duration = p.duration;
+    const aktif = p.validity;
     const displayName = p.name;
     const profileName = p.profile || p.name; // MikroTik profile to use
 
     const fmtPrice = isIndo
-      ? `Rp ${Math.round(price).toLocaleString('id-ID')}`
-      : `${s?.currency || ''} ${Number(price).toFixed(2)}`;
+      ? `Rp ${Math.round(sprice).toLocaleString('id-ID')}`
+      : `${s?.currency || ''} ${Number(sprice).toFixed(2)}`;
 
     const info = [
       `📦 Voucher: <b>${displayName}</b>`,
       `💰 Harga: <b>${fmtPrice}</b>`,
-      duration ? `⏰ Masa aktif: <b>${duration}</b>` : '',
+      `⏰ Masa aktif: <b>${duration}</b>`,
+      // `⏰ Masa berlaku: <b>${aktif}</b>`,
       (p._vt?.codeLength) ? `🔑 Kode: ${p._vt.codeLength} karakter` : '',
     ].filter(Boolean).join('\n');
 
@@ -686,7 +690,7 @@ export class TelegramService implements OnModuleInit {
             reply_markup: {
               inline_keyboard: [[
                 { text: '🎟️ Beli Lagi', callback_data: `beli_prof:${profileName}` },
-                { text: '📋 Lihat Profile', callback_data: 'show_profil' },
+                // { text: '📋 Lihat Profile', callback_data: 'show_profil' },
               ]],
             },
           });
@@ -700,9 +704,10 @@ export class TelegramService implements OnModuleInit {
         if (this.resellerSvc) {
           const reseller = this.resellerSvc.getByTelegramId(userId);
           if (reseller && reseller.status === 'active') {
-            const sellPrice = ol.sprice || ol.price || 0;
-            if (reseller.saldo >= sellPrice) {
-              this.resellerSvc.deductSaldo(userId, sellPrice, profileName);
+            const realprice = ol.price
+            const sellPrice = ol.sprice;
+            if (reseller.saldo >= realprice) {
+              this.resellerSvc.deductSaldo(userId, realprice, profileName);
             } else {
               // Saldo tidak cukup — hapus user yang baru dibuat
               try {

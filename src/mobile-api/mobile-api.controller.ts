@@ -196,9 +196,10 @@ export class MobileApiController {
       const profiles = await client.run('/ip/hotspot/user/profile/print', { '?name': body.profileName });
       if (!profiles[0]) return ERR(`Profile "${body.profileName}" tidak ditemukan`);
       const ol    = this.parseOnLogin(profiles[0]['on-login'] || '');
-      const price = ol.sprice || ol.price || 0;
+      const price = ol.price || 0;
+      const sprice = ol.sprice || 0;
       const resellerPrice = reseller.discount > 0
-        ? Math.round(price * (1 - reseller.discount / 100))
+        ? Math.round(sprice * (1 - reseller.discount / 100))
         : price;
 
       // Cek saldo
@@ -230,7 +231,7 @@ export class MobileApiController {
           profile:     body.profileName,
           validity:    ol.validity || '',
           rateLimit:   profiles[0]['rate-limit'] || '',
-          price:       resellerPrice,
+          price:       sprice,
           comment,
         },
         saldoSebelum: reseller.saldo,
@@ -261,9 +262,10 @@ export class MobileApiController {
       const profiles = await client.run('/ip/hotspot/user/profile/print', { '?name': body.profileName });
       if (!profiles[0]) return ERR(`Profile tidak ditemukan`);
       const ol    = this.parseOnLogin(profiles[0]['on-login'] || '');
-      const price = ol.sprice || ol.price || 0;
+      const price = ol.price || 0;
+      const sprice = ol.sprice || 0;
       const resellerPrice = reseller.discount > 0
-        ? Math.round(price * (1 - reseller.discount / 100))
+        ? Math.round(sprice * (1 - reseller.discount / 100))
         : price;
       const totalCost = resellerPrice * qty;
 
