@@ -385,6 +385,8 @@ select option{background:var(--sb)}
     <a href="#" onclick="go('billing')" id="nav-billing"><i class="fa fa-file-text"></i> Pelanggan Billing</a>
     <a href="#" onclick="go('invoices')" id="nav-invoices"><i class="fa fa-list-alt"></i> Tagihan / Invoice</a>
     <div class="sb-section">System</div>
+    <a href="#" onclick="go('user-management')" id="nav-user-management"><i class="fa fa-users-cog fa-users"></i> User Management</a>
+    <a href="#" onclick="go('change-password')" id="nav-change-password"><i class="fa fa-key"></i> Ganti Password</a>
     <a href="#" onclick="go('mobile-api')" id="nav-mobile-api"><i class="fa fa-mobile"></i> Mobile API</a>
     <a href="#" onclick="go('sessions')" id="nav-sessions"><i class="fa fa-server"></i> Sessions</a>
     <a href="#" onclick="doLogout()"><i class="fa fa-sign-out"></i> Logout</a>
@@ -901,6 +903,62 @@ select option{background:var(--sb)}
 
 
 
+
+    <!-- ══ USER MANAGEMENT ══ -->
+    <div class="page" id="page-user-management">
+      <!-- Role legend -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <div style="background:var(--acc)18;border:1px solid var(--acc)30;border-radius:8px;padding:7px 12px;font-size:.77rem">
+          <b style="color:var(--acc2)">Admin</b> — Akses penuh semua fitur
+        </div>
+        <div style="background:var(--purple)18;border:1px solid var(--purple)30;border-radius:8px;padding:7px 12px;font-size:.77rem">
+          <b style="color:var(--purple)">Reseller</b> — Kelola voucher &amp; laporan
+        </div>
+        <div style="background:var(--green)18;border:1px solid var(--green)30;border-radius:8px;padding:7px 12px;font-size:.77rem">
+          <b style="color:var(--green)">Collector</b> — Kelola billing &amp; tagihan
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd" style="flex-wrap:wrap;gap:8px">
+          <span><i class="fa fa-users"></i> Daftar User Login</span>
+          <button class="btn b-p b-sm ml" onclick="openUmModal()"><i class="fa fa-plus"></i> Tambah User</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr><th>Username</th><th>Nama</th><th>Role</th><th>Akses Router</th><th>Status</th><th>Login Terakhir</th><th>Aksi</th></tr>
+            </thead>
+            <tbody id="t-users"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ CHANGE PASSWORD ══ -->
+    <div class="page" id="page-change-password">
+      <div class="card" style="max-width:480px">
+        <div class="card-hd"><i class="fa fa-key"></i> Ganti Password Login</div>
+        <div class="info-box" style="margin-bottom:14px">
+          <i class="fa fa-info-circle"></i> Ganti password untuk akun <b id="cp-username-label">—</b> yang sedang login.
+        </div>
+        <div class="fg">
+          <label>Password Lama</label>
+          <input type="password" id="cp-old" class="form-input" placeholder="Password saat ini">
+        </div>
+        <div class="fg">
+          <label>Password Baru <small style="color:var(--muted)">min. 4 karakter</small></label>
+          <input type="password" id="cp-new" class="form-input" placeholder="Password baru">
+        </div>
+        <div class="fg">
+          <label>Konfirmasi Password Baru</label>
+          <input type="password" id="cp-confirm" class="form-input" placeholder="Ulangi password baru">
+        </div>
+        <div class="err" id="cp-err" style="margin-bottom:10px"></div>
+        <button class="btn b-p" onclick="doChangePassword()"><i class="fa fa-save"></i> Simpan Password Baru</button>
+      </div>
+    </div>
+
     <!-- ══ MOBILE API ══ -->
     <div class="page" id="page-mobile-api">
       <div class="card" style="margin-bottom:14px">
@@ -1077,6 +1135,55 @@ select option{background:var(--sb)}
 </div><!-- /main -->
 
 <!-- ══ MODALS ══ -->
+<!-- User Modal -->
+<div class="ov" id="m-um"><div class="modal" style="width:560px;max-height:92vh;overflow-y:auto">
+  <h3><i class="fa fa-user-plus"></i> <span id="mum-ttl">Tambah User</span></h3>
+
+  <div class="fg2">
+    <div class="fg"><label>Username <small style="color:var(--muted)">untuk login</small></label><input id="mum-un" placeholder="user01" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')"></div>
+    <div class="fg"><label>Nama Lengkap</label><input id="mum-nm" placeholder="Nama pengguna"></div>
+  </div>
+  <div class="fg2">
+    <div class="fg"><label>Password <small id="mum-pw-hint" style="color:var(--muted)"></small></label><input type="password" id="mum-pw" placeholder="min. 4 karakter"></div>
+    <div class="fg"><label>Role</label>
+      <select id="mum-role" onchange="onRoleChange()">
+        <option value="admin">Admin — Akses Penuh</option>
+        <option value="reseller">Reseller — Voucher & Laporan</option>
+        <option value="collector">Collector — Billing & Tagihan</option>
+      </select>
+    </div>
+  </div>
+  <div class="fg">
+    <label>Akses Router <small style="color:var(--muted)">kosong = semua router</small></label>
+    <div id="mum-sessions-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:5px"></div>
+  </div>
+
+  <hr style="border-color:var(--border);margin:14px 0">
+  <div style="font-size:.8rem;font-weight:600;color:var(--muted);margin-bottom:10px">
+    <i class="fa fa-shield"></i> Permissions — centang untuk mengizinkan
+  </div>
+  <div id="mum-perms" style="display:grid;grid-template-columns:1fr 1fr;gap:6px"></div>
+
+  <div class="fg" style="margin-top:14px"><label>Catatan <small style="color:var(--muted)">(opsional)</small></label><input id="mum-note" placeholder="Catatan tentang user ini"></div>
+  <div class="fg"><label>Status</label><select id="mum-active"><option value="true">Aktif</option><option value="false">Nonaktif</option></select></div>
+
+  <div class="err" id="mum-err"></div>
+  <div class="mfoot"><button class="btn b-s" onclick="closeM('m-um')">Batal</button><button class="btn b-p" onclick="saveUm()"><i class="fa fa-save"></i> Simpan</button></div>
+</div></div>
+
+<!-- Reset Password Modal -->
+<div class="ov" id="m-reset-pw"><div class="modal" style="width:400px">
+  <h3><i class="fa fa-key"></i> Reset Password</h3>
+  <p style="color:var(--muted);font-size:.83rem;margin-bottom:14px">
+    Reset password untuk user <b id="rpw-name"></b>. User harus ganti password setelah login.
+  </p>
+  <div class="fg"><label>Password Baru</label><input type="password" id="rpw-new" placeholder="min. 4 karakter"></div>
+  <div class="fg"><label>Konfirmasi</label><input type="password" id="rpw-confirm" placeholder="ulangi password baru"></div>
+  <div class="err" id="rpw-err"></div>
+  <div class="mfoot"><button class="btn b-s" onclick="closeM('m-reset-pw')">Batal</button><button class="btn b-p" onclick="doResetPw()"><i class="fa fa-check"></i> Reset Password</button></div>
+</div></div>
+
+
 <!-- Billing Customer Modal -->
 <div class="ov" id="m-bill"><div class="modal" style="width:560px;max-height:90vh;overflow-y:auto">
   <h3><i class="fa fa-user-plus"></i> <span id="mbill-ttl">Tambah Pelanggan</span></h3>
@@ -1484,9 +1591,11 @@ async function doLogin() {
   if (d.success) {
     document.getElementById('ls').classList.add('hide');
     document.getElementById('le').textContent = '';
-    document.getElementById('tb-un').textContent = d.username || 'Admin';
-    document.getElementById('tb-av').textContent = (d.username||'A')[0].toUpperCase();
-    await loadSessions(); go('sessions');
+    const dispName = d.username || 'Admin';
+    document.getElementById('tb-un').textContent = dispName;
+    document.getElementById('tb-av').textContent = dispName[0].toUpperCase();
+    if (d.role && d.role !== 'admin') applyRoleNav(d.role, d.permissions);
+    await loadSessions(); go(d.role === 'collector' ? 'billing' : d.role === 'reseller' ? 'batch' : 'sessions');
   } else {
     document.getElementById('le').textContent = d.message || 'Login gagal';
   }
@@ -1507,7 +1616,7 @@ const PN = {
   'hs-profiles':'User Profiles', 'ppp-active':'PPPoE Active', 'ppp-users':'PPPoE Users',
   'ppp-profiles':'PPPoE Profiles', reseller:'Reseller', batch:'Batch Voucher',
   'voucher-settings':'Settings Voucher', selling:'Selling Report', resume:'Resume Report',
-  live:'Live Report', 'tg-tools':'Telegram Bot Tools','bot-reseller':'Reseller Bot','billing':'Pelanggan Billing','invoices':'Tagihan / Invoice','mobile-api':'Mobile API Docs', sessions:'Sessions'
+  live:'Live Report', 'tg-tools':'Telegram Bot Tools','bot-reseller':'Reseller Bot','billing':'Pelanggan Billing','invoices':'Tagihan / Invoice','user-management':'User Management','change-password':'Ganti Password','mobile-api':'Mobile API Docs', sessions:'Sessions'
 };
 
 function go(pg) {
@@ -1528,7 +1637,6 @@ function loadPage(pg) {
   if (pg === 'reseller') { loadResellers(); return; }
   if (pg === 'voucher-settings') { loadVoucherSettings(); return; }
   if (pg === 'tg-tools') { loadTgInfo(); return; }
-  if (pg === 'tg-reseller') { loadResellerBot(); return; }
   if (!CS) return;
   const map = {
     'dashboard': loadDashboard,
@@ -2106,9 +2214,7 @@ async function saveTelegramConfig() {
 }
 
 async function testTelegram() {
-  const cfg = await req('/telegram/config');
-  if (!cfg) return;
-  const token = cfg.token;
+  const token = v('tg-token').trim();
   const chatId = v('tg-chatid').trim();
   const sessionId = v('tg-session');
   if (!chatId) { se('tg-test-err', 'Chat ID wajib'); return; }
@@ -2124,7 +2230,7 @@ async function toggleBot() {
   if (!cfg) return;
   const newEnabled = !botRunning;
   // Save with toggled enabled
-  await post('/telegram/config', { ...cfg, botEnabled: newEnabled });
+  await post('/telegram/config', { ...cfg, token: '', botEnabled: newEnabled });
   toast(newEnabled ? '✓ Bot diaktifkan' : 'Bot dihentikan');
   await loadTgInfo();
 }
@@ -2520,7 +2626,7 @@ let editRbId = null;
 let rbData   = [];
 
 async function loadResellerBot() {
-  const data = await req('/bot-resellers') || [];
+  const data = await req('/reseller-bot') || [];
   rbData = data;
 
   // Stats
@@ -2602,8 +2708,8 @@ async function saveRb() {
 
   showL();
   const d = editRbId
-    ? await fetch(`${API}/bot-resellers/${editRbId}`, { method:'PUT', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }).then(r=>r.json())
-    : await fetch(`${API}/bot-resellers`, { method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }).then(r=>r.json());
+    ? await fetch(`${API}/reseller-bot/${editRbId}`, { method:'PUT', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }).then(r=>r.json())
+    : await fetch(`${API}/reseller-bot`, { method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }).then(r=>r.json());
   hideL();
 
   if (d?.id || d?.name) {
@@ -2615,13 +2721,13 @@ async function saveRb() {
 }
 
 async function toggleRb(id) {
-  const d = await fetch(`${API}/bot-resellers/${id}/toggle`, { method:'PATCH', credentials:'include' }).then(r=>r.json());
+  const d = await fetch(`${API}/reseller-bot/${id}/toggle`, { method:'PATCH', credentials:'include' }).then(r=>r.json());
   if (d?.success) { loadResellerBot(); toast(d.status==='active'?'Reseller diaktifkan':'Reseller dinonaktifkan'); }
 }
 
 async function deleteRb(id) {
   if (!confirm('Hapus reseller ini?')) return;
-  const d = await fetch(`${API}/bot-resellers/${id}`, { method:'DELETE', credentials:'include' }).then(r=>r.json());
+  const d = await fetch(`${API}/reseller-bot/${id}`, { method:'DELETE', credentials:'include' }).then(r=>r.json());
   d?.success ? (loadResellerBot(), toast('Reseller dihapus')) : toast('Gagal', true);
 }
 
@@ -2659,7 +2765,7 @@ async function doTopup() {
   if (!amount || amount < 1) { document.getElementById('tu-err').textContent = 'Jumlah harus lebih dari 0'; return; }
 
   showL();
-  const d = await fetch(`${API}/bot-resellers/${id}/topup`, {
+  const d = await fetch(`${API}/reseller-bot/${id}/topup`, {
     method:'POST', credentials:'include',
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ amount, note, by: document.getElementById('tb-un')?.textContent || 'Admin' })
@@ -2699,6 +2805,262 @@ function showRbDetail(id) {
 
 
 
+
+
+// ════════════════════════════════════════════════
+// USER MANAGEMENT
+// ════════════════════════════════════════════════
+let editUmId = null, resetPwId = null;
+let umRoleDefaults = {};
+let umSessions = [];
+
+const PERM_LABELS = {
+  viewDashboard:  'Lihat Dashboard',
+  manageVoucher:  'Kelola Voucher',
+  manageBilling:  'Kelola Billing/Tagihan',
+  manageReseller: 'Kelola Reseller',
+  managePppoe:    'Kelola PPPoE',
+  manageHotspot:  'Kelola Hotspot',
+  viewReport:     'Lihat Laporan',
+  manageSystem:   'Pengaturan Sistem',
+};
+
+const ROLE_COLOR = { admin:'var(--acc2)', reseller:'var(--purple)', collector:'var(--green)' };
+const ROLE_BADGE = { admin:'b-bl', reseller:'b-pu', collector:'b-gr' };
+
+async function loadUserManagement() {
+  // Fetch role defaults + sessions + users in parallel
+  const [users, defaults, sessions] = await Promise.all([
+    req('/users'),
+    req('/users/roles/defaults'),
+    req('/sessions'),
+  ]);
+  umRoleDefaults = defaults || {};
+  umSessions = sessions || [];
+
+  const tb = document.getElementById('t-users');
+  if (!tb) return;
+  const list = users || [];
+
+  tb.innerHTML = list.length ? list.map(u => {
+    const lastLogin = u.lastLogin
+      ? new Date(u.lastLogin).toLocaleString('id-ID', {dateStyle:'short', timeStyle:'short'})
+      : 'Belum pernah';
+    const sessions = u.allowedSessions?.length
+      ? u.allowedSessions.join(', ')
+      : '<span style="color:var(--muted)">Semua router</span>';
+    return `<tr>
+      <td>
+        <div style="font-weight:600;font-family:monospace">${u.username}</div>
+        <div style="font-size:.72rem;color:var(--muted)">${u.id}</div>
+      </td>
+      <td>${u.name}</td>
+      <td><span class="badge ${ROLE_BADGE[u.role]||'b-mu'}">${u.role}</span></td>
+      <td style="font-size:.78rem">${sessions}</td>
+      <td>
+        <span class="badge ${u.active?'b-gr':'b-rd'}" style="cursor:pointer" onclick="toggleUm('${u.id}')">
+          ${u.active ? 'Aktif' : 'Nonaktif'}
+        </span>
+      </td>
+      <td style="font-size:.75rem;color:var(--muted)">${lastLogin}</td>
+      <td>
+        <div style="display:flex;gap:4px">
+          <button class="btn b-w b-sm" onclick="editUmFn('${u.id}')" title="Edit"><i class="fa fa-pencil"></i></button>
+          <button class="btn b-s b-sm" onclick="openResetPw('${u.id}','${u.name}')" title="Reset Password"><i class="fa fa-key"></i></button>
+          <button class="btn b-d b-sm" onclick="deleteUm('${u.id}')" title="Hapus"><i class="fa fa-trash"></i></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('')
+  : `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">
+      <i class="fa fa-users" style="font-size:1.5rem;display:block;margin-bottom:8px;opacity:.3"></i>
+      Belum ada user tambahan. Klik "+ Tambah User".
+    </td></tr>`;
+}
+
+async function openUmModal(data = null) {
+  editUmId = data?.id || null;
+  document.getElementById('mum-ttl').textContent = data ? 'Edit User' : 'Tambah User';
+  document.getElementById('mum-err').textContent = '';
+
+  // Fetch defaults if not loaded
+  if (!Object.keys(umRoleDefaults).length) {
+    const d = await req('/users/roles/defaults');
+    umRoleDefaults = d || {};
+  }
+  if (!umSessions.length) {
+    const s = await req('/sessions');
+    umSessions = s || [];
+  }
+
+  document.getElementById('mum-un').value     = data?.username || '';
+  document.getElementById('mum-un').disabled  = !!data;
+  document.getElementById('mum-nm').value     = data?.name || '';
+  document.getElementById('mum-pw').value     = '';
+  document.getElementById('mum-pw-hint').textContent = data ? '(kosong = tidak berubah)' : 'wajib diisi';
+  document.getElementById('mum-role').value   = data?.role || 'reseller';
+  document.getElementById('mum-note').value   = data?.note || '';
+  document.getElementById('mum-active').value = String(data?.active !== false);
+
+  // Sessions checkboxes
+  const sessEl = document.getElementById('mum-sessions-list');
+  sessEl.innerHTML = umSessions.map(s =>
+    `<label style="display:flex;align-items:center;gap:5px;background:var(--card2);border-radius:6px;padding:5px 9px;cursor:pointer;font-size:.8rem">
+      <input type="checkbox" value="${s.id}" ${(!data?.allowedSessions?.length || data?.allowedSessions?.includes(s.id)) ? 'checked' : ''}>
+      ${s.name} (${s.ip})
+    </label>`
+  ).join('') || '<span style="color:var(--muted);font-size:.8rem">Tidak ada router terkonfigurasi</span>';
+
+  renderPermissions(data?.role || 'reseller', data?.permissions);
+  document.getElementById('m-um').classList.add('show');
+}
+
+function onRoleChange() {
+  const role = document.getElementById('mum-role').value;
+  renderPermissions(role, null);
+}
+
+function renderPermissions(role, override) {
+  const defaults = umRoleDefaults[role] || {};
+  const perms    = override ? { ...defaults, ...override } : defaults;
+  const el       = document.getElementById('mum-perms');
+  el.innerHTML   = Object.entries(PERM_LABELS).map(([key, label]) =>
+    `<label style="display:flex;align-items:center;gap:7px;padding:7px 10px;background:var(--card2);border-radius:7px;cursor:pointer;font-size:.8rem">
+      <input type="checkbox" id="perm-${key}" ${perms[key] ? 'checked' : ''}>
+      ${label}
+    </label>`
+  ).join('');
+}
+
+async function editUmFn(id) {
+  const u = await req('/users/' + id);
+  if (u && !u.error) openUmModal(u);
+}
+
+async function saveUm() {
+  const un   = v('mum-un').trim();
+  const nm   = v('mum-nm').trim();
+  const pw   = v('mum-pw').trim();
+  const role = v('mum-role');
+  if (!un || !nm) { se('mum-err','Username dan Nama wajib diisi'); return; }
+  if (!editUmId && !pw) { se('mum-err','Password wajib diisi untuk user baru'); return; }
+  if (pw && pw.length < 4) { se('mum-err','Password minimal 4 karakter'); return; }
+
+  // Collect permissions
+  const permissions = {};
+  Object.keys(PERM_LABELS).forEach(key => {
+    const el = document.getElementById('perm-' + key);
+    if (el) permissions[key] = el.checked;
+  });
+
+  // Collect sessions
+  const sessionChecks = document.querySelectorAll('#mum-sessions-list input[type=checkbox]');
+  const allChecked    = [...sessionChecks].every(c => c.checked);
+  const allowedSessions = allChecked ? [] : [...sessionChecks].filter(c => c.checked).map(c => c.value);
+
+  const body = {
+    username: un, name: nm, role,
+    allowedSessions, permissions,
+    note: v('mum-note'),
+    active: v('mum-active') === 'true',
+    ...(pw ? { password: pw } : {}),
+  };
+
+  showL();
+  const d = editUmId
+    ? await fetch(`${API}/users/${editUmId}`, { method:'PUT', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }).then(r=>r.json())
+    : await post('/users', body);
+  hideL();
+
+  if (d?.id || d?.username) {
+    closeM('m-um'); loadUserManagement();
+    toast(editUmId ? 'User diupdate!' : 'User berhasil ditambahkan!');
+  } else {
+    se('mum-err', d?.error || 'Gagal menyimpan');
+  }
+}
+
+async function toggleUm(id) {
+  const d = await fetch(`${API}/users/${id}/toggle`, {method:'PATCH',credentials:'include'}).then(r=>r.json());
+  if (d?.success) { loadUserManagement(); toast(d.active?'User diaktifkan':'User dinonaktifkan'); }
+  else toast(d?.error || 'Gagal', true);
+}
+
+async function deleteUm(id) {
+  if (!confirm('Hapus user ini? Tindakan tidak bisa dibatalkan.')) return;
+  showL();
+  const d = await fetch(`${API}/users/${id}`, {method:'DELETE',credentials:'include'}).then(r=>r.json());
+  hideL();
+  d?.success ? (loadUserManagement(), toast('User dihapus')) : toast(d?.error || 'Gagal', true);
+}
+
+// ── Reset Password ────────────────────────────────────────────────
+function openResetPw(id, name) {
+  resetPwId = id;
+  document.getElementById('rpw-name').textContent = name;
+  document.getElementById('rpw-new').value = '';
+  document.getElementById('rpw-confirm').value = '';
+  document.getElementById('rpw-err').textContent = '';
+  document.getElementById('m-reset-pw').classList.add('show');
+}
+
+async function doResetPw() {
+  const np = v('rpw-new');
+  const cp = v('rpw-confirm');
+  if (!np) { se('rpw-err','Password baru wajib diisi'); return; }
+  if (np.length < 4) { se('rpw-err','Password minimal 4 karakter'); return; }
+  if (np !== cp) { se('rpw-err','Konfirmasi password tidak cocok'); return; }
+  showL();
+  const d = await post(`/users/${resetPwId}/reset-password`, { newPassword: np });
+  hideL();
+  d?.success ? (closeM('m-reset-pw'), toast('✓ Password berhasil direset!')) : se('rpw-err', d?.error || 'Gagal');
+}
+
+// ════════════════════════════════════════════════
+// CHANGE PASSWORD (own account)
+// ════════════════════════════════════════════════
+function initChangePassword() {
+  // Get current username from session
+  req('/auth/me').then(d => {
+    if (d?.username) {
+      document.getElementById('cp-username-label').textContent = d.username;
+    }
+  });
+  document.getElementById('cp-old').value = '';
+  document.getElementById('cp-new').value = '';
+  document.getElementById('cp-confirm').value = '';
+  document.getElementById('cp-err').textContent = '';
+}
+
+async function doChangePassword() {
+  const old = v('cp-old');
+  const np  = v('cp-new');
+  const cp  = v('cp-confirm');
+  const errEl = document.getElementById('cp-err');
+
+  if (!old) { se('cp-err','Password lama wajib diisi'); return; }
+  if (!np)  { se('cp-err','Password baru wajib diisi'); return; }
+  if (np.length < 4) { se('cp-err','Password baru minimal 4 karakter'); return; }
+  if (np !== cp) { se('cp-err','Konfirmasi password tidak cocok'); return; }
+
+  showL();
+  const d = await fetch(`${API}/auth/change-password`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ oldPassword: old, newPassword: np }),
+  }).then(r => r.json());
+  hideL();
+
+  if (d?.success) {
+    document.getElementById('cp-old').value = '';
+    document.getElementById('cp-new').value = '';
+    document.getElementById('cp-confirm').value = '';
+    toast('✓ Password berhasil diubah! Silakan login ulang.');
+    setTimeout(() => doLogout(), 2500);
+  } else {
+    se('cp-err', d?.error || 'Gagal mengubah password');
+  }
+}
 
 // ════════════════════════════════════════════════
 // MOBILE API DOCS
