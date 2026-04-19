@@ -39,15 +39,14 @@ export class MobileApiController {
    */
   @Post('auth/login')
   @HttpCode(200)
-  async login(@Body() body: { telegramId: string; pin?: string }) {
+  async login(@Body() body: { telegramId: string; pin?: string}) {
     if (!body.telegramId) return ERR('telegramId wajib diisi');
     const reseller = this.resellerSvc.getByTelegramId(body.telegramId);
     if (!reseller) return ERR('Akun reseller tidak ditemukan. Hubungi admin.');
     if (reseller.status !== 'active') return ERR('Akun reseller tidak aktif.');
-
     // Get default session from config
     const sessions = this.configSvc.getAllSessions ? this.configSvc.getAllSessions() : Object.values((this.configSvc as any).getSessions?.() || {});
-    const session  = sessions['SIWARNET'];
+    const session  = sessions[reseller.session];
     if (!sessions) return ERR('Router belum dikonfigurasi.');
 
     const token = MobileTokenService.generate(
