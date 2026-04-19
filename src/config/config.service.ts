@@ -113,7 +113,7 @@ export class ConfigService {
   }
 
   getAllSessions(): Record<string, RouterSession> {
-    return this.config?.sessions;
+    return this.config.sessions;
   }
 
   getDecryptedSession(id: string): RouterSession | null {

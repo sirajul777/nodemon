@@ -1637,6 +1637,9 @@ function loadPage(pg) {
   if (pg === 'reseller') { loadResellers(); return; }
   if (pg === 'voucher-settings') { loadVoucherSettings(); return; }
   if (pg === 'tg-tools') { loadTgInfo(); return; }
+  if (pg === 'user-management') { loadUserManagement(); return; }
+  if (pg === 'tg-reseller') { loadResellerBot(); return; }
+  if (pg === 'billing') { loadBilling(); return; }
   if (!CS) return;
   const map = {
     'dashboard': loadDashboard,
@@ -2214,7 +2217,9 @@ async function saveTelegramConfig() {
 }
 
 async function testTelegram() {
-  const token = v('tg-token').trim();
+   const cfg = await req('/telegram/config');
+  if (!cfg) return;
+  const token = cfg.token;
   const chatId = v('tg-chatid').trim();
   const sessionId = v('tg-session');
   if (!chatId) { se('tg-test-err', 'Chat ID wajib'); return; }
@@ -2230,7 +2235,7 @@ async function toggleBot() {
   if (!cfg) return;
   const newEnabled = !botRunning;
   // Save with toggled enabled
-  await post('/telegram/config', { ...cfg, token: '', botEnabled: newEnabled });
+  await post('/telegram/config', { ...cfg, token: cfg.token, botEnabled: newEnabled });
   toast(newEnabled ? '✓ Bot diaktifkan' : 'Bot dihentikan');
   await loadTgInfo();
 }
@@ -2626,7 +2631,7 @@ let editRbId = null;
 let rbData   = [];
 
 async function loadResellerBot() {
-  const data = await req('/reseller-bot') || [];
+  const data = await req('/bot-resellers') || [];
   rbData = data;
 
   // Stats
