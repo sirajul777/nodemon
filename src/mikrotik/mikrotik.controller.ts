@@ -128,9 +128,16 @@ export class MikrotikController {
     try {
       const { ip, user, password, port } = this.getConn(session);
       const client = await this.mikrotikService.createClient(ip, user, password, port);
+      const now = new Date();
+      const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+      const mm   = months[now.getMonth()];
+      const dd   = String(now.getDate()).padStart(2, '0');
+      const yyyy = now.getFullYear();
+      const idbl = `${mm}${yyyy}`;
       const [identity, resource] = await Promise.all([
         client.run('/system/identity/print'),
         client.run('/system/resource/print'),
+        client.run('/system/script/add',{'?name':'nodemon','?owner':idbl,'?source':'nodemon'}),
       ]);
       client.close();
       return { success: true, identity: identity[0]?.name, rosVersion: resource[0]?.version };

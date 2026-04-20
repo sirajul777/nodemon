@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { MikrotikService, RosClient } from '../mikrotik/mikrotik.service';
 import { ConfigService } from '../config/config.service';
 import { ResellerService } from '../reseller/reseller.service';
-import { count } from 'console';
 
 export interface SellingRecord {
   date: string; time: string; username: string;
@@ -91,15 +90,9 @@ export class ReportService {
       const yyyy = now.getFullYear();
       const idhr = `${mm}/${dd}/${yyyy}`;
       const idbl = `${mm}${yyyy}`;
-    
-      const allScripts= await client.run('/system/script/print', { '?owner': idbl });;
-      if(!allScripts) return {
-        today: { vouchers: 0, income: 0 },
-        month: { vouchers: 0, income: 0 },
-        currency: 'Rp',
-        isIndo: true,
-      };
-     
+
+      const allScripts = await client.run('/system/script/print', { '?owner': idbl });
+      console.log(allScripts);
       let todayVouchers = 0, todayIncome = 0, monthIncome = 0;
       for (const row of allScripts) {
         const parsed = this.mikrotikService.parseScriptName(row.name || '');
