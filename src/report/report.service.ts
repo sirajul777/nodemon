@@ -81,33 +81,46 @@ export class ReportService {
   }
 
   async getLiveReport(sessionId: string) {
-    const { client, currency } = await this.getClient(sessionId);
-    try {
-      const now = new Date();
-      const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
-      const mm   = months[now.getMonth()];
-      const dd   = String(now.getDate()).padStart(2, '0');
-      const yyyy = now.getFullYear();
-      const idhr = `${mm}/${dd}/${yyyy}`;
-      const idbl = `${mm}${yyyy}`;
+  const { client, currency } = await this.getClient(sessionId);
+  try {
+    const now = new Date();
+    const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+    const mm   = months[now.getMonth()];
+    const dd   = String(now.getDate()).padStart(2, '0');
+    const yyyy = now.getFullYear();
+    const idhr = `${mm}/${dd}/${yyyy}`;
+    const idbl = `${mm}${yyyy}`;
 
-      const allScripts = await client.run('/system/script/print', { '?owner': idbl });
-      let todayVouchers = 0, todayIncome = 0, monthIncome = 0;
-      for (const row of allScripts) {
-        const parsed = this.mikrotikService.parseScriptName(row.name || '');
-        monthIncome += parsed.price;
-        if (parsed.date === idhr) { todayVouchers++; todayIncome += parsed.price; }
-      }
-      return {
-        today: { vouchers: todayVouchers, income: todayIncome },
-        month: { vouchers: allScripts.length, income: monthIncome },
-        currency,
-        isIndo: this.configService.isIndoCurrency(currency),
-      };
-    } finally {
-      client.close();
+    // Tambah catch — kalau tidak ada script sama sekali, MikroTik bisa return error
+    let allScripts: any[] = [];
+    try {
+      const result = await client.run('/system/script/print', { '?owner': idbl });
+      allScripts = Array.isArray(result) ? result : [];
+    } catch {
+      // Tidak ada script / belum ada penjualan — aman, lanjut dengan array kosong
+      allScripts = [];
     }
+
+    let todayVouchers = 0, todayIncome = 0, monthIncome = 0;
+
+    for (const row of allScripts) {
+      // Pastikan row dan row.name tidak null/undefined
+      if (!row || !row.name) continue;
+      const parsed = this.mikrotikService.parseScriptName(row.name);
+      monthIncome += parsed.price || 0;
+      if (parsed.date === idhr) { todayVouchers++; todayIncome += parsed.price || 0; }
+    }
+
+    return {
+      today: { vouchers: todayVouchers, income: todayIncome },
+      month: { vouchers: allScripts.length, income: monthIncome },
+      currency,
+      isIndo: this.configService.isIndoCurrency(currency),
+    };
+  } finally {
+    client.close();
   }
+}
 
   async getResumeReport(sessionId: string, idbl: string) {
     const { client, currency } = await this.getClient(sessionId);
