@@ -20,11 +20,21 @@ export class ReportController {
     return this.reportService.getSelling(session, { idhr, idbl, prefix, datacomments, dataprofile, reseller });
   }
 
+  // SESUDAH
   @Get(':session/live')
-  getLive(@Param('session') session: string) {
-    return this.reportService.getLiveReport(session);
+  async getLive(@Param('session') session: string) {
+    try {
+      return await this.reportService.getLiveReport(session);
+    } catch (e) {
+      const error =e;
+      return {
+        today: { vouchers: 0, income: 0 },
+        month: { vouchers: 0, income: 0 },
+        currency: 'Rp',
+        isIndo: true,
+      };
+    }
   }
-
   @Get(':session/resume')
   getResume(@Param('session') session: string, @Query('idbl') idbl: string) {
     if (!idbl) return { error: 'idbl required' };

@@ -2255,19 +2255,23 @@ async function broadcastMsg() {
 // HELPERS
 // ════════════════════════════════════════════════
 // SESUDAH — 401 hanya reload jika bukan dari dashboard
-async function req(path, silent = false) {
+// SESUDAH
+async function req(path) {
   try {
     const r = await fetch(API+path, {credentials:'include'});
+    // Hanya reload jika benar-benar 401 dari auth endpoint
+    // Bukan dari mikrotik/report yang bisa error karena router
     if (r.status === 401) {
-      // Jangan reload jika sedang di dashboard (bisa false positive saat API mikrotik error)
-      const activePage = [...document.querySelectorAll('.page.active')].map(p=>p.id.replace('page-','')).pop();
-      if (activePage !== 'dashboard') { location.reload(); }
+      // Cek dulu apakah ini dari auth, bukan dari API router
+      const isAuthPath = path.includes('/auth/');
+      if (isAuthPath) { location.reload(); }
       return null;
     }
+    // Status 500/error lain — jangan reload, return null saja
+    if (!r.ok) { return null; }
     return await r.json();
   } catch(e) {
-    if (!silent) toast('Error: ' + e.message, true);
-    hideL();
+    // Network error — jangan reload
     return null;
   }
 }
