@@ -19,7 +19,7 @@
     },
     "createdAt": "2026-04-19T13:06:06.583Z",
     "note": "",
-    "lastLogin": "2026-04-19T16:44:54.378Z"
+    "lastLogin": "2026-04-20T04:03:40.290Z"
   },
   {
     "id": "USR-1776617241275",
@@ -30,17 +30,17 @@
     "active": true,
     "allowedSessions": [],
     "permissions": {
-      "viewDashboard": false,
+      "viewDashboard": true,
       "manageVoucher": false,
       "manageBilling": true,
       "manageReseller": false,
       "managePppoe": false,
       "manageHotspot": false,
-      "viewReport": false,
+      "viewReport": true,
       "manageSystem": false
     },
     "createdAt": "2026-04-19T16:47:21.276Z",
     "note": "",
-    "lastLogin": "2026-04-19T16:51:24.081Z"
+    "lastLogin": "2026-04-20T03:43:37.437Z"
   }
 ]
