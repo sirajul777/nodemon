@@ -1756,54 +1756,40 @@ async function testConn(id){showL();const d=await req(`/mikrotik/${id}/connect/t
 // ════════════════════════════════════════════════
 let dashLogs = []; // cache all logs
 
-// SESUDAH — semua fetch pakai .catch(), tidak ada yang bisa crash
 async function loadDashboard() {
   if (!CS) return;
+  // Reset countdown when manually triggered
   countdownVal = REFRESH_INTERVAL;
   updateCountdown();
   try {
-    // Semua request pakai catch individual agar satu gagal tidak crash semua
+    // Parallel fetch
     const [dash, live, pppActive, pppSecrets] = await Promise.all([
-      req(`/mikrotik/${CS}/dashboard`).catch(() => []),
-      req(`/report/${CS}/live`, true).catch(() => []),       // silent = tidak toast error
-      req(`/pppoe/${CS}/active`, true).catch(() => []),
-      req(`/pppoe/${CS}/secrets`, true).catch(() => []),
+      req(`/mikrotik/${CS}/dashboard`),
+      req(`/report/${CS}/live`),
+      req(`/pppoe/${CS}/active`).catch(() => []),
+      req(`/pppoe/${CS}/secrets`).catch(() => []),
     ]);
+    if (!dash) return;
 
-    // Jika dashboard utama gagal, tampilkan pesan error tapi JANGAN reload
-    if (!dash) {
-      document.getElementById('nas-list').innerHTML = `
-        <div style="text-align:center;color:var(--muted);padding:20px">
-          <i class="fa fa-exclamation-triangle" style="color:var(--yellow);font-size:1.5rem;display:block;margin-bottom:8px"></i>
-          Gagal terhubung ke router.<br>
-          <small>Periksa koneksi atau coba refresh.</small>
-        </div>`;
-      // Tetap update stat bar dengan nilai default biar tidak kosong
-      ['db-today-inc','db-month-inc','db-today-vcr','db-month-vcr',
-       'db-hs-online','db-ppp-online','db-hs-total','db-hs-active2',
-       'db-ppp-total','db-ppp-active2'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el && el.textContent === '—') el.textContent = '—';
-      });
-      return;
-    }
-
-    // Stat bar — live bisa null jika gagal, pakai default 0
+    // DENGAN INI
     const isIndo = live?.isIndo ?? true;
-    const cur = live?.currency || 'Rp';
-    const fmt = n => isIndo ? (cur + ' ' + Math.round(n).toLocaleString('id-ID')) : (cur + ' ' + Number(n).toFixed(2));
-    document.getElementById('db-today-inc').textContent  = fmt(live?.today?.income || 0);
-    document.getElementById('db-month-inc').textContent  = fmt(live?.month?.income || 0);
-    document.getElementById('db-today-vcr').textContent  = live?.today?.vouchers ?? '0';
-    document.getElementById('db-month-vcr').textContent  = live?.month?.vouchers ?? '0';
-    document.getElementById('db-hs-online').textContent  = dash.hotspot?.active ?? '0';
-    document.getElementById('db-ppp-online').textContent = (pppActive || []).length;
+    const cur    = live?.currency || 'Rp';
+    const fmt    = n => isIndo
+      ? (cur + ' ' + Math.round(n || 0).toLocaleString('id-ID'))
+      : (cur + ' ' + Number(n || 0).toFixed(2));
+
+    document.getElementById('db-today-inc').textContent  = live?.today  != null ? fmt(live.today.income  || 0) : '—';
+    document.getElementById('db-month-inc').textContent  = live?.month  != null ? fmt(live.month.income  || 0) : '—';
+    document.getElementById('db-today-vcr').textContent  = live?.today?.vouchers ?? '—';
+    document.getElementById('db-month-vcr').textContent  = live?.month?.vouchers ?? '—';
+    document.getElementById('db-hs-online').textContent = dash.hotspot?.active ?? '—';
+    document.getElementById('db-ppp-online').textContent = (pppActive||[]).length;
 
     // HS + PPPoE panels
-    document.getElementById('db-hs-total').textContent   = dash.hotspot?.total ?? '0';
-    document.getElementById('db-hs-active2').textContent = dash.hotspot?.active ?? '0';
-    document.getElementById('db-ppp-total').textContent  = (pppSecrets || []).length;
-    document.getElementById('db-ppp-active2').textContent = (pppActive || []).length;
+    document.getElementById('db-hs-total').textContent = dash.hotspot?.total ?? '—';
+    document.getElementById('db-hs-active2').textContent = dash.hotspot?.active ?? '—';
+    document.getElementById('db-ppp-total').textContent = (pppSecrets||[]).length;
+    document.getElementById('db-ppp-active2').textContent = (pppActive||[]).length;
 
     // Status NAS
     const r = dash.resource || {};
@@ -1843,15 +1829,14 @@ async function loadDashboard() {
         </div>
       </div>`;
 
-    // Activity log — gagal pun tidak masalah
-    const logs = await req(`/mikrotik/${CS}/hotspot/log`, true).catch(() => []);
-    dashLogs = (logs||[]).slice(0,50).map(l => ({
-      time: l.time||'', msg: l.message||'', type: 'hs'
-    }));
+    // Activity log from hotspot log
+    const logs = await req(`/mikrotik/${CS}/hotspot/log`).catch(() => []);
+    dashLogs = (logs||[]).slice(0,50).map(l => {
+      const msg = l.message || '';
+      return { time: l.time||'', msg, type: 'hs' };
+    });
     renderLog();
-
   } catch(e) {
-    // Catch-all: jangan crash, jangan reload, cukup log
     console.error('Dashboard error:', e);
   }
 }
