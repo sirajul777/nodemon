@@ -1771,17 +1771,13 @@ async function loadDashboard() {
     ]);
     if (!dash) return;
 
-    // DENGAN INI
-    const isIndo = live?.isIndo ?? true;
-    const cur    = live?.currency || 'Rp';
-    const fmt    = n => isIndo
-      ? (cur + ' ' + Math.round(n || 0).toLocaleString('id-ID'))
-      : (cur + ' ' + Number(n || 0).toFixed(2));
-
-    document.getElementById('db-today-inc').textContent  = live?.today  != null ? fmt(live.today.income  || 0) : '—';
-    document.getElementById('db-month-inc').textContent  = live?.month  != null ? fmt(live.month.income  || 0) : '—';
-    document.getElementById('db-today-vcr').textContent  = live?.today?.vouchers ?? '—';
-    document.getElementById('db-month-vcr').textContent  = live?.month?.vouchers ?? '—';
+    // Stat bar
+    const isIndo = live?.isIndo;
+    const fmt = n => isIndo ? (live?.currency+' '+Math.round(n).toLocaleString('id-ID')) : (live?.currency+' '+Number(n).toFixed(2));
+    document.getElementById('db-today-inc').textContent = fmt(live?.today?.income||0);
+    document.getElementById('db-month-inc').textContent = fmt(live?.month?.income||0);
+    document.getElementById('db-today-vcr').textContent = live?.today?.vouchers ?? '—';
+    document.getElementById('db-month-vcr').textContent = live?.month?.vouchers ?? '—';
     document.getElementById('db-hs-online').textContent = dash.hotspot?.active ?? '—';
     document.getElementById('db-ppp-online').textContent = (pppActive||[]).length;
 
@@ -2254,23 +2250,7 @@ async function broadcastMsg() {
 // ════════════════════════════════════════════════
 // HELPERS
 // ════════════════════════════════════════════════
-// SESUDAH — 401 hanya reload jika bukan dari dashboard
-async function req(path, silent = false) {
-  try {
-    const r = await fetch(API+path, {credentials:'include'});
-    if (r.status === 401) {
-      // Jangan reload jika sedang di dashboard (bisa false positive saat API mikrotik error)
-      const activePage = [...document.querySelectorAll('.page.active')].map(p=>p.id.replace('page-','')).pop();
-      if (activePage !== 'dashboard') { location.reload(); }
-      return null;
-    }
-    return await r.json();
-  } catch(e) {
-    if (!silent) toast('Error: ' + e.message, true);
-    hideL();
-    return null;
-  }
-}
+async function req(path) { try { const r=await fetch(API+path,{credentials:'include'}); if(r.status===401){location.reload();return null;} return await r.json(); } catch(e){toast('Error: '+e.message,true);hideL();return null;} }
 async function post(path,body) { try { return await fetch(API+path,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()); } catch(e){toast('Error: '+e.message,true);return null;} }
 async function del(path) { try { return await fetch(API+path,{method:'DELETE',credentials:'include'}).then(r=>r.json()); } catch(e){toast('Error: '+e.message,true);return null;} }
 function v(id) { return document.getElementById(id)?.value||''; }
