@@ -1764,8 +1764,8 @@ async function loadDashboard() {
   try {
     // Semua request pakai catch individual agar satu gagal tidak crash semua
     const [dash, live, pppActive, pppSecrets] = await Promise.all([
-      req(`/mikrotik/${CS}/dashboard`).catch(() => null),
-      req(`/report/${CS}/live`, true).catch(() => null),       // silent = tidak toast error
+      req(`/mikrotik/${CS}/dashboard`).catch(() => []),
+      req(`/report/${CS}/live`, true).catch(() => []),       // silent = tidak toast error
       req(`/pppoe/${CS}/active`, true).catch(() => []),
       req(`/pppoe/${CS}/secrets`, true).catch(() => []),
     ]);
