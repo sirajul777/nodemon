@@ -71,6 +71,65 @@ export class VoucherBatchController {
     return { success: this.batchService.markUsed(session, id, body.username, body.usedBy) };
   }
 
+  @Post(':session/sync-used')
+  async syncUsedFromMikrotik(@Param('session') session: string) {
+    const { ip, user, password, port } = this.getConn(session);
+    const client = await this.mikrotikService.createClient(ip, user, password, port);
+
+    try {
+      const batches = this.batchService.loadAll(session);
+      if (!batches.length) return { success: true, updated: 0, message: 'Tidak ada batch' };
+
+      // Ambil semua hotspot user dari MikroTik
+      const hsUsers = await client.run('/ip/hotspot/user/print').catch(() => []);
+
+      // Buat map username -> data user (lebih cepat lookup)
+      const hsMap: Record<string, any> = {};
+      for (const u of hsUsers) {
+        if (u.name) hsMap[u.name] = u;
+      }
+
+      let updated = 0;
+
+      for (const batch of batches) {
+        let batchChanged = false;
+
+        for (const vcr of batch.vouchers) {
+          if (vcr.status === 'used') continue; // skip yang sudah used
+
+          const hsUser = hsMap[vcr.username];
+          if (!hsUser) continue;
+
+          const comment = hsUser.comment || '';
+
+          // Cek apakah sudah pernah dipakai:
+          // 1. Comment berformat tanggal (jan/dd/yyyy atau yyyy-mm-dd) = sudah expired/dipakai
+          // 2. bytes-in > 0 = pernah ada traffic
+          const hasDateComment = /^\w{3}\/\d{2}\/\d{4}/.test(comment) ||
+                                /^\d{4}-\d{2}-\d{2}/.test(comment);
+          const hasTraffic     = parseInt(hsUser['bytes-in'] || '0') > 0;
+
+          if (hasDateComment || hasTraffic) {
+            vcr.status  = 'used';
+            vcr.usedBy  = 'Hotspot';
+            vcr.usedAt  = comment || new Date().toLocaleString('id-ID');
+            batchChanged = true;
+            updated++;
+          }
+        }
+
+        // Simpan batch jika ada perubahan
+        if (batchChanged) {
+          this.batchService.saveBatch(batch);
+        }
+      }
+
+      return { success: true, updated };
+
+    } finally {
+      client.close();
+    }
+  }
   @Post(':session/auto-sync-used')
   async autoSyncUsed(@Param('session') session: string) {
     const { ip, user, password, port } = this.getConn(session);
