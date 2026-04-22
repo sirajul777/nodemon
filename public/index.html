@@ -631,6 +631,9 @@ select option{background:var(--sb)}
           </div>
           <div style="display:flex;gap:7px">
             <button class="btn b-s" onclick="loadBatchList()"><i class="fa fa-refresh"></i> Refresh</button>
+            <button class="btn b-s" onclick="syncBatchToReport()" style="color:var(--green);border-color:var(--green)">
+              <i class="fa fa-upload"></i> Sync ke Selling Report
+            </button>
             <button class="btn b-p" id="btn-import" onclick="importFromMikrotik()">
               <i class="fa fa-download"></i> Import dari MikroTik
             </button>
@@ -2491,9 +2494,17 @@ function buildBatchCard(b) {
         <span style="color:var(--green);font-weight:600">${s.remaining||s.total||0} tersisa</span>
       </div>
     </div>
-    <button class="batch-del btn b-d b-sm" onclick="event.stopPropagation();deleteBatch('${b.id}')" title="Hapus batch">
-      <i class="fa fa-trash"></i>
-    </button>
+   // Ganti dengan ini
+    <div style="position:absolute;bottom:9px;right:10px;display:flex;gap:4px;opacity:0;transition:.15s" class="batch-del">
+      <button class="btn b-sm" onclick="event.stopPropagation();syncBatchToReport('${b.id}')" 
+        title="Sync ke Selling Report"
+        style="background:#3fb95018;color:var(--green);border:1px solid #3fb95030;padding:3px 8px">
+        <i class="fa fa-upload"></i>
+      </button>
+      <button class="btn b-d b-sm" onclick="event.stopPropagation();deleteBatch('${b.id}')" title="Hapus batch">
+        <i class="fa fa-trash"></i>
+      </button>
+    </div>
   </div>`;
 }
 
@@ -2604,6 +2615,33 @@ async function deleteBatch(batchId) {
   }).then(r => r.json());
   hideL();
   d?.success ? (loadBatchList(), toast('Batch dihapus')) : toast('Gagal hapus', true);
+}
+
+async function syncBatchToReport(batchId = null) {
+  if (!CS) { toast('Pilih router dulu', true); return; }
+
+  const label = batchId ? 'batch ini' : 'semua batch';
+  if (!confirm(`Sync voucher terpakai dari ${label} ke Selling Report?\n\nVoucher yang sudah dipakai akan dibuatkan script penjualan di MikroTik.`)) return;
+
+  showL();
+  try {
+    const body = batchId ? { batchId } : {};
+    const d = await fetch(`${API}/batches/${CS}/sync-to-report`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then(r => r.json());
+
+    hideL();
+    if (d?.success) {
+      toast(`✅ Sync selesai: ${d.created} dibuat, ${d.skipped} sudah ada, ${d.errors} error`);
+    } else {
+      toast('Gagal sync: ' + (d?.error || 'error'), true);
+    }
+  } catch(e) {
+    hideL();
+    toast('Error: ' + e.message, true);
+  }
 }
 
 // Print vouchers yang masih tersedia di batch aktif

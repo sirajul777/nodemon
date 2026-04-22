@@ -659,10 +659,11 @@ export class TelegramService implements OnModuleInit {
         const ol = this.parseOnLogin(profiles[0]['on-login'] || '');
         const uname = this.randomStr(5);
         const upass  = this.randomStr(5);
-
+        // SESUDAH
+        const dateTag = new Date().toLocaleDateString('id-ID').replace(/\//g, '.').slice(0, 8);
         const params: Record<string, string> = {
           name: uname, password: upass, profile: profileName,
-          comment: `tg-${username}`,
+          comment: `up-${Date.now()}-${dateTag}-${username.toUpperCase()}`,
         };
         if (ol.validity) params['limit-uptime'] = ol.validity;
         await client.run('/ip/hotspot/user/add', params);

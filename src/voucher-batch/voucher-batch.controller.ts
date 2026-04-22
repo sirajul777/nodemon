@@ -71,6 +71,119 @@ export class VoucherBatchController {
     return { success: this.batchService.markUsed(session, id, body.username, body.usedBy) };
   }
 
+  // Tambah di bawah endpoint mark-used
+  @Post(':session/sync-to-report')
+  async syncToReport(
+    @Param('session') session: string,
+    @Body() body: { batchId?: string }, // kosong = sync semua batch
+  ) {
+    if (!session) return { success: false, error: 'Session tidak ditemukan' };
+    const { ip, user, password, port } = this.getConn(session);
+    const client = await this.mikrotikService.createClient(ip, user, password, port);
+
+    try {
+      // Ambil semua batch atau batch tertentu
+      const batches = body.batchId
+        ? [this.batchService.getById(session, body.batchId)].filter(Boolean)
+        : this.batchService.loadAll(session);
+
+      if (!batches.length) return { success: false, error: 'Tidak ada batch ditemukan' };
+
+      // Ambil script yang sudah ada agar tidak duplikat
+      const existingScripts = await client.run('/system/script/print').catch(() => []);
+      const existingNames = new Set(existingScripts.map((s: any) => s.name || ''));
+
+      const now    = new Date();
+      const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+      const mm     = months[now.getMonth()];
+      const yyyy   = now.getFullYear();
+      const owner  = `${mm}${yyyy}`;
+
+      let created = 0, skipped = 0, errors = 0;
+
+      for (const batch of batches) {
+        if (!batch) continue;
+
+        // Hanya proses voucher yang statusnya 'used'
+        const usedVouchers = batch.vouchers.filter(v => v.status === 'used');
+
+        for (const vcr of usedVouchers) {
+          try {
+            // Format tanggal untuk script name
+            const usedDate = vcr.usedAt
+              ? this.parseUsedDate(vcr.usedAt, mm, yyyy)
+              : `${mm}/${String(now.getDate()).padStart(2,'0')}/${yyyy}`;
+
+            const time = vcr.usedAt
+              ? this.parseUsedTime(vcr.usedAt)
+              : '00:00:00';
+
+            // Format nama script MikHMon:
+            // date-|-time-|-username-|-price-|-address-|-mac-|-validity-|-profile-|-comment
+            const scriptName = [
+              usedDate,
+              time,
+              vcr.username,
+              String(batch.price || 0),
+              '0.0.0.0',         // address tidak diketahui
+              '00:00:00:00:00:00', // mac tidak diketahui
+              batch.validity || '',
+              batch.profileName,
+              batch.resellerName || batch.resellerId || '',
+            ].join('-|-');
+
+            // Skip jika sudah ada
+            if (existingNames.has(scriptName)) { skipped++; continue; }
+
+            // Buat script di MikroTik
+            await client.run('/system/script/add', {
+              name:    scriptName,
+              owner:   owner,
+              source:  usedDate,
+              comment: 'mikhmon',
+            });
+
+            existingNames.add(scriptName);
+            created++;
+          } catch (e) {
+            errors++;
+          }
+        }
+      }
+
+      return { success: true, created, skipped, errors };
+
+    } finally {
+      client.close();
+    }
+  }
+
+  // Helper parse tanggal dari format lokal id-ID
+  private parseUsedDate(usedAt: string, fallbackMm: string, fallbackYyyy: number): string {
+    try {
+      // usedAt bisa format: "19/4/2026, 03.54.14" atau ISO string
+      const d = new Date(usedAt.includes('T') ? usedAt : usedAt.replace(',',''));
+      if (isNaN(d.getTime())) throw new Error();
+      const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+      const mm  = months[d.getMonth()];
+      const dd  = String(d.getDate()).padStart(2,'0');
+      const yy  = d.getFullYear();
+      return `${mm}/${dd}/${yy}`;
+    } catch {
+      return `${fallbackMm}/${String(new Date().getDate()).padStart(2,'0')}/${fallbackYyyy}`;
+    }
+  }
+
+  private parseUsedTime(usedAt: string): string {
+    try {
+      const d = new Date(usedAt.includes('T') ? usedAt : usedAt.replace(',',''));
+      if (isNaN(d.getTime())) throw new Error();
+      return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+    } catch {
+      return '00:00:00';
+    }
+  }
+
   // ── Step 1: Get list of profiles (fast, no user data) ─────────────────────────
 
   @Get(':session/import/profiles')
