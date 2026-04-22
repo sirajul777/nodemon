@@ -259,7 +259,7 @@ export class VoucherBatchController {
               '00:00:00:00:00:00', // mac tidak diketahui
               batch.validity || '',
               batch.profileName,
-              batch.resellerName || batch.resellerId || '',
+              batch.resellerId || batch.resellerName || '',
             ].join('-|-');
 
             // Skip jika sudah ada
