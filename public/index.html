@@ -634,6 +634,9 @@ select option{background:var(--sb)}
             <button class="btn b-s" onclick="syncBatchToReport()" style="color:var(--green);border-color:var(--green)">
               <i class="fa fa-upload"></i> Sync ke Selling Report
             </button>
+            <button class="btn b-s" onclick="syncUsedFromMikrotik()" style="color:var(--cyan);border-color:var(--cyan)">
+              <i class="fa fa-refresh"></i> Sync Status Terpakai
+            </button>
             <button class="btn b-p" id="btn-import" onclick="importFromMikrotik()">
               <i class="fa fa-download"></i> Import dari MikroTik
             </button>
@@ -2515,12 +2518,14 @@ function buildBatchCard(b) {
         <span style="color:var(--green);font-weight:600">${s.remaining||s.total||0} tersisa</span>
       </div>
     </div>
-   // Ganti dengan ini
     <div style="position:absolute;bottom:9px;right:10px;display:flex;gap:4px;opacity:0;transition:.15s" class="batch-del">
       <button class="btn b-sm" onclick="event.stopPropagation();syncBatchToReport('${b.id}')" 
         title="Sync ke Selling Report"
         style="background:#3fb95018;color:var(--green);border:1px solid #3fb95030;padding:3px 8px">
         <i class="fa fa-upload"></i>
+      </button>
+      <button class="btn b-s" onclick="syncUsedFromMikrotik()" style="color:var(--cyan);border-color:var(--cyan)">
+        <i class="fa fa-refresh"></i> Sync Status Terpakai
       </button>
       <button class="btn b-d b-sm" onclick="event.stopPropagation();deleteBatch('${b.id}')" title="Hapus batch">
         <i class="fa fa-trash"></i>
@@ -2665,6 +2670,30 @@ async function syncBatchToReport(batchId = null) {
   }
 }
 
+async function syncUsedFromMikrotik() {
+  if (!CS) { toast('Pilih router dulu', true); return; }
+  if (!confirm('Sync status voucher terpakai dari MikroTik?\n\nVoucher yang sudah digunakan akan ditandai sebagai terpakai.')) return;
+
+  showL();
+  try {
+    const d = await fetch(`${API}/batches/${CS}/sync-used`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    }).then(r => r.json());
+
+    hideL();
+    if (d?.success) {
+      toast(`✅ ${d.updated} voucher ditandai terpakai`);
+      loadBatchList(); // refresh tampilan
+    } else {
+      toast('Gagal: ' + (d?.error || 'error'), true);
+    }
+  } catch(e) {
+    hideL();
+    toast('Error: ' + e.message, true);
+  }
+}
 // Print vouchers yang masih tersedia di batch aktif
 function printCurrentBatch() {
   if (!currentBatch) return;
