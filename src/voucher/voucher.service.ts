@@ -65,20 +65,20 @@ export class VoucherService {
     const uLen = req.usernameLength || 5;
     const prefix = req.prefix || '';
     // SESUDAH — prefix "up" agar dikenali on-login script
-const now = new Date();
-const dateTag = now.toLocaleDateString('id-ID').replace(/\//g,'.').slice(0,8);
-const resellerTag = (req.resellerName || req.resellerId || '')
-  .toUpperCase()
-  .replace(/\s+/g,'');
+    const now = new Date();
+    const dateTag = now.toLocaleDateString('id-ID').replace(/\//g,'.').slice(0,8);
+    const resellerTag = (req.resellerName || req.resellerId || '')
+      .toUpperCase()
+      .replace(/\s+/g,'');
 
-// Format: up-timestamp-tanggal-RESELLER
-// "up" di awal = dikenali on-login script MikHMon
-// Setelah login, MikroTik akan ubah comment ini ke tanggal expired
-// sehingga login kedua tidak akan duplikat
+    // Format: up-timestamp-tanggal-RESELLER
+    // "up" di awal = dikenali on-login script MikHMon
+    // Setelah login, MikroTik akan ubah comment ini ke tanggal expired
+    // sehingga login kedua tidak akan duplikat
 
     const comment = resellerTag
-  ? `up-${Date.now()}-${dateTag}-${resellerTag}`
-  : `up-${Date.now()}-${dateTag}`;
+    ? `up-${Date.now()}-${dateTag}-${resellerTag}`
+    : `up-${Date.now()}-${dateTag}`;
 
     // Resolve limit-uptime: explicit override OR from validity field OR from profile meta
     let limitUptime = '';
