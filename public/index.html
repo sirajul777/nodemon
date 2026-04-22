@@ -2519,12 +2519,12 @@ function buildBatchCard(b) {
       </div>
     </div>
     <div style="position:absolute;bottom:9px;right:10px;display:flex;gap:4px;opacity:0;transition:.15s" class="batch-del">
-      <button class="btn b-sm" onclick="event.stopPropagation();syncBatchToReport('${b.id}')" 
+      <button class="btn b-d b-sm" onclick="event.stopPropagation();syncBatchToReport('${b.id}')" 
         title="Sync ke Selling Report"
         style="background:#3fb95018;color:var(--green);border:1px solid #3fb95030;padding:3px 8px">
         <i class="fa fa-upload"></i>
       </button>
-      <button class="btn b-s" onclick="syncUsedFromMikrotik()" style="color:var(--cyan);border-color:var(--cyan)">
+      <button class="btn bd b-sm" onclick="syncUsedFromMikrotik()" style="color:var(--cyan);border-color:var(--cyan)">
         <i class="fa fa-refresh"></i> Sync Status Terpakai
       </button>
       <button class="btn b-d b-sm" onclick="event.stopPropagation();deleteBatch('${b.id}')" title="Hapus batch">
