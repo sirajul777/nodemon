@@ -1754,6 +1754,25 @@ async function saveSession() {
 async function delSession(id){if(!confirm(`Hapus "${id}"?`))return;await del(`/sessions/${id}`);loadSessions();toast('Router dihapus');}
 async function testConn(id){showL();const d=await req(`/mikrotik/${id}/connect/test`);hideL();d?.success?toast(`✓ Connected — ${d.identity} | ROS ${d.rosVersion}`):toast(`✗ ${d?.error||'Gagal'}`,true);}
 
+
+// Auto sync voucher used dari MikroTik — dipanggil silent di background
+async function autoSyncBatchUsed() {
+  if (!CS) return;
+  try {
+    const d = await fetch(`${API}/batches/${CS}/auto-sync-used`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    }).then(r => r.json());
+
+    // Hanya tampil notif jika ada yang berubah
+    if (d?.success && d.updated > 0) {
+      toast(`🔄 ${d.updated} voucher batch ditandai terpakai`);
+    }
+  } catch {
+    // Silent — jangan ganggu dashboard
+  }
+}
 // ════════════════════════════════════════════════
 // DASHBOARD (realtime)
 // ════════════════════════════════════════════════
@@ -1834,6 +1853,8 @@ async function loadDashboard() {
       const msg = l.message || '';
       return { time: l.time||'', msg, type: 'hs' };
     });
+    autoSyncBatchUsed();
+
     renderLog();
   } catch(e) {
     console.error('Dashboard error:', e);

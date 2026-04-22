@@ -71,6 +71,77 @@ export class VoucherBatchController {
     return { success: this.batchService.markUsed(session, id, body.username, body.usedBy) };
   }
 
+  @Post(':session/auto-sync-used')
+  async autoSyncUsed(@Param('session') session: string) {
+    const { ip, user, password, port } = this.getConn(session);
+    const client = await this.mikrotikService.createClient(ip, user, password, port);
+
+    try {
+      const batches = this.batchService.loadAll(session);
+      if (!batches.length) return { success: true, updated: 0 };
+
+      // Kumpulkan semua username dari batch yang masih available
+      const availableMap: Record<string, { batchIdx: number; vcrIdx: number }> = {};
+      batches.forEach((batch, bi) => {
+        batch.vouchers.forEach((vcr, vi) => {
+          if (vcr.status === 'available') {
+            availableMap[vcr.username] = { batchIdx: bi, vcrIdx: vi };
+          }
+        });
+      });
+
+      if (!Object.keys(availableMap).length) {
+        return { success: true, updated: 0, message: 'Tidak ada voucher available' };
+      }
+
+      // Ambil hotspot users hanya untuk username yang ada di batch
+      // Lebih efisien daripada ambil semua
+      const hsUsers = await client.run('/ip/hotspot/user/print').catch(() => []);
+
+      let updated = 0;
+      const changedBatches = new Set<number>();
+
+      for (const hsUser of hsUsers) {
+        const username = hsUser.name || '';
+        if (!availableMap[username]) continue; // bukan dari batch kita
+
+        const comment = hsUser.comment || '';
+
+        // Cek apakah comment sudah berubah ke format tanggal
+        // Format ROS7: jan/19/2026 atau jan/19/2026 12:00:00
+        // Format ROS6: jan/19/2026 atau similar
+        const isExpired = /^\w{3}\/\d{2}\/\d{4}/.test(comment) ||
+                          /^\d{4}-\d{2}-\d{2}/.test(comment);
+
+        // Cek limit-uptime habis (bytes-in > 0 dan tidak ada di active)
+        const bytesIn = parseInt(hsUser['bytes-in'] || '0') > 0;
+
+        if (isExpired || bytesIn) {
+          const { batchIdx, vcrIdx } = availableMap[username];
+          const vcr = batches[batchIdx].vouchers[vcrIdx];
+
+          vcr.status = 'used';
+          vcr.usedBy = isExpired ? 'Hotspot (expired)' : 'Hotspot (traffic)';
+          vcr.usedAt = comment || new Date().toLocaleString('id-ID');
+
+          changedBatches.add(batchIdx);
+          updated++;
+        }
+      }
+
+      // Simpan hanya batch yang berubah
+      for (const bi of changedBatches) {
+        this.batchService.saveBatch(batches[bi]);
+      }
+
+      return { success: true, updated };
+
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    } finally {
+      client.close();
+    }
+  }
   // Tambah di bawah endpoint mark-used
   @Post(':session/sync-to-report')
   async syncToReport(
