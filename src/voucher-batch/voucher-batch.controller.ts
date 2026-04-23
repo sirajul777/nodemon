@@ -248,6 +248,12 @@ export class VoucherBatchController {
               ? this.parseUsedTime(vcr.usedAt)
               : '00:00:00';
 
+              const now = new Date();
+              const dateTag = now.toLocaleDateString('id-ID').replace(/\//g,'.').slice(0,8);
+              const resellerTag = (batch.resellerId || batch.resellerId || '')
+                .toUpperCase()
+                .replace(/\s+/g,'');
+
             // Format nama script MikHMon:
             // date-|-time-|-username-|-price-|-address-|-mac-|-validity-|-profile-|-comment
             const scriptName = [
@@ -259,7 +265,7 @@ export class VoucherBatchController {
               '00:00:00:00:00:00', // mac tidak diketahui
               batch.validity || '',
               batch.profileName,
-              batch.resellerId || batch.resellerName || '',
+              resellerTag ? `up-${Date.now()}-${dateTag}-${resellerTag}` : `up-${Date.now()}-${dateTag}`,
             ].join('-|-');
 
             // Skip jika sudah ada
