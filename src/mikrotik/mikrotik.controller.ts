@@ -284,6 +284,7 @@ export class MikrotikController {
 
       await client.run('/ip/hotspot/user/profile/add', params);
       this.writeProfileMeta(session, body.name, price, validity, body.profileColor, body.caption);
+      await this.setupExpiryScheduler(client, session);
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message };
@@ -327,8 +328,7 @@ export class MikrotikController {
         // Only update header, keep existing script body
         const header  = this.buildOnLoginHeader(newExpmode, newPrice, newValidity, newSprice, newLockUser);
         const oldBody = existingOnLogin.replace(/:put\s*\("[^"]*"\);?\s*/g, '').trim();
-        newOnLogin = oldBody ? `${header}
-${oldBody}` : header;
+        newOnLogin = oldBody ? `${header} ${oldBody}` : header;
       }
 
       const params: Record<string, string> = {
@@ -343,10 +343,70 @@ ${oldBody}` : header;
 
       await client.run('/ip/hotspot/user/profile/set', params);
       this.writeProfileMeta(session, name, newPrice, newValidity, body.profileColor, body.caption);
+      await this.setupExpiryScheduler(client, session);
+
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message };
     } finally { client.close(); }
+  }
+
+  // Tambah method helper untuk setup scheduler cleanup
+  private async setupExpiryScheduler(client: any, sessionId: string) {
+    const SCHEDULER_NAME = 'mikhmon-cleanup-expired';
+
+    // Script untuk hapus user expired
+    // Cek semua hotspot user, kalau comment format tanggal dan sudah lewat → hapus
+    const cleanupScript = `
+  {
+    :local now [/system clock get date];
+    :if ([:pick $now 4 5] = "-") do={
+      :local arraybln {"01"="jan";"02"="feb";"03"="mar";"04"="apr";"05"="may";"06"="jun";"07"="jul";"08"="aug";"09"="sep";"10"="oct";"11"="nov";"12"="dec"};
+      :local tgl [:pick $now 8 10];
+      :local bulan [:pick $now 5 7];
+      :local tahun [:pick $now 0 4];
+      :local bln ($arraybln->$bulan);
+      :set $now ($bln."/".$tgl."/".$tahun);
+    };
+    :foreach u in=[/ip hotspot user find] do={
+      :local comment [/ip hotspot user get $u comment];
+      :local ucode [:pick $comment 0 2];
+      :if ($ucode != "vc" and $ucode != "up" and $comment != "") do={
+        :local expDate [:pick $comment 0 11];
+        :if ($expDate < $now) do={
+          /ip hotspot user remove $u;
+        };
+      };
+    };
+  }`.replace(/\n\s+/g, ' ').trim();
+
+    try {
+      // Cek apakah scheduler sudah ada
+      const existing = await client.run('/system/scheduler/print', {
+        '?name': SCHEDULER_NAME
+      });
+
+      if (existing.length > 0) {
+        // Update scheduler yang sudah ada
+        await client.run('/system/scheduler/set', {
+          '.id':     existing[0]['.id'],
+          'on-event': cleanupScript,
+        });
+      } else {
+        // Buat scheduler baru — jalan setiap jam 00:00
+        await client.run('/system/scheduler/add', {
+          'name':      SCHEDULER_NAME,
+          'interval':  '2h',
+          'start-time':'00:00:00',
+          'on-event':  cleanupScript,
+          'comment':   'mikhmon-auto-cleanup',
+          'disabled':  'no',
+        });
+      }
+      return true;
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
   }
 
   @Delete(':session/hotspot/profiles/:name')

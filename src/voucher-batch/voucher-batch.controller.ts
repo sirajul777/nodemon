@@ -248,7 +248,7 @@ export class VoucherBatchController {
               ? this.parseUsedTime(vcr.usedAt)
               : '00:00:00';
 
-              const now = new Date();
+             
               const dateTag = now.toLocaleDateString('id-ID').replace(/\//g,'.').slice(0,8);
               const resellerTag = (batch.resellerId || batch.resellerId || '')
                 .toUpperCase()
