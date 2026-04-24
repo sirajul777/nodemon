@@ -1,0 +1,34 @@
+{
+  "ATONGARAB": {
+    "id": "ATONGARAB",
+    "name": "ATONG ARAB",
+    "phone": "",
+    "discount": 0,
+    "address": "",
+    "createdAt": "2026-04-11T16:35:42.993Z"
+  },
+  "MOM": {
+    "id": "MOM",
+    "name": "IBUNDA",
+    "phone": "",
+    "discount": 0,
+    "address": "",
+    "createdAt": "2026-04-11T16:37:04.872Z"
+  },
+  "FRANKS": {
+    "id": "FRANKS",
+    "name": "ADI AWI",
+    "phone": "",
+    "discount": 0,
+    "address": "",
+    "createdAt": "2026-04-11T16:37:53.191Z"
+  },
+  "AYID": {
+    "id": "AYID",
+    "name": "PI GAFA",
+    "phone": "",
+    "discount": 0,
+    "address": "",
+    "createdAt": "2026-04-11T16:38:05.171Z"
+  }
+}
