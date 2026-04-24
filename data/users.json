@@ -1,0 +1,46 @@
+[
+  {
+    "id": "USR-1776603966581",
+    "username": "siwarnet",
+    "password": "tXc0/TawwaaNRJExtfAd1w==:wq3FfuZC3GhzVFaUo2leqw==",
+    "name": "SIRAJUL WATHANI",
+    "role": "admin",
+    "active": true,
+    "allowedSessions": [],
+    "permissions": {
+      "viewDashboard": true,
+      "manageVoucher": true,
+      "manageBilling": true,
+      "manageReseller": true,
+      "managePppoe": true,
+      "manageHotspot": true,
+      "viewReport": true,
+      "manageSystem": true
+    },
+    "createdAt": "2026-04-19T13:06:06.583Z",
+    "note": "",
+    "lastLogin": "2026-04-20T04:03:40.290Z"
+  },
+  {
+    "id": "USR-1776617241275",
+    "username": "collector",
+    "password": "gXtuCKWC+Vn+EOyBzvYBhw==:4nJasSSP1ZPslZBnRpAvbg==",
+    "name": "MIRZA",
+    "role": "collector",
+    "active": true,
+    "allowedSessions": [],
+    "permissions": {
+      "viewDashboard": true,
+      "manageVoucher": false,
+      "manageBilling": true,
+      "manageReseller": false,
+      "managePppoe": false,
+      "manageHotspot": false,
+      "viewReport": true,
+      "manageSystem": false
+    },
+    "createdAt": "2026-04-19T16:47:21.276Z",
+    "note": "",
+    "lastLogin": "2026-04-20T03:43:37.437Z"
+  }
+]
