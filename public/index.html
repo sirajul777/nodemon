@@ -2633,14 +2633,72 @@ async function markVoucherUsed(username) {
   }
 }
 
+// DENGAN INI
 async function deleteBatch(batchId) {
-  if (!confirm('Hapus batch ini? Semua data voucher akan terhapus.')) return;
+  // Tampil pilihan — hapus lokal saja atau sekalian di MikroTik
+  openSheet(`
+    <div class="sheet-title">🗑️ Hapus Batch Voucher</div>
+    <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">
+      Pilih cara menghapus batch ini:
+    </p>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="btn b-d" style="justify-content:flex-start;padding:14px;text-align:left" 
+        onclick="confirmDeleteBatch('${batchId}', true)">
+        <div>
+          <div style="font-weight:600"><i class="fa fa-trash"></i> Hapus + Hapus di MikroTik</div>
+          <div style="font-size:.75rem;opacity:.8;margin-top:2px">
+            Hapus batch dari MikHMon dan hapus voucher yang masih available dari MikroTik
+          </div>
+        </div>
+      </button>
+      <button class="btn b-s" style="justify-content:flex-start;padding:14px;text-align:left"
+        onclick="confirmDeleteBatch('${batchId}', false)">
+        <div>
+          <div style="font-weight:600"><i class="fa fa-times"></i> Hapus Lokal Saja</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-top:2px">
+            Hanya hapus data batch dari MikHMon, voucher di MikroTik tetap ada
+          </div>
+        </div>
+      </button>
+      <button class="btn b-ghost" onclick="closeSheet()" 
+        style="background:transparent;color:var(--muted)">
+        Batal
+      </button>
+    </div>
+  `);
+}
+
+async function confirmDeleteBatch(batchId, deleteMikrotik) {
+  closeSheet();
   showL();
-  const d = await fetch(`${API}/batches/${CS}/${batchId}`, {
-    method:'DELETE', credentials:'include'
-  }).then(r => r.json());
-  hideL();
-  d?.success ? (loadBatchList(), toast('Batch dihapus')) : toast('Gagal hapus', true);
+  try {
+    const url = `${API}/batches/${CS}/${batchId}${deleteMikrotik ? '?deleteMikrotik=true' : ''}`;
+    const d = await fetch(url, {
+      method: 'DELETE', credentials: 'include'
+    }).then(r => r.json());
+    hideL();
+
+    if (d?.success) {
+      let msg = 'Batch dihapus';
+      if (deleteMikrotik) {
+        msg += ` · ${d.deletedFromMikrotik} user dihapus dari MikroTik`;
+        if (d.failedFromMikrotik > 0) {
+          msg += ` · ${d.failedFromMikrotik} gagal`;
+        }
+      }
+      toast(msg);
+      // Kalau sedang di detail, kembali ke list dulu
+      if (document.getElementById('batch-detail-area').style.display !== 'none') {
+        closeBatchDetail();
+      }
+      loadBatchList();
+    } else {
+      toast('Gagal hapus: ' + (d?.error || 'error'), true);
+    }
+  } catch(e) {
+    hideL();
+    toast('Error: ' + e.message, true);
+  }
 }
 
 async function syncBatchToReport(batchId = null) {

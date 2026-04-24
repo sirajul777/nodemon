@@ -57,9 +57,50 @@ export class VoucherBatchController {
     return this.batchService.saveBatch(body);
   }
 
+  // DENGAN INI
   @Delete(':session/:id')
-  delete(@Param('session') session: string, @Param('id') id: string) {
-    return { success: this.batchService.deleteBatch(session, id) };
+  async delete(
+    @Param('session') session: string,
+    @Param('id') id: string,
+    @Query('deleteMikrotik') deleteMikrotik: string, // ?deleteMikrotik=true
+  ) {
+    const batch = this.batchService.getById(session, id);
+    if (!batch) return { success: false, error: 'Batch tidak ditemukan' };
+
+    let deletedFromMikrotik = 0;
+    let failedFromMikrotik  = 0;
+
+    // Hapus user dari MikroTik jika diminta
+    if (deleteMikrotik === 'true') {
+      const { ip, user, password, port } = this.getConn(session);
+      const client = await this.mikrotikService.createClient(ip, user, password, port);
+      try {
+        for (const vcr of batch.vouchers) {
+          // Hanya hapus yang masih available — yang used biarkan (sudah expired)
+          if (vcr.status !== 'available') continue;
+          try {
+            const found = await client.run('/ip/hotspot/user/print', { '?name': vcr.username });
+            if (found[0]?.['.id']) {
+              await client.run('/ip/hotspot/user/remove', { '.id': found[0]['.id'] });
+              deletedFromMikrotik++;
+            }
+          } catch {
+            failedFromMikrotik++;
+          }
+        }
+      } finally {
+        client.close();
+      }
+    }
+
+    // Hapus batch dari lokal
+    const success = this.batchService.deleteBatch(session, id);
+
+    return {
+      success,
+      deletedFromMikrotik,
+      failedFromMikrotik,
+    };
   }
 
   @Post(':session/:id/mark-used')

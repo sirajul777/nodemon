@@ -32,7 +32,21 @@ interface UserState {
 
 const CONFIG_FILE = path.join(process.cwd(), 'data', 'telegram.json');
 const LOG_FILE    = path.join(process.cwd(), 'data', 'telegram-log.json');
+const TOPUP_FILE = path.join(process.cwd(), 'data', 'topup-requests.json');
 const INDO_CURR   = ['RP','Rp','rp','IDR','idr'];
+
+// Tambah di atas @Injectable()
+interface TopupRequest {
+  id: string;
+  resellerId: string;
+  resellerName: string;
+  telegramId: string;
+  amount: number;
+  note: string;
+  requestedAt: string;
+  status: 'pending' | 'approved' | 'rejected';
+}
+
 
 @Injectable()
 export class TelegramService implements OnModuleInit {
@@ -127,6 +141,29 @@ export class TelegramService implements OnModuleInit {
     for (const [id, s] of this.userStates) {
       if (s.expiresAt < now) this.userStates.delete(id);
     }
+  }
+
+  private loadTopupRequests(): TopupRequest[] {
+    try {
+      if (fs.existsSync(TOPUP_FILE)) {
+        return JSON.parse(fs.readFileSync(TOPUP_FILE, 'utf8'));
+      }
+    } catch {}
+    return [];
+  }
+
+  private saveTopupRequests(requests: TopupRequest[]) {
+    const dir = path.dirname(TOPUP_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(TOPUP_FILE, JSON.stringify(requests, null, 2));
+  }
+
+  private async addTopupRequest(req: TopupRequest): Promise<any> {
+    const requests = this.loadTopupRequests();
+    requests.unshift(req);
+    // Simpan max 100 request
+    if (requests.length > 100) requests.splice(100);
+    this.saveTopupRequests(requests);
   }
 
   // ── Telegram API ──────────────────────────────────────
@@ -305,7 +342,9 @@ export class TelegramService implements OnModuleInit {
       case '/daftar':   await this.handleDaftar(chatId, userId, username, cfg); break;
       case '/saldo':    await this.handleSaldo(chatId, userId, cfg); break;
       case '/riwayat':  await this.handleRiwayat(chatId, userId, cfg); break;
-      case '/topup':    if(isAdmin) await this.handleTopupCmd(chatId, args, cfg); break;
+    // Tambah di switch(command)
+      case '/topup':    await this.handleTopupRequest(chatId, userId, username, args, cfg); break;
+      case '/cektopup': await this.handleCekTopup(chatId, userId, cfg); break;
       case '/resellers': if(isAdmin) await this.handleListResellers(chatId, cfg); break;
       default:
         await this.sendMessage(chatId, '❓ Perintah tidak dikenal. Ketik /help.');
@@ -338,9 +377,127 @@ export class TelegramService implements OnModuleInit {
       case 'gen_confirm':     await this.cbConfirmGenerate(chatId, userId, username, msgId, params[0], parseInt(params[1]), cfg); break;
       case 'cancel':          await this.cbCancel(chatId, msgId); break;
       case 'gen_qty_custom':  await this.cbAskCustomQty(chatId, userId, params[0], msgId, cfg); break;
+      // Tambah di switch(action)
+      case 'topup_approve': await this.cbTopupApprove(chatId, userId, msgId, params[0], cfg); break;
+      case 'topup_reject':  await this.cbTopupReject(chatId, userId, msgId, params[0], cfg); break;
       default:
         this.logger.warn('Unknown callback: ' + data);
     }
+  }
+
+  // ── Callback: Admin approve topup ────────────────────────────
+  private async cbTopupApprove(
+    chatId: string, userId: string, msgId: number,
+    reqId: string, cfg: TelegramConfig
+  ): Promise<void> {
+    // Hanya admin yang bisa approve
+    if (chatId !== cfg.chatId && !cfg.allowedUsers?.includes(userId)) {
+      await this.answerCallback('', 'Hanya admin yang bisa approve');
+      return;
+    }
+
+    const requests = this.loadTopupRequests();
+    const req      = requests.find(r => r.id === reqId);
+
+    if (!req) {
+      await this.editMessage(chatId, msgId, '❌ Request tidak ditemukan atau sudah diproses.');
+      return;
+    }
+    if (req.status !== 'pending') {
+      await this.editMessage(chatId, msgId,
+        `⚠️ Request ini sudah diproses sebelumnya.\nStatus: ${req.status}`
+      );
+      return;
+    }
+
+    // Proses topup
+    if (!this.resellerSvc) {
+      await this.editMessage(chatId, msgId, '❌ Layanan reseller tidak tersedia.');
+      return;
+    }
+
+    const result = this.resellerSvc.topup(
+      req.resellerId,
+      req.amount,
+      `Topup via bot disetujui admin`,
+      'Admin Bot',
+    );
+
+    if (!result) {
+      await this.editMessage(chatId, msgId, '❌ Gagal memproses topup. Reseller tidak ditemukan.');
+      return;
+    }
+
+    // Update status request
+    req.status = 'approved';
+    this.saveTopupRequests(requests);
+
+    // Update pesan admin
+    await this.editMessage(chatId, msgId,
+      `✅ <b>Topup DISETUJUI</b>\n\n` +
+      `👤 ${req.resellerName}\n` +
+      `💰 +Rp ${req.amount.toLocaleString('id-ID')}\n` +
+      `💳 Saldo baru: <b>Rp ${result.reseller.saldo.toLocaleString('id-ID')}</b>\n` +
+      `🕐 ${new Date().toLocaleString('id-ID')}`
+    );
+
+    // Notif ke reseller
+    await this.sendMessage(req.telegramId,
+      `🎉 <b>Request Topup Disetujui!</b>\n\n` +
+      `💰 Topup: <b>+Rp ${req.amount.toLocaleString('id-ID')}</b>\n` +
+      `💳 Saldo sekarang: <b>Rp ${result.reseller.saldo.toLocaleString('id-ID')}</b>\n` +
+      `🕐 ${new Date().toLocaleString('id-ID')}\n\n` +
+      `Ketik /beli untuk mulai belanja! 🛒`
+    );
+
+    this.addLog('ADMIN', `Approve topup ${req.resellerName} Rp ${req.amount.toLocaleString('id-ID')}`);
+  }
+
+  // ── Callback: Admin reject topup ─────────────────────────────
+  private async cbTopupReject(
+    chatId: string, userId: string, msgId: number,
+    reqId: string, cfg: TelegramConfig
+  ): Promise<void> {
+    // Hanya admin yang bisa reject
+    if (chatId !== cfg.chatId && !cfg.allowedUsers?.includes(userId)) {
+      return;
+    }
+
+    const requests = this.loadTopupRequests();
+    const req      = requests.find(r => r.id === reqId);
+
+    if (!req) {
+      await this.editMessage(chatId, msgId, '❌ Request tidak ditemukan.');
+      return;
+    }
+    if (req.status !== 'pending') {
+      await this.editMessage(chatId, msgId,
+        `⚠️ Request ini sudah diproses.\nStatus: ${req.status}`
+      );
+      return;
+    }
+
+    // Update status
+    req.status = 'rejected';
+    this.saveTopupRequests(requests);
+
+    // Update pesan admin
+    await this.editMessage(chatId, msgId,
+      `❌ <b>Topup DITOLAK</b>\n\n` +
+      `👤 ${req.resellerName}\n` +
+      `💰 Rp ${req.amount.toLocaleString('id-ID')}\n` +
+      `🕐 ${new Date().toLocaleString('id-ID')}`
+    );
+
+    // Notif ke reseller
+    await this.sendMessage(req.telegramId,
+      `❌ <b>Request Topup Ditolak</b>\n\n` +
+      `💰 Jumlah: Rp ${req.amount.toLocaleString('id-ID')}\n` +
+      `🕐 ${new Date().toLocaleString('id-ID')}\n\n` +
+      `Hubungi admin untuk informasi lebih lanjut.`
+    );
+
+    this.addLog('ADMIN', `Reject topup ${req.resellerName} Rp ${req.amount.toLocaleString('id-ID')}`);
   }
 
   // ── /beli and /generate - Show Profile Menu ───────────
@@ -819,6 +976,9 @@ export class TelegramService implements OnModuleInit {
     text += `📦 /generate — Generate batch voucher\n`;
     text += `🔍 /cek [user] — Cek status user\n`;
     text += `📋 /profil — Lihat daftar profile & harga\n\n`;
+    // Di handleHelp, tambah di bagian perintah reseller
+    text += `💰 /topup [jumlah] — Request topup saldo\n`;
+    text += `📋 /cektopup — Cek status request topup\n`;
     if (isAdmin) {
       text += `⚙️ <b>Admin:</b>\n`;
       text += `/status — Info router\n/aktif — User aktif\n/rekap — Rekap hari ini\n/bulan — Rekap bulan ini\n/pppoe — PPPoE aktif\n/hapus [user] — Hapus user\n`;
@@ -951,6 +1111,150 @@ export class TelegramService implements OnModuleInit {
       `📋 Status: ${reseller.status === 'active' ? '✅ Aktif' : '❌ Nonaktif'}\n\n` +
       `Ketik /beli untuk membeli voucher.`
     );
+  }
+
+  // ── Reseller request topup ────────────────────────────────────
+private async handleTopupRequest(
+    chatId: string, userId: string, username: string,
+    args: string[], cfg: TelegramConfig
+  ): Promise<void> {
+    if (!this.resellerSvc) {
+      await this.sendMessage(chatId, '⚠️ Layanan reseller belum aktif.');
+      return;
+    }
+
+    const reseller = this.resellerSvc.getByTelegramId(userId);
+    if (!reseller) {
+      await this.sendMessage(chatId,
+        '❌ Kamu belum terdaftar sebagai reseller.\nKetik /daftar untuk mendaftar.'
+      );
+      return;
+    }
+    if (reseller.status !== 'active') {
+      await this.sendMessage(chatId, '❌ Akun reseller kamu tidak aktif.');
+      return;
+    }
+
+    // Validasi jumlah
+    const amount = parseInt(args[0]);
+    if (!amount || amount < 1000) {
+      await this.sendMessage(chatId,
+        `💰 <b>Request Topup Saldo</b>\n\n` +
+        `Format: /topup [jumlah]\n` +
+        `Contoh: /topup 50000\n\n` +
+        `Minimal topup: Rp 1.000\n` +
+        `💳 Saldo kamu sekarang: <b>Rp ${reseller.saldo.toLocaleString('id-ID')}</b>`
+      );
+      return;
+    }
+
+    // Cek apakah ada request pending
+    const requests = this.loadTopupRequests();
+    const hasPending = requests.find(
+      r => r.telegramId === userId && r.status === 'pending'
+    );
+    if (hasPending) {
+      await this.sendMessage(chatId,
+        `⏳ Kamu masih punya request topup yang belum diproses.\n\n` +
+        `💰 Jumlah: <b>Rp ${hasPending.amount.toLocaleString('id-ID')}</b>\n` +
+        `🕐 Dikirim: ${new Date(hasPending.requestedAt).toLocaleString('id-ID')}\n\n` +
+        `Tunggu admin memproses request sebelumnya.\n` +
+        `Ketik /cektopup untuk cek status.`
+      );
+      return;
+    }
+
+    const note = args.slice(1).join(' ') || '';
+
+    // Simpan request
+    const reqId = `TR-${Date.now()}`;
+    const topupReq: TopupRequest = {
+      id:           reqId,
+      resellerId:   reseller.id,
+      resellerName: reseller.name,
+      telegramId:   userId,
+      amount,
+      note,
+      requestedAt:  new Date().toISOString(),
+      status:       'pending',
+    };
+    this.addTopupRequest(topupReq);
+
+    // Konfirmasi ke reseller
+    await this.sendMessage(chatId,
+      `✅ <b>Request Topup Terkirim!</b>\n\n` +
+      `💰 Jumlah: <b>Rp ${amount.toLocaleString('id-ID')}</b>\n` +
+      `${note ? `📝 Catatan: ${note}\n` : ''}` +
+      `🕐 Waktu: ${new Date().toLocaleString('id-ID')}\n\n` +
+      `Tunggu konfirmasi dari admin.\n` +
+      `Ketik /cektopup untuk cek status.`
+    );
+
+    // Notif ke admin dengan tombol approve/reject
+    if (cfg.chatId) {
+      const adminMsg =
+        `💰 <b>Request Topup Saldo</b>\n\n` +
+        `👤 Reseller: <b>${reseller.name}</b>\n` +
+        `🆔 ID: <code>${reseller.id}</code>\n` +
+        `📱 Telegram: @${username} (<code>${userId}</code>)\n` +
+        `💵 Jumlah: <b>Rp ${amount.toLocaleString('id-ID')}</b>\n` +
+        `${note ? `📝 Catatan: ${note}\n` : ''}` +
+        `💳 Saldo saat ini: <b>Rp ${reseller.saldo.toLocaleString('id-ID')}</b>\n` +
+        `🕐 Waktu: ${new Date().toLocaleString('id-ID')}\n\n` +
+        `<i>ID Request: ${reqId}</i>`;
+
+      await this.sendMessage(cfg.chatId, adminMsg, {
+        reply_markup: {
+          inline_keyboard: [[
+            {
+              text: `✅ Approve Rp ${amount.toLocaleString('id-ID')}`,
+              callback_data: `topup_approve:${reqId}`,
+            },
+            {
+              text: '❌ Reject',
+              callback_data: `topup_reject:${reqId}`,
+            },
+          ]],
+        },
+      });
+    }
+
+    this.addLog(username, `Request topup Rp ${amount.toLocaleString('id-ID')}`);
+  }
+
+  // ── Cek status topup ──────────────────────────────────────────
+  private async handleCekTopup(
+    chatId: string, userId: string, cfg: TelegramConfig
+  ): Promise<void> {
+    const requests = this.loadTopupRequests();
+    const myReqs   = requests
+      .filter(r => r.telegramId === userId)
+      .slice(0, 5);
+
+    if (!myReqs.length) {
+      await this.sendMessage(chatId, '📭 Belum ada riwayat request topup.');
+      return;
+    }
+
+    const STATUS = {
+      pending:  '⏳ Menunggu',
+      approved: '✅ Disetujui',
+      rejected: '❌ Ditolak',
+    };
+
+    let text = `📋 <b>Riwayat Request Topup (5 terakhir)</b>\n\n`;
+    myReqs.forEach((r, i) => {
+      const dt = new Date(r.requestedAt).toLocaleString('id-ID', {
+        dateStyle: 'short', timeStyle: 'short'
+      });
+      text += `${i+1}. <b>Rp ${r.amount.toLocaleString('id-ID')}</b>\n`;
+      text += `   Status: ${STATUS[r.status]}\n`;
+      text += `   Waktu: ${dt}\n`;
+      if (r.note) text += `   Catatan: ${r.note}\n`;
+      text += '\n';
+    });
+
+    await this.sendMessage(chatId, text);
   }
 
   private async handleRiwayat(chatId: string, userId: string, cfg: TelegramConfig): Promise<void> {
