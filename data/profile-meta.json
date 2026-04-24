@@ -1,0 +1,52 @@
+{
+  "SIWARNET": {
+    "VOCER-1K": {
+      "price": 800,
+      "validity": "4h",
+      "profileColor": "#eb1e1e",
+      "caption": ""
+    },
+    "VOCER-2k": {
+      "price": 1600,
+      "validity": "7h",
+      "profileColor": "#fda50d",
+      "caption": ""
+    },
+    "VOCER-3k": {
+      "price": 2400,
+      "validity": "14h",
+      "profileColor": "#a3eb1e",
+      "caption": ""
+    },
+    "VOCER-5K": {
+      "price": 4000,
+      "validity": "1d5m",
+      "profileColor": "#1eebc9",
+      "caption": ""
+    },
+    "VOCER-15k": {
+      "price": 12000,
+      "validity": "8d",
+      "profileColor": "#1c437d",
+      "caption": ""
+    },
+    "HOME": {
+      "price": 30000,
+      "validity": "30d",
+      "profileColor": "#661eeb",
+      "caption": ""
+    },
+    "VOCER-40k": {
+      "price": 32000,
+      "validity": "31d",
+      "profileColor": "#eb1eaa",
+      "caption": ""
+    },
+    "VOCER-20k": {
+      "price": 16000,
+      "validity": "15d",
+      "profileColor": "#760572",
+      "caption": ""
+    }
+  }
+}
