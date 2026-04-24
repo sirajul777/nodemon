@@ -109,6 +109,8 @@ export class MikrotikController {
     const ol   = this.parseOnLogin(p['on-login'] || '');
     const meta = this.readProfileMeta(sessionId);
     const loc: { price?: number; validity?: string; profileColor?: string; caption?: string } = meta[p.name] || {};
+    
+    // Prioritaskan data dari script MikroTik (ol), jika tidak ada baru pakai lokal (loc)
     return {
       ...p,
       price:        ol.price    || loc.price    || 0,
@@ -225,6 +227,19 @@ export class MikrotikController {
       const users = await client.run('/ip/hotspot/user/print', { '?name': name });
       if (users[0]?.['.id']) await client.run('/ip/hotspot/user/remove', { '.id': users[0]['.id'] });
       return { success: true };
+    } finally { client.close(); }
+  }
+
+  @Post(':session/hotspot/users/bulk-delete')
+  async bulkRemoveHotspotUsers(@Param('session') session: string, @Body() body: { names: string[] }) {
+    const { ip, user, password, port } = this.getConn(session);
+    const client = await this.mikrotikService.createClient(ip, user, password, port);
+    try {
+      for (const name of body.names) {
+        const users = await client.run('/ip/hotspot/user/print', { '?name': name });
+        if (users[0]?.['.id']) await client.run('/ip/hotspot/user/remove', { '.id': users[0]['.id'] });
+      }
+      return { success: true, count: body.names.length };
     } finally { client.close(); }
   }
 

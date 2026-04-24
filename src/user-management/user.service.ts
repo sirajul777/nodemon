@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as crypto from 'crypto';
+import * as bcrypt from 'bcrypt';
 
 export type UserRole = 'admin' | 'reseller' | 'collector';
 
@@ -29,7 +29,6 @@ export interface AppUser {
 }
 
 const USER_FILE = path.join(process.cwd(), 'data', 'users.json');
-const CIPHER_KEY = (process.env.CIPHER_KEY || 'mikhmon16bytekey').padEnd(16).slice(0, 16);
 
 // Default permissions per role
 const ROLE_PERMISSIONS: Record<UserRole, AppUser['permissions']> = {
@@ -67,23 +66,14 @@ const ROLE_PERMISSIONS: Record<UserRole, AppUser['permissions']> = {
 
 @Injectable()
 export class UserService {
+  private readonly SALT_ROUNDS = 10;
 
-  private encrypt(text: string): string {
-    const iv = crypto.randomBytes(16);
-    const key = Buffer.from(CIPHER_KEY);
-    const cipher = crypto.createCipheriv('aes-128-cbc', key, iv);
-    const encrypted = Buffer.concat([cipher.update(text), cipher.final()]);
-    return iv.toString('base64') + ':' + encrypted.toString('base64');
+  private async hashPassword(password: string): Promise<string> {
+    return bcrypt.hash(password, this.SALT_ROUNDS);
   }
 
-  private decrypt(enc: string): string {
-    try {
-      const [ivStr, encStr] = enc.split(':');
-      const iv  = Buffer.from(ivStr, 'base64');
-      const key = Buffer.from(CIPHER_KEY);
-      const dec = crypto.createDecipheriv('aes-128-cbc', key, iv);
-      return Buffer.concat([dec.update(Buffer.from(encStr, 'base64')), dec.final()]).toString();
-    } catch { return enc; }
+  private async comparePassword(password: string, hash: string): Promise<boolean> {
+    return bcrypt.compare(password, hash);
   }
 
   private load(): AppUser[] {
@@ -113,11 +103,11 @@ export class UserService {
     return this.load().find(u => u.username === username) || null;
   }
 
-  create(data: {
+  async create(data: {
     username: string; password: string; name: string;
     role: UserRole; allowedSessions?: string[];
     permissions?: Partial<AppUser['permissions']>; note?: string;
-  }): Omit<AppUser, 'password'> {
+  }): Promise<Omit<AppUser, 'password'>> {
     const users = this.load();
     if (users.find(u => u.username === data.username)) {
       throw new Error(`Username "${data.username}" sudah digunakan`);
@@ -126,7 +116,7 @@ export class UserService {
     const user: AppUser = {
       id:              `USR-${Date.now()}`,
       username:        data.username,
-      password:        this.encrypt(data.password),
+      password:        await this.hashPassword(data.password),
       name:            data.name,
       role:            data.role,
       active:          true,
@@ -167,21 +157,24 @@ export class UserService {
     return safe;
   }
 
-  changePassword(id: string, oldPassword: string, newPassword: string): boolean {
+  async changePassword(id: string, oldPassword: string, newPassword: string): Promise<boolean> {
     const users = this.load();
     const u     = users.find(u => u.id === id);
     if (!u) return false;
-    if (this.decrypt(u.password) !== oldPassword) return false;
-    u.password = this.encrypt(newPassword);
+    
+    const isMatch = await this.comparePassword(oldPassword, u.password);
+    if (!isMatch) return false;
+    
+    u.password = await this.hashPassword(newPassword);
     this.save(users);
     return true;
   }
 
-  resetPassword(id: string, newPassword: string): boolean {
+  async resetPassword(id: string, newPassword: string): Promise<boolean> {
     const users = this.load();
     const u     = users.find(u => u.id === id);
     if (!u) return false;
-    u.password = this.encrypt(newPassword);
+    u.password = await this.hashPassword(newPassword);
     this.save(users);
     return true;
   }
@@ -216,11 +209,14 @@ export class UserService {
 
   // ── Auth ───────────────────────────────────────────────────────────
 
-  validate(username: string, password: string): Omit<AppUser, 'password'> | null {
+  async validate(username: string, password: string): Promise<Omit<AppUser, 'password'> | null> {
     const users = this.load();
     const u     = users.find(u => u.username === username && u.active);
     if (!u) return null;
-    if (this.decrypt(u.password) !== password) return null;
+    
+    const isMatch = await this.comparePassword(password, u.password);
+    if (!isMatch) return null;
+    
     // Update lastLogin
     u.lastLogin = new Date().toISOString();
     this.save(users);

@@ -30,9 +30,6 @@ interface UserState {
   expiresAt: number;
 }
 
-const CONFIG_FILE = path.join(process.cwd(), 'data', 'telegram.json');
-const LOG_FILE    = path.join(process.cwd(), 'data', 'telegram-log.json');
-const TOPUP_FILE = path.join(process.cwd(), 'data', 'topup-requests.json');
 const INDO_CURR   = ['RP','Rp','rp','IDR','idr'];
 
 // Tambah di atas @Injectable()
@@ -54,6 +51,7 @@ export class TelegramService implements OnModuleInit {
   private polling = false;
   private lastUpdateId = 0;
   private dailyTimer: NodeJS.Timeout | null = null;
+  private currentBotToken: string | null = null;
 
   // Per-user conversation state (chatId → state)
   private userStates = new Map<string, UserState>();
@@ -65,6 +63,16 @@ export class TelegramService implements OnModuleInit {
   private resellerSvc: BotResellerService | null = null;
   private resellerTgSvc: BotResellerTelegramService | null = null;
 
+  private getFilePath(base: string, sessionId?: string): string {
+    if (!sessionId) {
+      // Fallback ke router pertama jika sessionId tidak diberikan
+      const cfg = this.configService?.getAllSessions();
+      sessionId = cfg ? Object.keys(cfg)[0] : 'default';
+    }
+    const filename = sessionId ? `${base.replace('.json', '')}-${sessionId}.json` : base;
+    return path.join(process.cwd(), 'data', filename);
+  }
+
   setServices(mikrotik: any, config: any, vtService?: VoucherTypeService, resellerSvc?: BotResellerService, resellerTgSvc?: BotResellerTelegramService) {
     this.mikrotikService = mikrotik;
     this.configService = config;
@@ -74,46 +82,50 @@ export class TelegramService implements OnModuleInit {
   }
 
   onModuleInit() {
-    setTimeout(() => this.startPolling(), 3000);
+    // Beri waktu sebentar agar ConfigService siap
+    setTimeout(() => this.startPolling(), 5000);
     this.scheduleDailyReport();
-    // Cleanup expired states every 10 minutes
     setInterval(() => this.cleanupStates(), 10 * 60 * 1000);
   }
 
   // ── Config ────────────────────────────────────────────
 
-  getConfig(): TelegramConfig | null {
+  getConfig(sessionId?: string): TelegramConfig | null {
     try {
-      if (fs.existsSync(CONFIG_FILE)) return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+      const file = this.getFilePath('telegram.json', sessionId);
+      if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8'));
     } catch {}
     return null;
   }
 
   saveConfig(config: TelegramConfig): void {
-    const dir = path.dirname(CONFIG_FILE);
+    const file = this.getFilePath('telegram.json', config.sessionId);
+    const dir = path.dirname(file);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
-    this.polling = false;
+    fs.writeFileSync(file, JSON.stringify(config, null, 2));
+    
+    // Restart polling jika token berubah atau bot baru diaktifkan
+    this.polling = false; 
     setTimeout(() => this.startPolling(), 1000);
     this.scheduleDailyReport();
   }
 
   // ── Logs ──────────────────────────────────────────────
 
-  getLogs(): LogEntry[] {
+  getLogs(sessionId?: string): LogEntry[] {
     try {
-      if (fs.existsSync(LOG_FILE)) return JSON.parse(fs.readFileSync(LOG_FILE, 'utf8'));
+      const file = this.getFilePath('telegram-log.json', sessionId);
+      if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8'));
     } catch {}
     return [];
   }
 
-  private addLog(from: string, message: string): void {
-    const logs = this.getLogs();
+  private addLog(from: string, message: string, sessionId?: string): void {
+    const logs = this.getLogs(sessionId);
     logs.push({ time: new Date().toLocaleString('id-ID'), from, message });
     if (logs.length > 200) logs.splice(0, logs.length - 200);
-    const dir = path.dirname(LOG_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(LOG_FILE, JSON.stringify(logs, null, 2));
+    const file = this.getFilePath('telegram-log.json', sessionId);
+    fs.writeFileSync(file, JSON.stringify(logs, null, 2));
   }
 
   // ── State management ──────────────────────────────────
@@ -143,27 +155,29 @@ export class TelegramService implements OnModuleInit {
     }
   }
 
-  private loadTopupRequests(): TopupRequest[] {
+  private loadTopupRequests(sessionId?: string): TopupRequest[] {
     try {
-      if (fs.existsSync(TOPUP_FILE)) {
-        return JSON.parse(fs.readFileSync(TOPUP_FILE, 'utf8'));
+      const file = this.getFilePath('topup-requests.json', sessionId);
+      if (fs.existsSync(file)) {
+        return JSON.parse(fs.readFileSync(file, 'utf8'));
       }
     } catch {}
     return [];
   }
 
-  private saveTopupRequests(requests: TopupRequest[]) {
-    const dir = path.dirname(TOPUP_FILE);
+  private saveTopupRequests(requests: TopupRequest[], sessionId?: string) {
+    const file = this.getFilePath('topup-requests.json', sessionId);
+    const dir = path.dirname(file);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(TOPUP_FILE, JSON.stringify(requests, null, 2));
+    fs.writeFileSync(file, JSON.stringify(requests, null, 2));
   }
 
-  private async addTopupRequest(req: TopupRequest): Promise<any> {
-    const requests = this.loadTopupRequests();
+  private async addTopupRequest(req: TopupRequest, sessionId: string): Promise<any> {
+    const requests = this.loadTopupRequests(sessionId);
     requests.unshift(req);
     // Simpan max 100 request
     if (requests.length > 100) requests.splice(100);
-    this.saveTopupRequests(requests);
+    this.saveTopupRequests(requests, sessionId);
   }
 
   // ── Telegram API ──────────────────────────────────────
@@ -1178,7 +1192,7 @@ private async handleTopupRequest(
       requestedAt:  new Date().toISOString(),
       status:       'pending',
     };
-    this.addTopupRequest(topupReq);
+    this.addTopupRequest(topupReq, cfg.sessionId);
 
     // Konfirmasi ke reseller
     await this.sendMessage(chatId,

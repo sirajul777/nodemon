@@ -2,6 +2,8 @@ import { Controller, Get, Post, Put, Delete, Param, Query, Body, UseGuards } fro
 import { MikrotikService } from '../mikrotik/mikrotik.service';
 import { ConfigService } from '../config/config.service';
 import { AuthGuard } from '../auth/auth.guard';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Controller('api/pppoe')
 @UseGuards(AuthGuard)
@@ -12,6 +14,34 @@ export class PppoeController {
     const s = this.configService.getDecryptedSession(id);
     if (!s) throw new Error(`Session "${id}" not found`);
     return { ip: s.ip, user: s.user, password: s.password, port: s.port || 8728 };
+  }
+
+  private readProfileMeta(sessionId: string): Record<string, { active: boolean }> {
+    const file = path.join(process.cwd(), 'data', 'pppoe-profile-meta.json');
+    try {
+      if (fs.existsSync(file)) {
+        const all = JSON.parse(fs.readFileSync(file, 'utf8'));
+        return all[sessionId] || {};
+      }
+    } catch {}
+    return {};
+  }
+
+  private writeProfileMeta(sessionId: string, profileName: string, active: boolean) {
+    const file = path.join(process.cwd(), 'data', 'pppoe-profile-meta.json');
+    let all: any = {};
+    try { if (fs.existsSync(file)) all = JSON.parse(fs.readFileSync(file, 'utf8')); } catch {}
+    if (!all[sessionId]) all[sessionId] = {};
+    all[sessionId][profileName] = { active };
+    const dir = path.dirname(file);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(file, JSON.stringify(all, null, 2));
+  }
+
+  private mergeProfile(sessionId: string, p: any): any {
+    const meta = this.readProfileMeta(sessionId);
+    const loc = meta[p.name] || { active: true }; // Default aktif jika belum ada di meta
+    return { ...p, active: loc.active };
   }
 
   // Active connections
@@ -117,16 +147,21 @@ export class PppoeController {
 
   // Profiles
   @Get(':session/profiles')
-  getProfiles(@Param('session') s: string) {
+  async getProfiles(@Param('session') s: string) {
     const c = this.conn(s);
-    return this.mikrotikService.run(c.ip, c.user, c.password, '/ppp/profile/print', {}, c.port);
+    const profiles = await this.mikrotikService.run(c.ip, c.user, c.password, '/ppp/profile/print', {}, c.port);
+    return profiles.map(p => this.mergeProfile(s, p));
   }
 
   @Get(':session/profiles/:name')
   async getProfile(@Param('session') s: string, @Param('name') name: string) {
     const c = this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
-    try { const r = await client.run('/ppp/profile/print', { '?name': name }); return r[0] || null; }
+    try { 
+      const r = await client.run('/ppp/profile/print', { '?name': name }); 
+      if (!r[0]) return null;
+      return this.mergeProfile(s, r[0]);
+    }
     finally { client.close(); }
   }
 
@@ -144,6 +179,10 @@ export class PppoeController {
       if (body['only-one']) p['only-one'] = body['only-one'];
       if (body.comment) p.comment = body.comment;
       await client.run('/ppp/profile/add', p);
+      
+      const active = body.active !== undefined ? (body.active === 'true' || body.active === true) : true;
+      this.writeProfileMeta(s, body.name, active);
+      
       return { success: true };
     } catch (e: any) { return { success: false, error: e.message }; }
     finally { client.close(); }
@@ -165,6 +204,11 @@ export class PppoeController {
       if (body['only-one'] !== undefined) p['only-one'] = body['only-one'];
       if (body.comment !== undefined) p.comment = body.comment;
       await client.run('/ppp/profile/set', p);
+      
+      if (body.active !== undefined) {
+        this.writeProfileMeta(s, name, (body.active === 'true' || body.active === true));
+      }
+      
       return { success: true };
     } catch (e: any) { return { success: false, error: e.message }; }
     finally { client.close(); }
