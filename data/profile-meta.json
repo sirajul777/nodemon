@@ -47,6 +47,12 @@
       "validity": "15d",
       "profileColor": "#760572",
       "caption": ""
+    },
+    "VOCER-10k": {
+      "price": 8000,
+      "validity": "4d",
+      "profileColor": "#1a770e",
+      "caption": ""
     }
   }
 }

@@ -22,5 +22,89 @@
     "maxPerOrder": 10,
     "active": true,
     "createdAt": "2026-04-19T15:35:03.836Z"
+  },
+  {
+    "id": "vt_1776680900571",
+    "name": "VOCER 3K",
+    "price": 3000,
+    "profile": "VOCER-3k",
+    "duration": "12h",
+    "codeLength": 6,
+    "codeFormat": "upper+digit",
+    "maxPerOrder": 10,
+    "active": true,
+    "createdAt": "2026-04-20T10:28:20.571Z"
+  },
+  {
+    "id": "vt_1776680924167",
+    "name": "VOCER 5K",
+    "price": 5000,
+    "profile": "VOCER-5K",
+    "duration": "1d",
+    "codeLength": 6,
+    "codeFormat": "upper+digit",
+    "maxPerOrder": 10,
+    "active": true,
+    "createdAt": "2026-04-20T10:28:44.167Z"
+  },
+  {
+    "id": "vt_1776680953900",
+    "name": "VOCER 10K",
+    "price": 10000,
+    "profile": "VOCER-10k",
+    "duration": "4d",
+    "codeLength": 6,
+    "codeFormat": "upper+digit",
+    "maxPerOrder": 10,
+    "active": true,
+    "createdAt": "2026-04-20T10:29:13.900Z"
+  },
+  {
+    "id": "vt_1776680980818",
+    "name": "VOCER 15K",
+    "price": 15000,
+    "profile": "VOCER-15k",
+    "duration": "7d",
+    "codeLength": 6,
+    "codeFormat": "upper+digit",
+    "maxPerOrder": 10,
+    "active": true,
+    "createdAt": "2026-04-20T10:29:40.818Z"
+  },
+  {
+    "id": "vt_1776681014663",
+    "name": "VOCER 20K",
+    "price": 20000,
+    "profile": "VOCER-20k",
+    "duration": "14d",
+    "codeLength": 6,
+    "codeFormat": "upper+digit",
+    "maxPerOrder": 10,
+    "active": true,
+    "createdAt": "2026-04-20T10:30:14.663Z"
+  },
+  {
+    "id": "vt_1776681052434",
+    "name": "VOCER 35K",
+    "price": 35000,
+    "profile": "HOME",
+    "duration": "30d",
+    "codeLength": 6,
+    "codeFormat": "upper+digit",
+    "maxPerOrder": 10,
+    "active": true,
+    "createdAt": "2026-04-20T10:30:52.434Z"
+  },
+  {
+    "id": "vt_1776681082657",
+    "name": "VOCER 40K",
+    "price": 40000,
+    "profile": "VOCER-40k",
+    "duration": "30d",
+    "codeLength": 6,
+    "codeFormat": "upper+digit",
+    "maxPerOrder": 10,
+    "active": true,
+    "createdAt": "2026-04-20T10:31:22.658Z"
   }
 ]
