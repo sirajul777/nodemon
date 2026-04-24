@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { MikrotikService, RosClient } from '../mikrotik/mikrotik.service';
+import { MikrotikService } from '../mikrotik/mikrotik.service';
 import { ConfigService } from '../config/config.service';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export interface VoucherBatchRequest {
   sessionId: string;
@@ -10,6 +12,8 @@ export interface VoucherBatchRequest {
   resellerName?: string;
   prefix?: string;
   usernameLength?: number;
+  userType?: 'up' | 'vc'; // up: user+pass, vc: user=pass
+  charType?: 'lower' | 'upper' | 'mixed' | 'digit' | 'lowerdigit' | 'upperdigit' | 'mixeddigit' | 'alphabet';
   limitUptime?: string;    // e.g. "1d", "12h", "30:00:00"
   validity?: string;       // e.g. "30d" — sets limit-uptime for auto-expire
 }
@@ -29,25 +33,26 @@ export class VoucherService {
     private configService: ConfigService,
   ) {}
 
-  private randomStr(len: number): string {
-    // No confusing chars: 0,O,1,l,I,q,Q
-    const chars = 'abcdefghjkmnprstuvwxyz23456789';
+  private randomStr(len: number, type: VoucherBatchRequest['charType'] = 'lowerdigit'): string {
+    const chars_map = {
+      lower:      'abcdefghjkmnprstuvwxyz',
+      upper:      'ABCDEFGHJKMNPRSTUVWXYZ',
+      alphabet:   'abcdefghjkmnprstuvwxyzABCDEFGHJKMNPRSTUVWXYZ',
+      digit:      '23456789',
+      lowerdigit: 'abcdefghjkmnprstuvwxyz23456789',
+      upperdigit: 'ABCDEFGHJKMNPRSTUVWXYZ23456789',
+      mixeddigit: 'abcdefghjkmnprstuvwxyzABCDEFGHJKMNPRSTUVWXYZ23456789'
+    };
+    const chars = chars_map[type] || chars_map.lowerdigit;
     return Array.from({ length: len }, () =>
       chars[Math.floor(Math.random() * chars.length)]
     ).join('');
   }
 
-  /**
-   * Parse validity string to RouterOS duration format.
-   * Accepts: "1d", "7d", "30d", "24h", "2h30m", "1:30:00"
-   * Returns RouterOS format: "1d", "00:30:00", etc.
-   */
   parseValidity(val: string): string {
     if (!val) return '';
     val = val.trim().toLowerCase();
-    // Already in ROS format (contains :)
     if (val.includes(':')) return val;
-    // Convert day/hour/min format
     const dayMatch = val.match(/^(\d+)d$/);
     if (dayMatch) return `${dayMatch[1]}d`;
     const hourMatch = val.match(/^(\d+)h$/);
@@ -64,35 +69,29 @@ export class VoucherService {
     const client = await this.mikrotikService.createClient(s.ip, s.user, s.password, s.port || 8728);
     const uLen = req.usernameLength || 5;
     const prefix = req.prefix || '';
-    // SESUDAH — prefix "up" agar dikenali on-login script
+    const userType = req.userType || 'up';
+    const charType = req.charType || 'lowerdigit';
+
     const now = new Date();
     const dateTag = now.toLocaleDateString('id-ID').replace(/\//g,'.').slice(0,8);
     const resellerTag = (req.resellerName || req.resellerId || '')
       .toUpperCase()
       .replace(/\s+/g,'');
 
-    // Format: up-timestamp-tanggal-RESELLER
-    // "up" di awal = dikenali on-login script MikHMon
-    // Setelah login, MikroTik akan ubah comment ini ke tanggal expired
-    // sehingga login kedua tidak akan duplikat
-
     const comment = resellerTag
     ? `up-${Date.now()}-${dateTag}-${resellerTag}`
     : `up-${Date.now()}-${dateTag}`;
 
-    // Resolve limit-uptime: explicit override OR from validity field OR from profile meta
     let limitUptime = '';
     if (req.limitUptime) {
       limitUptime = this.parseValidity(req.limitUptime);
     } else if (req.validity) {
       limitUptime = this.parseValidity(req.validity);
     } else {
-      // Try to get from profile meta
       const meta = await this.getProfileMeta(req.sessionId, req.profile);
       if (meta?.validity) limitUptime = this.parseValidity(meta.validity);
     }
 
-    // Get existing usernames to avoid duplicates
     const existing = await client.run('/ip/hotspot/user/print');
     const existingNames = new Set(existing.map(u => u.name));
 
@@ -102,10 +101,10 @@ export class VoucherService {
 
     while (vouchers.length < req.quantity && attempts < maxAttempts) {
       attempts++;
-      const username = prefix + this.randomStr(uLen);
+      const username = prefix + this.randomStr(uLen, charType);
       if (existingNames.has(username)) continue;
 
-      const password = this.randomStr(uLen);
+      const password = userType === 'vc' ? username : this.randomStr(uLen, charType);
       existingNames.add(username);
 
       const params: Record<string, string> = {
@@ -127,8 +126,6 @@ export class VoucherService {
   }
 
   private async getProfileMeta(sessionId: string, profileName: string): Promise<{ price: number; validity: string } | null> {
-    const fs = require('fs');
-    const path = require('path');
     const file = path.join(process.cwd(), 'data', 'profile-meta.json');
     try {
       if (fs.existsSync(file)) {
@@ -144,7 +141,6 @@ export class VoucherService {
     if (!s) throw new Error('Session not found');
     const profiles = await this.mikrotikService.run(s.ip, s.user, s.password, '/ip/hotspot/user/profile/print', {}, s.port || 8728);
 
-    // Merge with local meta (price, validity)
     const meta = this.getAllProfileMeta(sessionId);
     return profiles.map(p => ({
       ...p,
@@ -154,8 +150,6 @@ export class VoucherService {
   }
 
   private getAllProfileMeta(sessionId: string): Record<string, { price: number; validity: string }> {
-    const fs = require('fs');
-    const path = require('path');
     const file = path.join(process.cwd(), 'data', 'profile-meta.json');
     try {
       if (fs.existsSync(file)) {

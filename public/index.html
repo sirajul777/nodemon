@@ -7,319 +7,327 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-/* ── Reset & Variables ───────────────────────────── */
+/* ── Pro-Premium Dashboard Overhaul ── */
 :root {
-  --bg:     #0d1117;
-  --sb:     #161b22;
-  --card:   #1c2333;
-  --card2:  #21262d;
-  --border: #30363d;
-  --acc:    #1f6feb;
-  --acc2:   #388bfd;
-  --text:   #e6edf3;
-  --muted:  #8b949e;
-  --green:  #3fb950;
-  --yellow: #d29922;
-  --red:    #f85149;
-  --orange: #db6d28;
-  --purple: #8957e5;
-  --cyan:   #39c5cf;
-  --gr:     linear-gradient(135deg,#1f6feb22,#388bfd11);
+  --bg:      #050608;
+  --sb:      rgba(13, 17, 23, 0.85);
+  --card:    #0d1117;
+  --card2:   #161b22;
+  --border:  rgba(255, 255, 255, 0.08);
+  --acc:     linear-gradient(135deg, #316ce8, #4f95ff);
+  --acc-glow: 0 0 15px rgba(56, 139, 253, 0.35);
+  --text:    #f0f6fc;
+  --muted:   #8b949e;
+  --green:   #3fb950;
+  --yellow:  #d29922;
+  --red:     #f85149;
+  --purple:  #bc8cff;
+  --cyan:    #39c5cf;
+  --radius:  12px;
 }
-body.light {
-  --bg:     #f6f8fa;
-  --sb:     #ffffff;
-  --card:   #ffffff;
-  --card2:  #f6f8fa;
-  --border: #d0d7de;
-  --acc:    #0969da;
-  --acc2:   #0969da;
-  --text:   #1f2328;
-  --muted:  #656d76;
-  --green:  #1a7f37;
-  --yellow: #9a6700;
-  --red:    #cf222e;
-  --orange: #bc4c00;
-  --purple: #6639ba;
-  --cyan:   #1b7c83;
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  background: var(--bg);
+  background-image: radial-gradient(circle at 50% -20%, #1f6feb22, transparent);
+  color: var(--text);
+  display: flex;
+  min-height: 100vh;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
-body.light .sbc{box-shadow:0 1px 3px #0001}
-body.light table tr:hover td{background:#f6f8fa}
-body.light .nas-card{background:#f6f8fa}
-body.light .modal{background:#ffffff}
-body.light #sb{box-shadow:2px 0 8px #0001}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;font-size:13.5px;line-height:1.5}
-::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-track{background:var(--sb)}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 
-/* ── Sidebar ─────────────────────────────────────── */
-#sb{width:240px;background:var(--sb);border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:100vh;flex-shrink:0;transition:.25s}
-.sb-brand{padding:16px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
-.sb-brand .logo{width:32px;height:32px;background:var(--acc);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff;flex-shrink:0}
-.sb-brand .bname{font-weight:700;font-size:.95rem;color:var(--text)}
-.sb-brand .bsub{font-size:.7rem;color:var(--muted)}
-.sb-section{padding:10px 14px 4px;font-size:.65rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600}
-nav a{display:flex;align-items:center;gap:9px;padding:7px 14px;color:var(--muted);text-decoration:none;border-radius:6px;margin:1px 6px;transition:.15s;font-size:.84rem}
-nav a:hover{background:var(--card2);color:var(--text)}
-nav a.active{background:var(--acc);color:#fff}
-nav a .fa{width:16px;text-align:center;font-size:.85rem}
-nav .has-sub>a{justify-content:space-between}
-nav .sub{display:none;padding-left:10px}
-nav .sub.open{display:block}
-nav .sub a{font-size:.8rem;padding:5px 14px}
-.sb-router{margin:8px;padding:10px 12px;background:var(--card);border-radius:8px;border:1px solid var(--border)}
-.sb-router select{width:100%;background:transparent;border:none;color:var(--text);font-size:.82rem;outline:none;cursor:pointer}
-.sb-router .label{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
-
-/* ── Main ────────────────────────────────────────── */
-#main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-#topbar{background:var(--sb);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:52px;flex-shrink:0;gap:12px}
-.tb-left{display:flex;align-items:center;gap:12px}
-.tb-clock{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:.82rem;color:var(--muted)}
-.tb-clock .time{font-size:1rem;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
-.tb-right{display:flex;align-items:center;gap:10px}
-.tb-refresh{display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--muted)}
-.tb-refresh .dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.tb-user{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px 4px 4px;cursor:pointer}
-.tb-avatar{width:28px;height:28px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#fff}
-.tb-uname{font-size:.8rem;font-weight:500}
-.tb-title{font-size:.88rem;font-weight:600;color:var(--muted)}
-
-#content{flex:1;overflow-y:auto;padding:18px}
-.page{display:none}.page.active{display:block}
-
-/* ── Cards ───────────────────────────────────────── */
-.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px}
-.card-hd{display:flex;align-items:center;gap:8px;margin-bottom:14px;font-size:.88rem;font-weight:600;color:var(--text)}
-.card-hd .fa{color:var(--muted)}
-.card-hd .ml{margin-left:auto}
-
-/* ── Stat bar (top) ──────────────────────────────── */
-.stat-bar{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px}
-@media(max-width:1100px){.stat-bar{grid-template-columns:repeat(3,1fr)}}
-.sbc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden}
-.sbc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:10px 10px 0 0}
-.sbc.c-green::before{background:var(--green)}
-.sbc.c-yellow::before{background:var(--yellow)}
-.sbc.c-red::before{background:var(--red)}
-.sbc.c-blue::before{background:var(--acc2)}
-.sbc.c-purple::before{background:var(--purple)}
-.sbc.c-cyan::before{background:var(--cyan)}
-.sbc-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
-.sbc.c-green .sbc-icon{background:#3fb95022;color:var(--green)}
-.sbc.c-yellow .sbc-icon{background:#d2992222;color:var(--yellow)}
-.sbc.c-red .sbc-icon{background:#f8514922;color:var(--red)}
-.sbc.c-blue .sbc-icon{background:#388bfd22;color:var(--acc2)}
-.sbc.c-purple .sbc-icon{background:#8957e522;color:var(--purple)}
-.sbc.c-cyan .sbc-icon{background:#39c5cf22;color:var(--cyan)}
-.sbc-val{font-size:1.5rem;font-weight:700;line-height:1}
-.sbc-lbl{font-size:.72rem;color:var(--muted);margin-top:2px}
-
-/* ── Grid ────────────────────────────────────────── */
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-.gcol{display:grid;grid-template-columns:1fr 380px;gap:14px}
-@media(max-width:1000px){.gcol,.g2,.g3,.g4{grid-template-columns:1fr}}
-
-/* ── HS/PPPoE panels ─────────────────────────────── */
-.net-panel{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px}
-.net-label{font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:6px}
-.net-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.ns{background:var(--card2);border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:10px}
-.ns-ico{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
-.ns-ico.gr{background:#3fb95018;color:var(--green)}
-.ns-ico.bl{background:#388bfd18;color:var(--acc2)}
-.ns-ico.or{background:#db6d2818;color:var(--orange)}
-.ns-ico.pu{background:#8957e518;color:var(--purple)}
-.ns-val{font-size:1.35rem;font-weight:700}
-.ns-lbl{font-size:.72rem;color:var(--muted)}
-
-/* ── Log activity ────────────────────────────────── */
-.log-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-.lf-btn{padding:3px 10px;border-radius:99px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:.75rem;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:5px}
-.lf-btn:hover,.lf-btn.active{background:var(--acc);border-color:var(--acc);color:#fff}
-.lf-btn .cnt{background:#ffffff22;border-radius:99px;padding:1px 6px;font-size:.68rem}
-.log-list{max-height:280px;overflow-y:auto}
-.log-item{display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
-.log-item:last-child{border-bottom:none}
-.log-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0}
-.log-dot.green{background:var(--green)}
-.log-dot.red{background:var(--red)}
-.log-dot.yellow{background:var(--yellow)}
-.log-dot.blue{background:var(--acc2)}
-.log-body{flex:1;min-width:0}
-.log-title{font-size:.8rem;font-weight:500}
-.log-tag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:.68rem;margin-right:4px;font-weight:600}
-.lt-hs{background:#388bfd18;color:var(--acc2)}
-.lt-ppp{background:#8957e518;color:var(--purple)}
-.lt-vcr{background:#3fb95018;color:var(--green)}
-.log-sub{font-size:.75rem;color:var(--muted)}
-.log-time{font-size:.72rem;color:var(--muted);white-space:nowrap;flex-shrink:0}
-
-/* ── Status NAS ──────────────────────────────────── */
-.nas-card{background:var(--card2);border-radius:8px;padding:13px 14px;margin-bottom:8px}
-.nas-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.nas-name{font-weight:600;font-size:.88rem}
-.nas-ip{font-size:.75rem;color:var(--muted)}
-.nas-status{display:flex;align-items:center;gap:5px;font-size:.75rem}
-.nas-status .dot{width:7px;height:7px;border-radius:50%}
-.dot-on{background:var(--green)}
-.dot-off{background:var(--red)}
-.nas-info{font-size:.78rem;color:var(--muted);margin-bottom:8px}
-.nas-bar-row{margin-bottom:6px}
-.nas-bar-label{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-bottom:3px}
-.nas-bar{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
-.nas-bar-fill{height:100%;border-radius:3px;transition:.5s}
-.fill-green{background:var(--green)}
-.fill-yellow{background:var(--yellow)}
-.fill-red{background:var(--red)}
-
-/* ── Table ───────────────────────────────────────── */
-table{width:100%;border-collapse:collapse;font-size:.8rem}
-th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--border)}
-th{color:var(--muted);font-weight:500;font-size:.72rem;text-transform:uppercase;letter-spacing:.4px}
-tr:hover td{background:#ffffff04}
-.badge{display:inline-block;padding:1px 7px;border-radius:4px;font-size:.7rem;font-weight:600}
-.b-gr{background:#3fb95018;color:var(--green)}
-.b-rd{background:#f8514918;color:var(--red)}
-.b-bl{background:#388bfd18;color:var(--acc2)}
-.b-yl{background:#d2992218;color:var(--yellow)}
-.b-pu{background:#8957e518;color:var(--purple)}
-.b-mu{background:#ffffff10;color:var(--muted)}
-
-/* ── Buttons ─────────────────────────────────────── */
-.btn{padding:6px 13px;border-radius:6px;border:none;cursor:pointer;font-size:.8rem;font-weight:500;display:inline-flex;align-items:center;gap:5px;transition:.15s;white-space:nowrap}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-.b-p{background:var(--acc);color:#fff}.b-p:hover{background:var(--acc2)}
-.b-s{background:var(--card2);color:var(--text);border:1px solid var(--border)}.b-s:hover{background:var(--border)}
-.b-d{background:#f8514910;color:var(--red);border:1px solid #f8514930}.b-d:hover{background:var(--red);color:#fff}
-.b-w{background:#d2992210;color:var(--yellow);border:1px solid #d2992230}.b-w:hover{background:var(--yellow);color:#000}
-.b-g{background:#3fb95010;color:var(--green);border:1px solid #3fb95030}.b-g:hover{background:var(--green);color:#000}
-.b-stop{background:#f8514910;color:var(--red);border:1px solid #f8514940;width:100%;justify-content:center;padding:9px}
-.b-start{background:#3fb95010;color:var(--green);border:1px solid #3fb95040;width:100%;justify-content:center;padding:9px}
-.b-sm{padding:3px 8px;font-size:.74rem}
-
-/* ── Forms ───────────────────────────────────────── */
-input,select,textarea{background:var(--card2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:6px;font-size:.8rem;outline:none;width:100%;transition:.12s}
-input:focus,select:focus,textarea:focus{border-color:var(--acc);background:var(--card)}
-select option{background:var(--sb)}
-.fg{margin-bottom:11px}
-.fg label{display:block;margin-bottom:4px;font-size:.75rem;color:var(--muted)}
-.fg2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.fg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-.fb{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:flex-end}
-.fb .fg{margin-bottom:0}
-
-/* ── Modal ───────────────────────────────────────── */
-.ov{display:none;position:fixed;inset:0;background:#00000099;z-index:1000;align-items:center;justify-content:center}
-.ov.show{display:flex}
-.modal{background:var(--sb);border:1px solid var(--border);border-radius:12px;padding:22px;width:480px;max-width:94vw;max-height:92vh;overflow-y:auto}
-.modal h3{margin-bottom:16px;font-size:.92rem;display:flex;align-items:center;gap:8px}
-.mfoot{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
-
-/* ── Login ───────────────────────────────────────── */
-#ls{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999}
-#ls.hide{display:none}
-.lbox{background:var(--sb);border:1px solid var(--border);border-radius:14px;padding:36px;width:360px;text-align:center}
-.lbox .logo-big{width:56px;height:56px;background:var(--acc);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:800;color:#fff;margin:0 auto 14px}
-.lbox h2{font-size:1.25rem;margin-bottom:4px}
-.lbox p{color:var(--muted);font-size:.82rem;margin-bottom:22px}
-.lbox .fg{text-align:left}
-.err{color:var(--red);font-size:.78rem;margin-top:5px}
-
-/* ── Loading ─────────────────────────────────────── */
-#ld{display:none;position:fixed;inset:0;background:#00000066;z-index:9000;align-items:center;justify-content:center}
-#ld.show{display:flex}
-.spin{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--acc);border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* ── Toast ───────────────────────────────────────── */
-#toast{position:fixed;bottom:18px;right:18px;z-index:9999}
-.ti{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 16px;margin-top:6px;border-left:3px solid var(--acc);animation:si .2s ease;font-size:.8rem;box-shadow:0 4px 14px #00000055}
-@keyframes si{from{transform:translateX(60px);opacity:0}to{transform:none;opacity:1}}
-
-/* ── Telegram info rows ──────────────────────────── */
-.tg-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:.83rem}
-.tg-row:last-child{border-bottom:none}
-.tg-row .lbl{color:var(--muted)}
-.tg-row .val{font-weight:500;text-align:right}
-.tg-badge{display:inline-flex;align-items:center;gap:5px;padding:2px 10px;border-radius:99px;font-size:.75rem;font-weight:600}
-.tg-badge.running{background:#3fb95018;color:var(--green);border:1px solid #3fb95030}
-.tg-badge.stopped{background:#f8514918;color:var(--red);border:1px solid #f8514930}
-.tg-badge.polling{background:#388bfd18;color:var(--acc2);border:1px solid #388bfd30}
-
-/* ── Voucher settings table ──────────────────────── */
-.vt-name{font-weight:600;font-size:.85rem}
-
-/* ── Progress bar (resource) ─────────────────────── */
-.res-row{margin-bottom:10px}
-.res-label{display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted);margin-bottom:4px}
-.res-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
-.res-fill{height:100%;border-radius:3px;transition:.5s}
-
-/* ── Tabs ────────────────────────────────────────── */
-.tab-bar{display:flex;gap:2px;margin-bottom:12px;border-bottom:1px solid var(--border)}
-.tab{padding:7px 14px;cursor:pointer;font-size:.8rem;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
-.tab.active{color:var(--acc2);border-bottom-color:var(--acc2);font-weight:600}
-
-/* ── Info box ────────────────────────────────────── */
-.info-box{background:var(--acc)18;border:1px solid var(--acc)30;border-radius:7px;padding:9px 11px;font-size:.76rem;color:var(--acc2);margin-top:4px}
-.warn-box{background:#d2992210;border:1px solid #d2992230;border-radius:7px;padding:9px 11px;font-size:.76rem;color:var(--yellow)}
-
-/* ── Voucher card grid ───────────────────────────── */
-.vcr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px;margin-top:10px}
-.vcr-card{background:var(--card2);border:1px solid var(--border);border-radius:7px;padding:9px 10px;font-size:.78rem}
-.vcr-card .vu{font-weight:700;font-size:.92rem;letter-spacing:1px}
-.vcr-card .vp{color:var(--acc2);font-size:.8rem;margin-top:2px}
-.vcr-card .vpr{color:var(--muted);font-size:.7rem}
-
-/* ── Batch voucher card ──────────────────────────── */
-.batch-card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:.15s;position:relative}
-.batch-card:hover{border-color:var(--acc2);transform:translateY(-2px);box-shadow:0 4px 16px #0004}
-.batch-card-top{padding:13px 14px 10px;border-bottom:1px solid var(--border)}
-.batch-card-id{font-size:.75rem;font-weight:700;color:var(--muted);font-family:monospace;letter-spacing:.3px;margin-bottom:3px}
-.batch-card-profile{font-size:.95rem;font-weight:700;margin-bottom:4px}
-.batch-card-meta{font-size:.78rem;color:var(--muted);display:flex;flex-direction:column;gap:2px}
-.batch-card-meta span{display:flex;align-items:center;gap:5px}
-.batch-card-price{position:absolute;top:12px;right:12px;text-align:right}
-.batch-card-price .unit{font-size:.8rem;font-weight:700}
-.batch-card-price .total{font-size:.72rem;color:var(--muted)}
-.batch-card-price .fmt{font-size:.72rem;color:var(--muted);background:var(--card2);border-radius:4px;padding:1px 6px;margin-top:2px}
-.batch-card-bot{padding:10px 14px}
-.batch-card-bar{background:var(--border);border-radius:3px;height:5px;overflow:hidden;margin-bottom:6px}
-.batch-card-fill{height:100%;border-radius:3px}
-.batch-card-stats{display:flex;justify-content:space-between;font-size:.74rem;color:var(--muted)}
-.batch-del{position:absolute;bottom:9px;right:10px;opacity:0;transition:.15s}
-.batch-card:hover .batch-del{opacity:1}
-
-/* ── Print voucher ───────────────────────────────── */
-.pv-btn{padding:3px 11px;border-radius:5px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-size:.78rem;cursor:pointer;transition:.12s}
-.pv-btn.active,.pv-btn:hover{background:var(--acc);border-color:var(--acc);color:#fff}
-.pv-grid{display:grid;gap:8px;padding:4px}
-.pv-card{border-radius:8px;overflow:hidden;font-size:11px;break-inside:avoid;page-break-inside:avoid;border:1.5px solid #e0e0e0}
-.pv-card-hd{display:flex;align-items:center;justify-content:space-between;padding:6px 10px 4px;color:white}
-.pv-card-hd .logo{font-size:9px;font-weight:700;opacity:.9}
-.pv-card-hd .price{font-size:13px;font-weight:800}
-.pv-card-body{background:#fff;padding:7px 10px 8px;color:#222}
-.pv-card-row{display:flex;justify-content:space-between;margin-bottom:2px;font-size:10px;color:#555}
-.pv-card-row .label{color:#888}
-.pv-card-row .val{font-weight:700;color:#111;font-family:monospace;letter-spacing:.5px;font-size:11px}
-.pv-card-divider{border:none;border-top:1px dashed #ddd;margin:5px 0}
-.pv-card-extra{display:flex;justify-content:space-between;font-size:9.5px;color:#888}
-@media print{
-  .ov:not(#m-print){display:none!important}
-  #m-print{position:fixed;inset:0;background:white;z-index:9999;display:flex;flex-direction:column}
-  #m-print > div:first-child, #m-print > div:nth-child(2){display:none!important}
-  #m-print > div:last-child{padding:0;background:white;overflow:visible}
-  .pv-grid{gap:4px!important;padding:0!important}
-  .pv-card{border:1px solid #ccc!important}
-  body *:not(#m-print):not(#m-print *){display:none!important}
-  @page{margin:8mm}
+/* ── Floating Sidebar ── */
+#sb {
+  width: 255px;
+  background: var(--sb);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  margin: 12px 0 12px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 24px);
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+  z-index: 2000;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
 }
+
+@media(max-width:1024px){
+  #sb { position: fixed; left: -280px; margin: 0; height: 100vh; border-radius: 0; }
+  #sb.open { left: 0; }
+}
+
+.sb-brand {
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sb-brand .logo {
+  width: 36px; height: 36px;
+  background: var(--acc);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--acc-glow);
+  color: #fff;
+}
+.sb-brand-left { display: flex; align-items: center; gap: 10px; }
+.sb-close { display: none; cursor: pointer; color: var(--muted); }
+@media(max-width:1024px){ .sb-close { display: block; } }
+
+.sb-section { padding: 12px 18px 4px; font-size: 0.65rem; text-transform: uppercase; color: var(--muted); font-weight: 700; letter-spacing: 1px; }
+
+nav { flex: 1; overflow-y: auto; padding: 10px 0; }
+nav a {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px;
+  color: #c9d1d9;
+  text-decoration: none;
+  border-radius: 8px;
+  margin: 2px 12px;
+  transition: 0.2s;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+nav a:hover { background: rgba(255,255,255,0.05); color: #fff; }
+nav a.active {
+  background: var(--acc);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+nav a i { width: 18px; text-align: center; font-size: 1rem; }
+
+.sb-router {
+  margin: 12px; padding: 10px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+.sb-router .label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+
+/* ── Main & Topbar ── */
+#main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+#topbar {
+  background: var(--bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 15px;
+  height: 60px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+  gap: 10px;
+}
+.menu-toggle { display: none; cursor: pointer; font-size: 1.2rem; padding: 8px; color: #fff; }
+@media(max-width:1024px){ .menu-toggle { display: block; } }
+
+.tb-clock { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--muted); }
+.tb-clock .time { color: #fff; font-weight: 700; font-size: 1.1rem; }
+@media(max-width:600px){ .tb-clock { display: none; } }
+
+.tb-left { display: flex; align-items: center; gap: 15px; min-width: 0; overflow: hidden; }
+.tb-title { font-size: 1rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tb-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.tb-refresh { 
+  display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--muted);
+  background: rgba(255,255,255,0.03); padding: 5px 12px; border-radius: 20px;
+  border: 1px solid var(--border);
+}
+.tb-refresh .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+
+.tb-user { 
+  display: flex; align-items: center; gap: 10px; 
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border); 
+  border-radius: 30px; padding: 4px 12px 4px 4px; cursor: pointer; transition: 0.2s;
+}
+.tb-user:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); }
+.tb-avatar { 
+  width: 26px; height: 26px; border-radius: 50%; background: var(--acc); 
+  display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800; color: #fff; 
+}
+.tb-uname { font-size: 0.8rem; font-weight: 600; color: #fff; }
+
+@media(max-width:640px){
+  .tb-uname { display: none; }
+  .tb-user { padding: 4px; border-radius: 50%; }
+  .tb-refresh span { display: none; }
+  .tb-refresh { padding: 8px; }
+}
+
+#content { flex: 1; padding: 25px; overflow-y: auto; }
+.page { display: none; }
+.page.active { display: block; animation: fadeIn 0.3s ease forwards; }
+
+/* ── Components ── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+.card-hd { font-size: 1rem; font-weight: 700; margin-bottom: 18px; display: flex; align-items: center; gap: 10px; color: #fff; }
+.card-hd .ml { margin-left: auto; }
+
+.stat-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
+.sbc {
+  background: linear-gradient(145deg, #11151c, #0d1117);
+  border-radius: 16px; padding: 18px; border: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+}
+.sbc-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+.sbc-val { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; }
+.sbc-lbl { color: var(--muted); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; }
+
+/* ── Forms & Grids ── */
+.fg { margin-bottom: 12px; }
+.fg label { display: block; margin-bottom: 6px; font-size: 0.75rem; color: var(--muted); font-weight: 600; }
+.fg2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fg3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media(max-width:800px){ .g2, .fg2, .fg3 { grid-template-columns: 1fr; } }
+
+.fb { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; align-items: flex-end; }
+
+input, select, textarea {
+  width: 100%; background: #161b22; border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 14px; color: #fff; font-size: 0.9rem; transition: 0.2s;
+}
+input:focus { border-color: #388bfd; outline: none; box-shadow: 0 0 0 3px rgba(56,139,253,0.15); }
+
+/* ── Tables ── */
+.overflow-x-auto { overflow-x: auto; width: 100%; }
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+th { text-align: left; padding: 12px 16px; color: var(--muted); font-weight: 700; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+td { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* ── Buttons ── */
+.btn {
+  padding: 10px 18px; border-radius: 10px; font-weight: 600; font-size: 0.85rem;
+  display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; cursor: pointer; border: none;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.b-p { background: var(--acc); color: #fff; }
+.b-p:hover { transform: translateY(-1px); opacity: 0.95; }
+.b-s { background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border); }
+.b-s:hover { background: rgba(255,255,255,0.1); }
+.b-d { background: rgba(248, 81, 73, 0.1); color: var(--red); border: 1px solid rgba(248, 81, 73, 0.2); }
+.b-d:hover { background: var(--red); color: #fff; }
+.b-sm { padding: 6px 12px; font-size: 0.75rem; }
+
+/* ── Badges ── */
+.badge { padding: 3px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; display: inline-block; }
+.b-gr { background: rgba(46, 160, 67, 0.15); color: #3fb950; border: 1px solid rgba(46, 160, 67, 0.2); }
+.b-rd { background: rgba(248, 81, 73, 0.15); color: #f85149; border: 1px solid rgba(248, 81, 73, 0.2); }
+.b-bl { background: rgba(56, 139, 253, 0.15); color: #58a6ff; border: 1px solid rgba(56, 139, 253, 0.2); }
+.b-pu { background: rgba(188, 140, 255, 0.15); color: #bc8cff; border: 1px solid rgba(188, 140, 255, 0.2); }
+
+/* ── Modals & Overlays ── */
+.ov { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; }
+.ov.show { display: flex; }
+.modal { background: #0d1117; border: 1px solid var(--border); border-radius: 16px; padding: 25px; width: 500px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
+.mfoot { margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+
+/* ── Login Box ── */
+#ls { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 10000; }
+#ls.hide { display: none; }
+.lbox { background: #0d1117; border: 1px solid var(--border); border-radius: 20px; padding: 40px; width: 380px; text-align: center; box-shadow: var(--shadow); }
+.lbox .logo-big { width: 60px; height: 60px; background: var(--acc); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: #fff; margin: 0 auto 20px; box-shadow: var(--acc-glow); }
+
+/* ── Toast ── */
+#toast { position: fixed; bottom: 25px; right: 25px; z-index: 11000; }
+.ti { background: #161b22; border: 1px solid var(--border); border-left: 4px solid #388bfd; border-radius: 10px; padding: 12px 20px; margin-top: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); font-weight: 500; animation: slideIn 0.3s ease; }
+
+/* ── Pagination Bar ── */
+.pg-box { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: rgba(255,255,255,0.02); border-top: 1px solid var(--border); border-radius: 0 0 16px 16px; }
+.pg-ctrl { display: flex; gap: 8px; align-items: center; }
+.pg-info { font-size: 0.8rem; color: var(--muted); }
+
+/* ── Dashboard Specifics ── */
+.gcol { display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
+@media(max-width:1100px){ .gcol { grid-template-columns: 1fr; } }
+
+.net-panel { 
+  background: rgba(255,255,255,0.02); 
+  border: 1px solid var(--border); 
+  border-radius: 16px; padding: 20px; 
+}
+.net-label { 
+  font-size: 0.7rem; font-weight: 800; letter-spacing: 1px; 
+  text-transform: uppercase; color: var(--muted); margin-bottom: 15px; 
+  display: flex; align-items: center; gap: 8px;
+}
+.net-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ns { 
+  background: var(--card2); border-radius: 12px; padding: 15px; 
+  display: flex; align-items: center; gap: 12px; border: 1px solid var(--border);
+}
+.ns-ico { 
+  width: 40px; height: 40px; border-radius: 10px; 
+  display: flex; align-items: center; justify-content: center; font-size: 1rem; 
+}
+.ns-ico.gr { background: rgba(46, 160, 67, 0.1); color: var(--green); }
+.ns-ico.bl { background: rgba(56, 139, 253, 0.1); color: var(--acc-hex); }
+.ns-ico.pu { background: rgba(188, 140, 255, 0.1); color: var(--purple); }
+.ns-ico.or { background: rgba(219, 109, 40, 0.1); color: #db6d28; }
+.ns-val { font-size: 1.4rem; font-weight: 800; line-height: 1; }
+.ns-lbl { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+
+/* ── Activity Logs ── */
+.log-filters { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
+.lf-btn { 
+  padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
+  background: transparent; color: var(--muted); font-size: 0.8rem; 
+  cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 6px;
+}
+.lf-btn:hover, .lf-btn.active { background: rgba(56, 139, 253, 0.1); border-color: #388bfd; color: #fff; }
+.lf-btn .cnt { background: rgba(255,255,255,0.1); padding: 1px 7px; border-radius: 10px; font-size: 0.7rem; }
+
+.log-list { max-height: 400px; overflow-y: auto; padding-right: 5px; }
+.log-item { 
+  display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; 
+  border-bottom: 1px solid var(--border); 
+}
+.log-item:last-child { border-bottom: none; }
+.log-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; box-shadow: 0 0 8px currentColor; }
+.log-body { flex: 1; min-width: 0; }
+.log-title { font-size: 0.85rem; font-weight: 600; color: #fff; margin-bottom: 2px; }
+.log-sub { font-size: 0.78rem; color: var(--muted); }
+.log-time { font-size: 0.72rem; color: var(--muted); margin-left: auto; }
+
+/* ── Router / NAS Status ── */
+.nas-card { 
+  background: var(--card2); border-radius: 14px; padding: 18px; 
+  margin-bottom: 12px; border: 1px solid var(--border);
+}
+.nas-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.nas-name { font-weight: 700; font-size: 0.95rem; }
+.nas-status { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 600; }
+.nas-status .dot { width: 8px; height: 8px; border-radius: 50%; animation: pulse 2s infinite; }
+.dot-on { background: var(--green); box-shadow: 0 0 10px var(--green); }
+.dot-off { background: var(--red); }
+
+.nas-bar-row { margin-bottom: 10px; }
+.nas-bar-label { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--muted); margin-bottom: 4px; }
+.nas-bar { height: 6px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; }
+.nas-bar-fill { height: 100%; transition: 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+/* ── Others ── */
+.spin { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #388bfd; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideIn { from { transform: translateX(50px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
 </style>
 </head>
 <body>
@@ -330,8 +338,8 @@ select option{background:var(--sb)}
     <div class="logo-big"><i class="fa fa-wifi"></i></div>
     <h2>MikHMon</h2>
     <p>MikroTik Hotspot Monitor</p>
-    <div class="fg"><label>Username</label><input id="lu" value="mikhmon" autocomplete="username"></div>
-    <div class="fg"><label>Password</label><input type="password" id="lp" value="1234" autocomplete="current-password"></div>
+    <div class="fg"><label>Username</label><input id="lu" placeholder="Username" autocomplete="username"></div>
+    <div class="fg"><label>Password</label><input type="password" id="lp" placeholder="Password" autocomplete="current-password"></div>
     <div class="err" id="le"></div><br>
     <button class="btn b-p" style="width:100%" onclick="doLogin()"><i class="fa fa-sign-in"></i> Login</button>
   </div>
@@ -342,8 +350,11 @@ select option{background:var(--sb)}
 <!-- Sidebar -->
 <div id="sb">
   <div class="sb-brand">
-    <div class="logo"><i class="fa fa-wifi"></i></div>
-    <div><div class="bname">MikHMon</div><div class="bsub">Hotspot Monitor</div></div>
+    <div class="sb-brand-left">
+      <div class="logo"><i class="fa fa-wifi"></i></div>
+      <div><div class="bname">MikHMon</div><div class="bsub">Hotspot Monitor</div></div>
+    </div>
+    <div class="sb-close" onclick="toggleSidebar()"><i class="fa fa-times"></i></div>
   </div>
   <!-- Router selector -->
   <div class="sb-router">
@@ -398,6 +409,7 @@ select option{background:var(--sb)}
   <!-- Topbar -->
   <div id="topbar">
     <div class="tb-left">
+      <div class="menu-toggle" onclick="toggleSidebar()"><i class="fa fa-bars"></i></div>
       <div class="tb-clock">
         <i class="fa fa-clock-o" style="color:var(--acc2)"></i>
         <span class="time" id="tb-time">--:--:--</span>
@@ -512,6 +524,7 @@ select option{background:var(--sb)}
           <button class="btn b-s b-sm ml" onclick="loadHsActive()"><i class="fa fa-refresh"></i></button>
         </div>
         <div style="overflow-x:auto"><table><thead><tr><th>User</th><th>IP</th><th>MAC</th><th>Uptime</th><th>Session Left</th></tr></thead><tbody id="t-ha"></tbody></table></div>
+        <div id="pg-t-ha"></div>
       </div>
     </div>
 
@@ -522,11 +535,28 @@ select option{background:var(--sb)}
         <div class="fb">
           <div class="fg"><label>Search</label><input id="uq" placeholder="username..." oninput="filterTbl('t-hu','uq')" style="max-width:170px"></div>
           <div class="fg"><label>Profile</label><select id="uprof" onchange="loadHsUsers()"><option value="all">All</option></select></div>
+          <div id="hu-bulk" class="fg" style="display:none;align-items:flex-end">
+            <button class="btn b-d" onclick="bulkDelHs()"><i class="fa fa-trash"></i> Hapus (<span id="hu-sel-count">0</span>)</button>
+          </div>
         </div>
-        <div style="overflow-x:auto"><table><thead><tr><th>Username</th><th>Profile</th><th>Comment</th><th>Limit</th><th></th></tr></thead><tbody id="t-hu"></tbody></table></div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:30px"><input type="checkbox" id="hu-all" onclick="toggleAllHs(this.checked)"></th>
+                <th>Username</th>
+                <th>Profile</th>
+                <th>Comment</th>
+                <th>Limit</th>
+                <th style="width:50px"></th>
+              </tr>
+            </thead>
+            <tbody id="t-hu"></tbody>
+          </table>
+        </div>
+        <div id="pg-t-hu"></div>
       </div>
     </div>
-
     <!-- ══ HOTSPOT PROFILES ══ -->
     <div class="page" id="page-hs-profiles">
       <div class="card">
@@ -547,6 +577,7 @@ select option{background:var(--sb)}
           <button class="btn b-s b-sm ml" onclick="loadPppActive()"><i class="fa fa-refresh"></i></button>
         </div>
         <div style="overflow-x:auto"><table><thead><tr><th>Name</th><th>Service</th><th>Caller ID</th><th>Address</th><th>Uptime</th><th></th></tr></thead><tbody id="t-pa"></tbody></table></div>
+        <div id="pg-t-pa"></div>
       </div>
     </div>
 
@@ -561,6 +592,7 @@ select option{background:var(--sb)}
           <div class="fg"><label>Profile</label><select id="ppp-prof-filter" onchange="loadPppUsers()"><option value="all">All</option></select></div>
         </div>
         <div style="overflow-x:auto"><table><thead><tr><th>Username</th><th>Profile</th><th>Service</th><th>Local IP</th><th>Remote IP</th><th>Comment</th><th>Status</th><th></th></tr></thead><tbody id="t-ps"></tbody></table></div>
+        <div id="pg-t-ps"></div>
       </div>
     </div>
 
@@ -581,6 +613,7 @@ select option{background:var(--sb)}
           <button class="btn b-p b-sm ml" onclick="openResellerModal()"><i class="fa fa-plus"></i> Add Reseller</button>
         </div>
         <div style="overflow-x:auto"><table><thead><tr><th>Name</th><th>ID/Tag</th><th>Phone</th><th>Discount</th><th></th></tr></thead><tbody id="t-rs"></tbody></table></div>
+        <div id="pg-t-rs"></div>
       </div>
     </div>
 
@@ -591,8 +624,20 @@ select option{background:var(--sb)}
           <div class="card-hd"><i class="fa fa-ticket"></i> Generate Batch Voucher</div>
           <div class="fg"><label>Profile</label><select id="bv-prof"></select></div>
           <div class="fg2">
+            <div class="fg"><label>User Type</label><select id="bv-type"><option value="up">User + Password</option><option value="vc">User = Password</option></select></div>
+            <div class="fg"><label>Char Type</label><select id="bv-char">
+              <option value="lowerdigit">Small Letters + Digits</option>
+              <option value="upperdigit">Capital Letters + Digits</option>
+              <option value="mixeddigit">Mixed Letters + Digits</option>
+              <option value="digit">Digits only</option>
+              <option value="alphabet">Letters only</option>
+              <option value="lower">Small Letters only</option>
+              <option value="upper">Capital Letters only</option>
+            </select></div>
+          </div>
+          <div class="fg2">
             <div class="fg"><label>Quantity</label><input id="bv-qty" type="number" value="10" min="1" max="500"></div>
-            <div class="fg"><label>Username Length</label><input id="bv-ulen" type="number" value="5" min="4" max="10"></div>
+            <div class="fg"><label>Length</label><input id="bv-ulen" type="number" value="5" min="3" max="12"></div>
           </div>
           <div class="fg2">
             <div class="fg"><label>Prefix</label><input id="bv-pfx" placeholder="opsional"></div>
@@ -720,7 +765,7 @@ select option{background:var(--sb)}
           <div class="tab active" id="tab-det" onclick="switchTab('det')"><i class="fa fa-list"></i> Detail</div>
           <div class="tab" id="tab-rsl" onclick="switchTab('rsl')"><i class="fa fa-handshake-o"></i> Per Reseller</div>
         </div>
-        <div id="pnl-det"><div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Date</th><th>Time</th><th>Username</th><th>Profile</th><th>Reseller</th><th style="text-align:right">Price</th></tr></thead><tbody id="t-sel"></tbody></table></div></div>
+        <div id="pnl-det"><div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Date</th><th>Time</th><th>Username</th><th>Profile</th><th>Reseller</th><th style="text-align:right">Price</th></tr></thead><tbody id="t-sel"></tbody></table></div><div id="pg-t-sel"></div></div>
         <div id="pnl-rsl" style="display:none"><div id="rsl-grp"></div></div>
       </div>
     </div>
@@ -935,10 +980,11 @@ select option{background:var(--sb)}
             <thead>
               <tr><th>Username</th><th>Nama</th><th>Role</th><th>Akses Router</th><th>Status</th><th>Login Terakhir</th><th>Aksi</th></tr>
             </thead>
-            <tbody id="t-users"></tbody>
-          </table>
-        </div>
-      </div>
+            <tbody id="t-users"></tbody></table>
+            </div>
+            <div id="pg-t-users"></div>
+            </div>
+
     </div>
 
     <!-- ══ CHANGE PASSWORD ══ -->
@@ -1134,6 +1180,7 @@ select option{background:var(--sb)}
           <table><thead><tr><th>Name</th><th>IP</th><th>Port</th><th>Currency</th><th>Live Report</th><th>Actions</th></tr></thead>
           <tbody id="t-sess"></tbody></table>
         </div>
+        <div id="pg-t-sess"></div>
       </div>
     </div>
 
@@ -1510,7 +1557,10 @@ select option{background:var(--sb)}
   <div class="fg2"><div class="fg"><label>Rate Limit</label><input id="mpp-rl" placeholder="10M/10M"></div><div class="fg"><label>Address Pool</label><input id="mpp-ap" placeholder="pppoe-pool"></div></div>
   <div class="fg2"><div class="fg"><label>Local Address</label><input id="mpp-la" placeholder="opsional"></div><div class="fg"><label>Session Timeout</label><input id="mpp-st" placeholder="00:00:00"></div></div>
   <div class="fg2"><div class="fg"><label>Idle Timeout</label><input id="mpp-it" placeholder="00:05:00"></div><div class="fg"><label>Only One</label><select id="mpp-oo"><option value="default">default</option><option value="yes">yes</option><option value="no">no</option></select></div></div>
-  <div class="fg"><label>Comment</label><input id="mpp-cm" placeholder=""></div>
+  <div class="fg2">
+    <div class="fg"><label>Comment</label><input id="mpp-cm" placeholder=""></div>
+    <div class="fg" style="max-width:120px"><label>Status</label><select id="mpp-act"><option value="true">Aktif</option><option value="false">Nonaktif</option></select></div>
+  </div>
   <div class="err" id="mpp-err"></div>
   <div class="mfoot"><button class="btn b-s" onclick="closeM('m-pp')">Batal</button><button class="btn b-p" onclick="savePppProfile()"><i class="fa fa-save"></i> Simpan</button></div>
 </div></div>
@@ -1540,13 +1590,63 @@ select option{background:var(--sb)}
 // ════════════════════════════════════════════════
 // GLOBALS
 // ════════════════════════════════════════════════
-const API = '/api';
+const API = window.location.origin + '/api';
 let CS = ''; // current session
 let rChart = null;
 let selData = [], rslGrps = [], genVcr = [];
 let editSess = null, editHsProf = null, editPppUser = null, editPppProf = null, editRs = null, editVtId = null;
 let liveInterval = null;  // dashboard auto-refresh
 let logFilter = 'all';
+
+// Pagination States
+let PG = {
+  't-hu': { page: 1, limit: 25, data: [] },
+  't-ha': { page: 1, limit: 25, data: [] },
+  't-ps': { page: 1, limit: 25, data: [] },
+  't-pa': { page: 1, limit: 25, data: [] },
+  't-sel':{ page: 1, limit: 50, data: [] },
+  't-sess':{ page: 1, limit: 10, data: [] },
+  't-rs': { page: 1, limit: 25, data: [] },
+  't-users': { page: 1, limit: 25, data: [] }
+};
+
+function renderPagination(tid, onRender) {
+  const s = PG[tid];
+  if (!s || !s.data) return '';
+  const total = s.data.length;
+  const maxPage = Math.ceil(total / s.limit) || 1;
+  if (s.page > maxPage) s.page = maxPage;
+  
+  const start = (s.page - 1) * s.limit;
+  const end = Math.min(start + s.limit, total);
+  
+  // Render subset data ke tabel
+  const subset = s.data.slice(start, end);
+  onRender(subset);
+
+  // Get function name for the button onclick
+  const fnName = onRender.name;
+
+  // Return HTML navigasi
+  return `
+    <div class="pg-box">
+      <div class="pg-info">Showing <b>${total > 0 ? start + 1 : 0}</b> to <b>${end}</b> of <b>${total}</b> entries</div>
+      <div class="pg-ctrl">
+        <button class="btn b-s pg-btn" ${s.page <= 1 ? 'disabled' : ''} onclick="changePage('${tid}', ${s.page - 1}, ${fnName})"><i class="fa fa-chevron-left"></i></button>
+        <span style="font-size:.75rem;font-weight:600;padding:0 8px">Page ${s.page} of ${maxPage}</span>
+        <button class="btn b-s pg-btn" ${s.page >= maxPage ? 'disabled' : ''} onclick="changePage('${tid}', ${s.page + 1}, ${fnName})"><i class="fa fa-chevron-right"></i></button>
+      </div>
+    </div>
+  `;
+}
+
+function changePage(tid, newPage, renderFn) {
+  if (PG[tid]) {
+    PG[tid].page = newPage;
+    // renderFn akan memanggil load... yang kemudian memanggil renderPagination lagi
+    renderFn(true); // pass true to indicate it's a pagination change, not a fresh fetch if possible
+  }
+}
 
 const MS = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
 const MF = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -1579,11 +1679,74 @@ async function checkAuth() {
     const d = await req('/auth/me');
     if (d?.authenticated) {
       document.getElementById('ls').classList.add('hide');
-      document.getElementById('tb-un').textContent = d.username || 'Admin';
-      document.getElementById('tb-av').textContent = (d.username||'A')[0].toUpperCase();
-      await loadSessions();
+      const dispName = d.username || 'Admin';
+      document.getElementById('tb-un').textContent = dispName;
+      document.getElementById('tb-av').textContent = dispName[0].toUpperCase();
+      
+      // Terapkan isolasi menu berdasarkan role/permission
+      if (d.role && d.role !== 'admin') {
+        applyRoleNav(d.role, d.permissions);
+      }
+
+      // Restore last session and page
+      CS = localStorage.getItem('mikhmon_cs') || '';
+      const lastPg = localStorage.getItem('mikhmon_last_pg') || 'dashboard';
+      
+      await loadSessions(); 
+      if (CS) {
+        document.getElementById('rtr-sel').value = CS;
+        // Re-validate session with backend
+        await fetch(`${API}/session/router`, {
+          method:'POST', credentials:'include',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ sessionId: CS })
+        });
+      }
+      
+      go(lastPg);
     }
-  } catch {}
+  } catch(e) { console.error('Auth check error:', e); }
+}
+
+function applyRoleNav(role, perms) {
+  if (!perms) return;
+  // Mapping permission key ke ID element nav
+  const map = {
+    viewDashboard:  'nav-dashboard',
+    manageVoucher:  ['nav-reseller','nav-batch','nav-batch-list','nav-voucher-settings'],
+    manageBilling:  ['nav-billing','nav-invoices'],
+    managePppoe:    ['nav-ppp-active','nav-ppp-users','nav-ppp-profiles'],
+    manageHotspot:  ['nav-hs-active','nav-hs-users','nav-hs-profiles'],
+    viewReport:     ['nav-selling','nav-resume','nav-live'],
+    manageSystem:   ['nav-user-management','nav-sessions','nav-mobile-api']
+  };
+
+  Object.keys(map).forEach(k => {
+    const ids = Array.isArray(map[k]) ? map[k] : [map[k]];
+    const show = perms[k] === true;
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.style.display = show ? 'flex' : 'none';
+        // Sembunyikan sb-section jika semua item di bawahnya sembunyi
+        const prev = el.previousElementSibling;
+        if (prev && prev.classList.contains('sb-section') && !show) {
+          // Logika sederhana: cek sibling selanjutnya, jika semuanya tersembunyi, sembunyikan section
+        }
+      }
+    });
+  });
+  
+  // Sembunyikan section header yang kosong
+  document.querySelectorAll('.sb-section').forEach(sec => {
+    let next = sec.nextElementSibling;
+    let hasVisible = false;
+    while(next && !next.classList.contains('sb-section')) {
+      if(next.tagName === 'A' && next.style.display !== 'none') { hasVisible = true; break; }
+      next = next.nextElementSibling;
+    }
+    sec.style.display = hasVisible ? 'block' : 'none';
+  });
 }
 
 async function doLogin() {
@@ -1593,7 +1756,8 @@ async function doLogin() {
     method:'POST', credentials:'include',
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ username:u, password:p })
-  }).then(r=>r.json());
+  }).then(r => r.json());
+
   if (d.success) {
     document.getElementById('ls').classList.add('hide');
     document.getElementById('le').textContent = '';
@@ -1601,15 +1765,21 @@ async function doLogin() {
     document.getElementById('tb-un').textContent = dispName;
     document.getElementById('tb-av').textContent = dispName[0].toUpperCase();
     if (d.role && d.role !== 'admin') applyRoleNav(d.role, d.permissions);
-    await loadSessions(); go(d.role === 'collector' ? 'billing' : d.role === 'reseller' ? 'batch' : 'sessions');
+
+    await loadSessions(); 
+    const lastPg = d.role === 'collector' ? 'billing' : d.role === 'reseller' ? 'batch' : 'dashboard';
+    go(lastPg);
   } else {
     document.getElementById('le').textContent = d.message || 'Login gagal';
   }
 }
 async function doLogout() {
+  localStorage.removeItem('mikhmon_cs');
+  localStorage.removeItem('mikhmon_last_pg');
   await fetch(`${API}/auth/logout`, { method:'POST', credentials:'include' });
   location.reload();
 }
+
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !document.getElementById('ls').classList.contains('hide')) doLogin();
 });
@@ -1621,19 +1791,32 @@ const PN = {
   dashboard:'Dashboard', 'hs-active':'Active Users', 'hs-users':'User List',
   'hs-profiles':'User Profiles', 'ppp-active':'PPPoE Active', 'ppp-users':'PPPoE Users',
   'ppp-profiles':'PPPoE Profiles', reseller:'Reseller', batch:'Batch Voucher',
+  'batch-list':'Daftar Batch',
   'voucher-settings':'Settings Voucher', selling:'Selling Report', resume:'Resume Report',
-  live:'Live Report', 'tg-tools':'Telegram Bot Tools','bot-reseller':'Reseller Bot','billing':'Pelanggan Billing','invoices':'Tagihan / Invoice','user-management':'User Management','change-password':'Ganti Password','mobile-api':'Mobile API Docs', sessions:'Sessions'
+  live:'Live Report', 'tg-tools':'Telegram Bot Tools','tg-reseller':'Reseller Bot','billing':'Pelanggan Billing','invoices':'Tagihan / Invoice','user-management':'User Management','change-password':'Ganti Password','mobile-api':'Mobile API Docs', sessions:'Sessions'
 };
 
+function toggleSidebar() {
+  document.getElementById('sb').classList.toggle('open');
+}
+
 function go(pg) {
+  if (!pg) pg = 'dashboard';
+  localStorage.setItem('mikhmon_last_pg', pg);
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
   document.getElementById('page-'+pg)?.classList.add('active');
   document.getElementById('nav-'+pg)?.classList.add('active');
   document.getElementById('pg-title').textContent = PN[pg] || pg;
+  
+  // Tutup sidebar di mobile setelah pilih menu
+  if (window.innerWidth <= 768) {
+    document.getElementById('sb').classList.remove('open');
+  }
+
   // Stop live refresh when leaving dashboard
   if (pg !== 'dashboard') stopLive();
-  else startLive();
+  else if (CS) startLive();
   loadPage(pg);
 }
 
@@ -1644,14 +1827,14 @@ function loadPage(pg) {
   if (pg === 'voucher-settings') { loadVoucherSettings(); return; }
   if (pg === 'tg-tools') { loadTgInfo(); return; }
   if (pg === 'user-management') { loadUserManagement(); return; }
-  if (pg === 'tg-reseller') { loadResellerBot(); return; }
+  if (pg === 'tg-reseller') { loadBotResellers(); return; }
   if (pg === 'billing') { loadBilling(); return; }
   if (!CS) return;
   const map = {
     'dashboard': loadDashboard,
     'hs-active': loadHsActive, 'hs-users': loadHsUsers, 'hs-profiles': loadHsProfiles,
     'ppp-active': loadPppActive, 'ppp-users': loadPppUsers, 'ppp-profiles': loadPppProfiles,
-    'batch': initBatch, 'selling': initSelling, 'resume': initResume, 'live': loadLive,
+    'batch': initBatch, 'batch-list': loadBatchList, 'selling': initSelling, 'resume': initResume, 'live': loadLive,
   };
   (map[pg] || function(){})();
 }
@@ -1695,7 +1878,11 @@ function stopLive() {
 // ════════════════════════════════════════════════
 async function switchRouter(id) {
   CS = id;
-  if (!id) return;
+  if (!id) {
+    localStorage.removeItem('mikhmon_cs');
+    return;
+  }
+  localStorage.setItem('mikhmon_cs', id);
   await fetch(`${API}/session/router`, {
     method:'POST', credentials:'include',
     headers:{'Content-Type':'application/json'},
@@ -1707,29 +1894,40 @@ async function switchRouter(id) {
 // ════════════════════════════════════════════════
 // SESSIONS
 // ════════════════════════════════════════════════
-async function loadSessions() {
-  const sess = await req('/sessions') || [];
-  const sel = document.getElementById('rtr-sel');
-  const tgSel = document.getElementById('tg-session');
-  const prev = sel.value;
-  sel.innerHTML = '<option value="">— Pilih Router —</option>';
-  if (tgSel) { tgSel.innerHTML = '<option value="">Pilih router...</option>'; }
-  sess.forEach(s => {
-    sel.innerHTML += `<option value="${s.id}" ${s.id===prev?'selected':''}>${s.name} (${s.ip})</option>`;
-    if (tgSel) tgSel.innerHTML += `<option value="${s.id}">${s.name} (${s.ip})</option>`;
-  });
+async function loadSessions(isPg = false) {
+  if(!isPg) {
+    showL();
+    const sess = await req('/sessions') || [];
+    const sel = document.getElementById('rtr-sel');
+    const tgSel = document.getElementById('tg-session');
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">— Pilih Router —</option>';
+    if (tgSel) { tgSel.innerHTML = '<option value="">Pilih router...</option>'; }
+    sess.forEach(s => {
+      sel.innerHTML += `<option value="${s.id}" ${s.id===prev?'selected':''}>${s.name} (${s.ip})</option>`;
+      if (tgSel) tgSel.innerHTML += `<option value="${s.id}">${s.name} (${s.ip})</option>`;
+    });
+    PG['t-sess'].data = sess;
+    PG['t-sess'].page = 1;
+    hideL();
+  }
+  
   const tb = document.getElementById('t-sess'); if (!tb) return;
-  tb.innerHTML = sess.length
-    ? sess.map(s => `<tr>
+  document.getElementById('pg-t-sess').innerHTML = renderPagination('t-sess', renderSessions);
+}
+
+function renderSessions(subset) {
+  se('t-sess', subset.length
+    ? subset.map(s => `<tr>
         <td><b>${s.name}</b><br><small style="color:var(--muted)">${s.id}</small></td>
         <td>${s.ip}</td><td>${s.port||8728}</td><td>${s.currency}</td>
-        <td><span class="badge ${s.livereport==='enable'?'b-gr':'b-rd'}">${s.livereport}</span></td>
+        <td><span class="badge ${s.livereport==='enable'?'b-gr':'b-rd'}\">${s.livereport}</span></td>
         <td><div style="display:flex;gap:5px">
           <button class="btn b-g b-sm" onclick="testConn('${s.id}')"><i class="fa fa-plug"></i> Test</button>
           <button class="btn b-w b-sm" onclick="editSessionFn('${s.id}')"><i class="fa fa-pencil"></i></button>
           <button class="btn b-d b-sm" onclick="delSession('${s.id}')"><i class="fa fa-trash"></i></button>
         </div></td></tr>`).join('')
-    : '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:18px">Belum ada router</td></tr>';
+    : '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:18px">Belum ada router</td></tr>', 'innerHTML');
 }
 let editSessData = null;
 function openSessionModal(data=null) {
@@ -1788,12 +1986,14 @@ async function loadDashboard() {
   updateCountdown();
   try {
     // Parallel fetch
-    const [dash, live, pppActive, pppSecrets] = await Promise.all([
+    const [dash, live, pppActive, pppSecrets, hsLogs] = await Promise.all([
       req(`/mikrotik/${CS}/dashboard`),
       req(`/report/${CS}/live`),
       req(`/pppoe/${CS}/active`).catch(() => []),
       req(`/pppoe/${CS}/secrets`).catch(() => []),
+      req(`/mikrotik/${CS}/hotspot/log`).catch(() => []),
     ]);
+    
     if (!dash) return;
 
     // Stat bar
@@ -1844,52 +2044,58 @@ async function loadDashboard() {
           <div class="nas-bar-label"><span>HDD</span><span>${fmtB(r['free-hdd-space'])} free</span></div>
           <div class="nas-bar"><div class="nas-bar-fill ${hddPct>80?'fill-red':'fill-green'}" style="width:${Math.max(hddPct,2)}%"></div></div>
         </div>
-        <div style="font-size:.75rem;color:var(--muted);margin-top:6px">
-          <i class="fa fa-plug"></i> Sesi Aktif: ${(pppActive||[]).length} PPPoE &nbsp;|&nbsp; 
-          <i class="fa fa-wifi"></i> ${dash.hotspot?.active||0} Hotspot
-        </div>
       </div>`;
 
-    // Activity log from hotspot log
-    const logs = await req(`/mikrotik/${CS}/hotspot/log`).catch(() => []);
-    dashLogs = (logs||[]).slice(0,50).map(l => {
-      const msg = l.message || '';
-      return { time: l.time||'', msg, type: 'hs' };
+    // Process Logs
+    dashLogs = (hsLogs||[]).slice(0, 100).map(l => {
+      const m = l.message || '';
+      let type = 'hs';
+      if (m.includes('ppp') || m.includes('pppoe')) type = 'ppp';
+      return { time: l.time, msg: m, type };
     });
-    autoSyncBatchUsed();
 
+    autoSyncBatchUsed();
     renderLog();
   } catch(e) {
     console.error('Dashboard error:', e);
+  } finally {
+    hideL(); // Tutup loader apapun yang terjadi
   }
 }
 
 function renderLog() {
   const filtered = logFilter === 'all' ? dashLogs : dashLogs.filter(l => l.type === logFilter);
   const el = document.getElementById('log-list');
-  const hsCt = dashLogs.filter(l=>l.type==='hs').length;
+  const hsCt = dashLogs.filter(l => l.type === 'hs').length;
+  const pppCt = dashLogs.filter(l => l.type === 'ppp').length;
+  
   document.getElementById('lc-all').textContent = dashLogs.length;
   document.getElementById('lc-hs').textContent = hsCt;
-  document.getElementById('lc-ppp').textContent = '0';
+  document.getElementById('lc-ppp').textContent = pppCt;
 
   el.innerHTML = filtered.length
     ? filtered.map(l => {
-        const p = (l.msg||'').split(':');
-        const user = p[1]?.trim() || l.msg.substring(0,30);
-        const detail = p.slice(2).join(':').trim();
-        const isAuth = l.msg.toLowerCase().includes('login') || l.msg.toLowerCase().includes('auth');
+        const msg = l.msg.toLowerCase();
+        const isAuth   = msg.includes('login') || msg.includes('authorized');
+        const isLogout = msg.includes('logout');
+        const isErr    = msg.includes('error') || msg.includes('failed') || msg.includes('critical');
+        const isWarn   = msg.includes('warning') || msg.includes('timeout');
+        
+        const color = isErr ? 'red' : isWarn ? 'yellow' : isLogout ? 'orange' : isAuth ? 'green' : 'blue';
+        const icon  = l.type === 'hs' ? 'fa-wifi' : 'fa-plug';
+        
         return `<div class="log-item">
-          <div class="log-dot ${isAuth?'green':'blue'}"></div>
+          <div class="log-dot" style="background:var(--${color});box-shadow:0 0 8px var(--${color})"></div>
           <div class="log-body">
             <div class="log-title">
-              <span class="log-tag lt-hs">Hotspot</span>
-              <b>${user}</b>${detail?' — '+detail:''}
+              <span class="log-tag ${l.type==='hs'?'lt-hs':'lt-ppp'}"><i class="fa ${icon}"></i> ${l.type.toUpperCase()}</span>
+              ${l.msg}
             </div>
           </div>
           <div class="log-time">${l.time}</div>
         </div>`;
       }).join('')
-    : '<div style="text-align:center;color:var(--muted);padding:20px">Tidak ada log</div>';
+    : '<div style="text-align:center;color:var(--muted);padding:40px"><i class="fa fa-inbox" style="font-size:2rem;opacity:.2"></i><br>Tidak ada log</div>';
 }
 
 function filterLog(type, btn) {
@@ -1902,9 +2108,97 @@ function filterLog(type, btn) {
 // ════════════════════════════════════════════════
 // HOTSPOT
 // ════════════════════════════════════════════════
-async function loadHsActive(){if(!CS)return;showL();const d=await req(`/mikrotik/${CS}/hotspot/active`)||[];document.getElementById('ha-ct').textContent=`(${d.length})`;se('t-ha',d.length?d.map(u=>`<tr><td>${u.user||'—'}</td><td>${u.address||'—'}</td><td>${u['mac-address']||'—'}</td><td>${u.uptime||'—'}</td><td>${u['session-time-left']||'—'}</td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>','innerHTML');hideL();}
-async function loadHsUsers(){if(!CS)return;showL();const prof=document.getElementById('uprof')?.value||'all';const[users,profs]=await Promise.all([req(`/mikrotik/${CS}/hotspot/users?profile=${prof}`),req(`/mikrotik/${CS}/hotspot/profiles`)]);const psel=document.getElementById('uprof');const cur=psel.value;psel.innerHTML='<option value="all">All Profiles</option>';(profs||[]).forEach(p=>psel.innerHTML+=`<option value="${p.name}" ${p.name===cur?'selected':''}>${p.name}</option>`);se('t-hu',(users||[]).length?(users||[]).map(u=>`<tr><td>${u.name||'—'}</td><td><span class="badge b-bl">${u.profile||'—'}</span></td><td style="color:var(--muted)">${u.comment||''}</td><td>${u['limit-uptime']||'—'}</td><td><button class="btn b-d b-sm" onclick="removeHsUser('${u.name}')"><i class="fa fa-trash"></i></button></td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>','innerHTML');hideL();}
+async function loadHsActive(isPg = false){
+  if(!CS)return;
+  if(!isPg) {
+    showL();
+    const d=await req(`/mikrotik/${CS}/hotspot/active`)||[];
+    document.getElementById('ha-ct').textContent=`(${d.length})`;
+    PG['t-ha'].data = d;
+    PG['t-ha'].page = 1;
+    hideL();
+  }
+  document.getElementById('pg-t-ha').innerHTML = renderPagination('t-ha', renderHsActive);
+}
+
+function renderHsActive(subset) {
+  se('t-ha', subset.length ? subset.map(u=>`<tr><td>${u.user||'—'}</td><td>${u.address||'—'}</td><td>${u['mac-address']||'—'}</td><td>${u.uptime||'—'}</td><td>${u['session-time-left']||'—'}</td></tr>`).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>', 'innerHTML');
+}
+async function loadHsUsers(isPg = false){
+  if(!CS)return;
+  if(!isPg) {
+    showL();
+    const prof=document.getElementById('uprof')?.value||'all';
+    const[users,profs]=await Promise.all([req(`/mikrotik/${CS}/hotspot/users?profile=${prof}`),req(`/mikrotik/${CS}/hotspot/profiles`)]);
+    const psel=document.getElementById('uprof');
+    const cur=psel.value;
+    psel.innerHTML='<option value="all">All Profiles</option>';
+    (profs||[]).forEach(p=>psel.innerHTML+=`<option value="${p.name}" ${p.name===cur?'selected':''}>${p.name}</option>`);
+    
+    PG['t-hu'].data = users || [];
+    PG['t-hu'].page = 1;
+    hideL();
+  }
+
+  const allChk = document.getElementById('hu-all');
+  if(allChk) allChk.checked = false;
+  updateHsSel();
+
+  document.getElementById('pg-t-hu').innerHTML = renderPagination('t-hu', renderHsUsers);
+}
+
+function renderHsUsers(subset) {
+  se('t-hu', subset.length ? subset.map(u=>`<tr>
+    <td><input type="checkbox" class="hu-chk" data-name="${u.name}" onclick="updateHsSel()"></td>
+    <td>${u.name||'—'}</td>
+    <td><span class="badge b-bl">${u.profile||'—'}</span></td>
+    <td style="color:var(--muted)">${u.comment||''}</td>
+    <td>${u['limit-uptime']||'—'}</td>
+    <td><button class="btn b-d b-sm" onclick="removeHsUser('${u.name}')"><i class="fa fa-trash"></i></button></td>
+  </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>', 'innerHTML');
+}
 async function removeHsUser(name){if(!confirm(`Hapus user "${name}"?`))return;showL();await del(`/mikrotik/${CS}/hotspot/users/${name}`);hideL();toast('User dihapus');loadHsUsers();}
+
+function toggleAllHs(checked) {
+  document.querySelectorAll('.hu-chk').forEach(c => c.checked = checked);
+  updateHsSel();
+}
+
+function updateHsSel() {
+  const chks = document.querySelectorAll('.hu-chk:checked');
+  const bar = document.getElementById('hu-bulk');
+  const countEl = document.getElementById('hu-sel-count');
+  if (bar) {
+    bar.style.display = chks.length > 0 ? 'flex' : 'none';
+  }
+  if (countEl) countEl.textContent = chks.length;
+}
+
+async function bulkDelHs() {
+  const chks = document.querySelectorAll('.hu-chk:checked');
+  const names = Array.from(chks).map(c => c.dataset.name);
+  if (!confirm(`Hapus ${names.length} user terpilih?`)) return;
+  
+  showL();
+  try {
+    const d = await fetch(`${API}/mikrotik/${CS}/hotspot/users/bulk-delete`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ names })
+    }).then(r => r.json());
+    
+    if (d.success) {
+      toast(`✓ Berhasil menghapus ${d.count} user`);
+      loadHsUsers();
+    } else {
+      toast('✗ Gagal menghapus: ' + (d.error || 'error'), true);
+    }
+  } catch(e) {
+    toast('✗ Error: ' + e.message, true);
+  } finally {
+    hideL();
+  }
+}
 
 // HS Profiles
 async function loadHsProfiles(){if(!CS)return;showL();const d=await req(`/mikrotik/${CS}/hotspot/profiles`);hideL();if(!d||d.error){toast('Gagal load: '+(d?.error||'error'),true);return;}se('t-hsp',d.length?d.map(p=>`<tr>
@@ -1935,26 +2229,98 @@ async function delHsProfile(name){if(!confirm(`Hapus profile "${name}"?`))return
 // ════════════════════════════════════════════════
 // PPPoE
 // ════════════════════════════════════════════════
-async function loadPppActive(){if(!CS)return;showL();const d=await req(`/pppoe/${CS}/active`)||[];document.getElementById('pa-ct').textContent=`(${d.length})`;se('t-pa',d.length?d.map(u=>`<tr><td><b>${u.name||'—'}</b></td><td>${u.service||'—'}</td><td>${u['caller-id']||'—'}</td><td>${u.address||'—'}</td><td>${u.uptime||'—'}</td><td><button class="btn b-d b-sm" onclick="disconnectPpp('${u['.id']}')"><i class="fa fa-times"></i> DC</button></td></tr>`).join(''):'<tr><td colspan="6" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>','innerHTML');hideL();}
+async function loadPppActive(isPg = false){
+  if(!CS)return;
+  if(!isPg) {
+    showL();
+    const d=await req(`/pppoe/${CS}/active`)||[];
+    document.getElementById('pa-ct').textContent=`(${d.length})`;
+    PG['t-pa'].data = d;
+    PG['t-pa'].page = 1;
+    hideL();
+  }
+  document.getElementById('pg-t-pa').innerHTML = renderPagination('t-pa', renderPppActive);
+}
+
+function renderPppActive(subset) {
+  se('t-pa', subset.length ? subset.map(u=>`<tr><td><b>${u.name||'—'}</b></td><td>${u.service||'—'}</td><td>${u['caller-id']||'—'}</td><td>${u.address||'—'}</td><td>${u.uptime||'—'}</td><td><button class="btn b-d b-sm" onclick="disconnectPpp('${u['.id']}')"><i class="fa fa-times"></i> DC</button></td></tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>', 'innerHTML');
+}
 async function disconnectPpp(id){if(!confirm('Disconnect?'))return;showL();await del(`/pppoe/${CS}/active/${id}`);hideL();toast('Disconnected');loadPppActive();}
 
-async function loadPppUsers(){if(!CS)return;showL();const prof=document.getElementById('ppp-prof-filter')?.value||'all';const[users,profs]=await Promise.all([req(`/pppoe/${CS}/secrets${prof!=='all'?'?profile='+prof:''}`),req(`/pppoe/${CS}/profiles`)]);const psel=document.getElementById('ppp-prof-filter');const cur=psel.value;psel.innerHTML='<option value="all">All Profiles</option>';(profs||[]).forEach(p=>psel.innerHTML+=`<option value="${p.name}" ${p.name===cur?'selected':''}>${p.name}</option>`);se('t-ps',(users||[]).length?(users||[]).map(u=>`<tr><td><b>${u.name||'—'}</b></td><td><span class="badge b-bl">${u.profile||'—'}</span></td><td>${u.service||'—'}</td><td>${u['local-address']||'—'}</td><td>${u['remote-address']||'—'}</td><td style="color:var(--muted)">${u.comment||''}</td><td><span class="badge ${u.disabled==='true'?'b-rd':'b-gr'}">${u.disabled==='true'?'Disabled':'Active'}</span></td><td><div style="display:flex;gap:4px"><button class="btn b-w b-sm" onclick="editPppUserFn('${u.name}')"><i class="fa fa-pencil"></i></button>${u.disabled==='true'?`<button class="btn b-g b-sm" onclick="togglePppUser('${u.name}',false)"><i class="fa fa-check"></i></button>`:`<button class="btn b-s b-sm" onclick="togglePppUser('${u.name}',true)"><i class="fa fa-ban"></i></button>`}<button class="btn b-d b-sm" onclick="delPppUser('${u.name}')"><i class="fa fa-trash"></i></button></div></td></tr>`).join(''):'<tr><td colspan="8" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>','innerHTML');hideL();}
-async function openPppUserModal(data=null){editPppUser=data?data.name:null;document.getElementById('mpu-ttl').textContent=data?'Edit PPPoE User':'Add PPPoE User';document.getElementById('mpu-err').textContent='';document.getElementById('mpu-nm').value=data?.name||'';document.getElementById('mpu-nm').disabled=!!data;document.getElementById('mpu-pw').value='';document.getElementById('mpu-sv').value=data?.service||'pppoe';document.getElementById('mpu-la').value=data?.['local-address']||'';document.getElementById('mpu-ra').value=data?.['remote-address']||'';document.getElementById('mpu-cm').value=data?.comment||'';const profs=await req(`/pppoe/${CS}/profiles`)||[];const psel=document.getElementById('mpu-pr');psel.innerHTML='';profs.forEach(p=>psel.innerHTML+=`<option value="${p.name}" ${p.name===(data?.profile||'default')?'selected':''}>${p.name}</option>`);document.getElementById('m-pu').classList.add('show');}
+async function loadPppUsers(isPg = false){
+  if(!CS)return;
+  if(!isPg) {
+    showL();
+    const prof=document.getElementById('ppp-prof-filter')?.value||'all';
+    const[users,profs]=await Promise.all([req(`/pppoe/${CS}/secrets${prof!=='all'?'?profile='+prof:''}`),req(`/pppoe/${CS}/profiles`)]);
+    const psel=document.getElementById('ppp-prof-filter');
+    const cur=psel.value;
+    psel.innerHTML='<option value="all">All Profiles</option>';
+    (profs||[]).forEach(p=>psel.innerHTML+=`<option value="${p.name}" ${p.name===cur?'selected':''}>${p.name}</option>`);
+    
+    PG['t-ps'].data = users || [];
+    PG['t-ps'].page = 1;
+    hideL();
+  }
+  document.getElementById('pg-t-ps').innerHTML = renderPagination('t-ps', renderPppUsers);
+}
+
+function renderPppUsers(subset) {
+  se('t-ps',subset.length?subset.map(u=>`<tr><td><b>${u.name||'—'}</b></td><td><span class="badge b-bl">${u.profile||'—'}</span></td><td>${u.service||'—'}</td><td>${u['local-address']||'—'}</td><td>${u['remote-address']||'—'}</td><td style="color:var(--muted)">${u.comment||''}</td><td><span class="badge ${u.disabled==='true'?'b-rd':'b-gr'}">${u.disabled==='true'?'Disabled':'Active'}</span></td><td><div style="display:flex;gap:4px"><button class="btn b-w b-sm" onclick="editPppUserFn('${u.name}')"><i class="fa fa-pencil"></i></button>${u.disabled==='true'?`<button class="btn b-g b-sm" onclick="togglePppUser('${u.name}',false)"><i class="fa fa-check"></i></button>`:`<button class="btn b-s b-sm" onclick="togglePppUser('${u.name}',true)"><i class="fa fa-ban"></i></button>`}<button class="btn b-d b-sm" onclick="delPppUser('${u.name}')"><i class="fa fa-trash"></i></button></div></td></tr>`).join(''):'<tr><td colspan="8" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>','innerHTML');
+}
+async function openPppUserModal(data=null){
+  editPppUser=data?data.name:null;
+  document.getElementById('mpu-ttl').textContent=data?'Edit PPPoE User':'Add PPPoE User';
+  document.getElementById('mpu-err').textContent='';
+  document.getElementById('mpu-nm').value=data?.name||'';
+  document.getElementById('mpu-nm').disabled=!!data;
+  document.getElementById('mpu-pw').value='';
+  document.getElementById('mpu-sv').value=data?.service||'pppoe';
+  document.getElementById('mpu-la').value=data?.['local-address']||'';
+  document.getElementById('mpu-ra').value=data?.['remote-address']||'';
+  document.getElementById('mpu-cm').value=data?.comment||'';
+  
+  const profs=await req(`/pppoe/${CS}/profiles`)||[];
+  const psel=document.getElementById('mpu-pr');
+  psel.innerHTML='';
+  
+  // Tampilkan hanya profile yang AKTIF, kecuali jika data lama memang menggunakan profile itu
+  profs.forEach(p=>{
+    if (p.active !== false || p.name === data?.profile) {
+      psel.innerHTML+=`<option value="${p.name}" ${p.name===(data?.profile||'default')?'selected':''}>${p.name}${p.active===false?' (Nonaktif)':''}</option>`;
+    }
+  });
+  
+  document.getElementById('m-pu').classList.add('show');
+}
 async function editPppUserFn(name){showL();const u=await req(`/pppoe/${CS}/secrets/${name}`);hideL();if(u)openPppUserModal(u);}
 async function savePppUser(){const nm=v('mpu-nm');const pw=v('mpu-pw');if(!nm){se('mpu-err','Username wajib');return;}if(!editPppUser&&!pw){se('mpu-err','Password wajib');return;}const body={name:nm,profile:v('mpu-pr'),service:v('mpu-sv'),'local-address':v('mpu-la'),'remote-address':v('mpu-ra'),comment:v('mpu-cm')};if(pw)body.password=pw;showL();const d=editPppUser?await fetch(`${API}/pppoe/${CS}/secrets/${editPppUser}`,{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()):await post(`/pppoe/${CS}/secrets`,body);hideL();if(d?.success){closeM('m-pu');loadPppUsers();toast(editPppUser?'User diupdate!':'User ditambahkan!');}else se('mpu-err',d?.error||'Gagal');}
 async function togglePppUser(name,disable){showL();await fetch(`${API}/pppoe/${CS}/secrets/${name}/${disable?'disable':'enable'}`,{method:'POST',credentials:'include'});hideL();loadPppUsers();}
 async function delPppUser(name){if(!confirm(`Hapus "${name}"?`))return;showL();await del(`/pppoe/${CS}/secrets/${name}`);hideL();toast('User dihapus');loadPppUsers();}
 
-async function loadPppProfiles(){if(!CS)return;showL();const d=await req(`/pppoe/${CS}/profiles`)||[];se('t-pp',d.length?d.map(p=>`<tr><td><b>${p.name}</b></td><td><span class="badge b-bl">${p['rate-limit']||'—'}</span></td><td>${p['address-pool']||'—'}</td><td>${p['session-timeout']||'—'}</td><td>${p['only-one']||'—'}</td><td><div style="display:flex;gap:4px"><button class="btn b-w b-sm" onclick="editPppProfileFn('${p.name}')"><i class="fa fa-pencil"></i></button><button class="btn b-d b-sm" onclick="delPppProfile('${p.name}')"><i class="fa fa-trash"></i></button></div></td></tr>`).join(''):'<tr><td colspan="6" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>','innerHTML');hideL();}
-function openPppProfileModal(data=null){editPppProf=data?data.name:null;document.getElementById('mpp-ttl').textContent=data?'Edit PPPoE Profile':'Add PPPoE Profile';document.getElementById('mpp-err').textContent='';document.getElementById('mpp-nm').value=data?.name||'';document.getElementById('mpp-nm').disabled=!!data;document.getElementById('mpp-rl').value=data?.['rate-limit']||'';document.getElementById('mpp-ap').value=data?.['address-pool']||'';document.getElementById('mpp-la').value=data?.['local-address']||'';document.getElementById('mpp-st').value=data?.['session-timeout']||'';document.getElementById('mpp-it').value=data?.['idle-timeout']||'';document.getElementById('mpp-oo').value=data?.['only-one']||'default';document.getElementById('mpp-cm').value=data?.comment||'';document.getElementById('m-pp').classList.add('show');}
+async function loadPppProfiles(){if(!CS)return;showL();const d=await req(`/pppoe/${CS}/profiles`)||[];se('t-pp',d.length?d.map(p=>`<tr><td><b>${p.name}</b></td><td><span class="badge b-bl">${p['rate-limit']||'—'}</span></td><td>${p['address-pool']||'—'}</td><td>${p['session-timeout']||'—'}</td><td>${p['only-one']||'—'}</td><td><span class="badge ${p.active!==false?'b-gr':'b-rd'}">${p.active!==false?'Aktif':'Nonaktif'}</span></td><td><div style="display:flex;gap:4px"><button class="btn b-w b-sm" onclick="editPppProfileFn('${p.name}')"><i class="fa fa-pencil"></i></button><button class="btn b-d b-sm" onclick="delPppProfile('${p.name}')"><i class="fa fa-trash"></i></button></div></td></tr>`).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>','innerHTML');hideL();}
+function openPppProfileModal(data=null){editPppProf=data?data.name:null;document.getElementById('mpp-ttl').textContent=data?'Edit PPPoE Profile':'Add PPPoE Profile';document.getElementById('mpp-err').textContent='';document.getElementById('mpp-nm').value=data?.name||'';document.getElementById('mpp-nm').disabled=!!data;document.getElementById('mpp-rl').value=data?.['rate-limit']||'';document.getElementById('mpp-ap').value=data?.['address-pool']||'';document.getElementById('mpp-la').value=data?.['local-address']||'';document.getElementById('mpp-st').value=data?.['session-timeout']||'';document.getElementById('mpp-it').value=data?.['idle-timeout']||'';document.getElementById('mpp-oo').value=data?.['only-one']||'default';document.getElementById('mpp-cm').value=data?.comment||'';const statusEl=document.getElementById('mpp-act');if(statusEl)statusEl.value=String(data?.active!==false);document.getElementById('m-pp').classList.add('show');}
 async function editPppProfileFn(name){showL();const p=await req(`/pppoe/${CS}/profiles/${name}`);hideL();if(p)openPppProfileModal(p);}
-async function savePppProfile(){const nm=v('mpp-nm');if(!nm){se('mpp-err','Nama wajib');return;}const body={name:nm,'rate-limit':v('mpp-rl'),'address-pool':v('mpp-ap'),'local-address':v('mpp-la'),'session-timeout':v('mpp-st'),'idle-timeout':v('mpp-it'),'only-one':v('mpp-oo'),comment:v('mpp-cm')};showL();const d=editPppProf?await fetch(`${API}/pppoe/${CS}/profiles/${editPppProf}`,{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()):await post(`/pppoe/${CS}/profiles`,body);hideL();if(d?.success){closeM('m-pp');loadPppProfiles();toast(editPppProf?'Profile diupdate!':'Profile ditambahkan!');}else se('mpp-err',d?.error||'Gagal');}
+async function savePppProfile(){const nm=v('mpp-nm');if(!nm){se('mpp-err','Nama wajib');return;}const body={name:nm,'rate-limit':v('mhp-rl'),'address-pool':v('mpp-ap'),'local-address':v('mpp-la'),'session-timeout':v('mpp-st'),'idle-timeout':v('mpp-it'),'only-one':v('mpp-oo'),comment:v('mpp-cm'),active:v('mpp-act')==='true'};showL();const d=editPppProf?await fetch(`${API}/pppoe/${CS}/profiles/${editPppProf}`,{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()):await post(`/pppoe/${CS}/profiles`,body);hideL();if(d?.success){closeM('m-pp');loadPppProfiles();toast(editPppProf?'Profile diupdate!':'Profile ditambahkan!');}else se('mpp-err',d?.error||'Gagal');}
 async function delPppProfile(name){if(!confirm(`Hapus "${name}"?`))return;showL();await del(`/pppoe/${CS}/profiles/${name}`);hideL();toast('Profile dihapus');loadPppProfiles();}
 
 // ════════════════════════════════════════════════
 // RESELLER
 // ════════════════════════════════════════════════
-async function loadResellers(){const d=await req('/resellers')||[];se('t-rs',d.length?d.map(r=>`<tr><td><b>${r.name}</b></td><td><span class="badge b-pu">${r.id}</span></td><td>${r.phone||'—'}</td><td>${r.discount||0}%</td><td><div style="display:flex;gap:4px"><button class="btn b-w b-sm" onclick="editRsFn('${r.id}')"><i class="fa fa-pencil"></i></button><button class="btn b-d b-sm" onclick="delRs('${r.id}')"><i class="fa fa-trash"></i></button></div></td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:18px">Belum ada reseller</td></tr>','innerHTML');}
+async function loadResellers(isPg = false){
+  if(!isPg) {
+    showL();
+    const d=await req('/resellers')||[];
+    PG['t-rs'].data = d;
+    PG['t-rs'].page = 1;
+    hideL();
+  }
+  document.getElementById('pg-t-rs').innerHTML = renderPagination('t-rs', renderResellers);
+}
+
+function renderResellers(subset) {
+  se('t-rs',subset.length?subset.map(r=>`<tr><td><b>${r.name}</b></td><td><span class="badge b-pu">${r.id}</span></td><td>${r.phone||'—'}</td><td>${r.discount||0}%</td><td><div style="display:flex;gap:4px"><button class="btn b-w b-sm" onclick="editRsFn('${r.id}')"><i class="fa fa-pencil"></i></button><button class="btn b-d b-sm" onclick="delRs('${r.id}')"><i class="fa fa-trash"></i></button></div></td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:18px">Belum ada reseller</td></tr>','innerHTML');
+}
 function openResellerModal(data=null){editRs=data?.id||null;document.getElementById('mrs-ttl').textContent=data?'Edit Reseller':'Add Reseller';document.getElementById('mrs-err').textContent='';document.getElementById('mrs-id').value=data?.id||'';document.getElementById('mrs-id').disabled=!!data;document.getElementById('mrs-nm').value=data?.name||'';document.getElementById('mrs-ph').value=data?.phone||'';document.getElementById('mrs-dc').value=data?.discount||0;document.getElementById('mrs-ad').value=data?.address||'';document.getElementById('m-rs').classList.add('show');}
 async function editRsFn(id){const r=await req(`/resellers/${id}`);if(r&&!r.error)openResellerModal(r);}
 async function saveReseller(){const id=v('mrs-id'),nm=v('mrs-nm');if(!id||!nm){se('mrs-err','ID dan Nama wajib');return;}const body={id,name:nm,phone:v('mrs-ph'),discount:parseInt(v('mrs-dc'))||0,address:v('mrs-ad')};const d=await post('/resellers',body);if(d?.id){closeM('m-rs');loadResellers();toast(editRs?'Reseller diupdate!':'Reseller ditambahkan!');}else se('mrs-err','Gagal');}
@@ -2039,6 +2405,8 @@ async function generateVouchers(asCsv = false) {
   const reseller    = rsList.find(r => r.id === rsId) || null;
   const profileName = v('bv-prof');
   const limitUptime = v('bv-val') || undefined;
+  const userType    = v('bv-type');
+  const charType    = v('bv-char');
 
   const body = {
     sessionId:     CS,
@@ -2046,6 +2414,8 @@ async function generateVouchers(asCsv = false) {
     quantity:      qty,
     usernameLength: parseInt(v('bv-ulen')) || 5,
     prefix:        v('bv-pfx') || undefined,
+    userType,
+    charType,
     limitUptime,
     resellerId:    rsId   || undefined,
     resellerName:  reseller?.name || undefined,
@@ -2131,7 +2501,38 @@ function copyVouchers() {
 // VOUCHER SETTINGS
 // ════════════════════════════════════════════════
 async function loadVoucherSettings(){const d=await req('/voucher-types')||[];se('t-vt',d.length?d.map(vt=>`<tr><td class="vt-name">${vt.name}</td><td style="color:var(--green);font-weight:600">Rp ${Number(vt.price).toLocaleString('id-ID')}</td><td><span class="badge b-bl">${vt.profile}</span></td><td>${vt.duration||'—'}</td><td style="color:var(--muted);font-size:.76rem">${vt.codeLength}char · ${CFMT[vt.codeFormat]||vt.codeFormat}</td><td>${vt.maxPerOrder}</td><td><span class="badge ${vt.active?'b-gr':'b-rd'}" style="cursor:pointer" onclick="toggleVt('${vt.id}')">${vt.active?'Aktif':'Nonaktif'}</span></td><td><div style="display:flex;gap:4px"><button class="btn b-w b-sm" onclick="editVtFn('${vt.id}')"><i class="fa fa-pencil"></i></button><button class="btn b-d b-sm" onclick="deleteVt('${vt.id}')"><i class="fa fa-trash"></i></button></div></td></tr>`).join(''):'<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">Belum ada tipe voucher</td></tr>','innerHTML');}
-async function openVtModal(data=null){editVtId=data?.id||null;document.getElementById('mvt-ttl').textContent=data?'Edit Tipe Voucher':'Tambah Tipe Voucher';document.getElementById('mvt-err').textContent='';document.getElementById('mvt-nm').value=data?.name||'';document.getElementById('mvt-pr').value=data?.price||1000;document.getElementById('mvt-dur').value=data?.duration||'';document.getElementById('mvt-len').value=data?.codeLength||6;document.getElementById('mvt-fmt').value=data?.codeFormat||'upper+digit';document.getElementById('mvt-max').value=data?.maxPerOrder||10;document.getElementById('mvt-act').value=(data?.active!==false)?'true':'false';const psel=document.getElementById('mvt-prof');psel.innerHTML='<option value="">Loading...</option>';if(CS){const profs=await req(`/mikrotik/${CS}/hotspot/profiles`)||[];psel.innerHTML='<option value="">Pilih profile...</option>';profs.forEach(p=>psel.innerHTML+=`<option value="${p.name}" ${p.name===data?.profile?'selected':''}>${p.name}${p.validity?' ('+p.validity+')':''}${p.price?' Rp'+Number(p.price).toLocaleString('id-ID'):''}</option>`);if(data?.profile&&!profs.find(p=>p.name===data.profile))psel.innerHTML+=`<option value="${data.profile}" selected>${data.profile}</option>`;}else{psel.innerHTML=`<option value="${data?.profile||''}" ${data?.profile?'selected':''}>${data?.profile||'Pilih router dulu'}</option>`;}document.getElementById('m-vt').classList.add('show');}
+async function openVtModal(data=null){
+  editVtId=data?.id||null;
+  document.getElementById('mvt-ttl').textContent=data?'Edit Tipe Voucher':'Tambah Tipe Voucher';
+  document.getElementById('mvt-err').textContent='';
+  document.getElementById('mvt-nm').value=data?.name||'';
+  document.getElementById('mvt-pr').value=data?.price||1000;
+  document.getElementById('mvt-dur').value=data?.duration||'';
+  document.getElementById('mvt-len').value=data?.codeLength||6;
+  document.getElementById('mvt-fmt').value=data?.codeFormat||'upper+digit';
+  document.getElementById('mvt-max').value=data?.maxPerOrder||10;
+  document.getElementById('mvt-act').value=(data?.active!==false)?'true':'false';
+  
+  const psel=document.getElementById('mvt-prof');
+  psel.innerHTML='<option value="">Loading...</option>';
+  
+  if(CS){
+    // Selalu ambil data terbaru dari MikroTik agar sinkron
+    const profs=await req(`/mikrotik/${CS}/hotspot/profiles`)||[];
+    psel.innerHTML='<option value="">Pilih profile...</option>';
+    profs.forEach(p=>{
+      const isSel = p.name===data?.profile;
+      psel.innerHTML+=`<option value="${p.name}" ${isSel?'selected':''}>${p.name}${p.validity?' ('+p.validity+')':''}${p.price?' Rp'+Number(p.price).toLocaleString('id-ID'):''}</option>`;
+    });
+    // Jika profile yang tersimpan di database tidak ada di MikroTik (mungkin dihapus manual di Winbox)
+    if(data?.profile && !profs.find(p=>p.name===data.profile)) {
+      psel.innerHTML+=`<option value="${data.profile}" selected>${data.profile} (Tidak ada di MikroTik!)</option>`;
+    }
+  } else {
+    psel.innerHTML=`<option value="${data?.profile||''}" ${data?.profile?'selected':''}>${data?.profile||'Pilih router dulu'}</option>`;
+  }
+  document.getElementById('m-vt').classList.add('show');
+}
 async function editVtFn(id){const vt=await req(`/voucher-types/${id}`);if(vt&&!vt.error)openVtModal(vt);}
 async function saveVt(){const nm=v('mvt-nm'),prof=v('mvt-prof');if(!nm){se('mvt-err','Nama wajib');return;}if(!prof){se('mvt-err','Profile wajib dipilih');return;}const body={id:editVtId||undefined,name:nm,profile:prof,price:parseFloat(v('mvt-pr'))||0,duration:v('mvt-dur'),codeLength:parseInt(v('mvt-len'))||6,codeFormat:v('mvt-fmt'),maxPerOrder:parseInt(v('mvt-max'))||10,active:v('mvt-act')==='true'};showL();const d=editVtId?await fetch(`${API}/voucher-types/${editVtId}`,{method:'PUT',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()):await post('/voucher-types',body);hideL();if(d?.id||d?.name){closeM('m-vt');loadVoucherSettings();toast(editVtId?'Tipe diupdate!':'Tipe ditambahkan!');}else se('mvt-err',d?.error||'Gagal');}
 async function deleteVt(id){if(!confirm('Hapus?'))return;showL();await del(`/voucher-types/${id}`);hideL();loadVoucherSettings();toast('Dihapus');}
@@ -2142,7 +2543,40 @@ async function toggleVt(id){const d=await fetch(`${API}/voucher-types/${id}/togg
 // ════════════════════════════════════════════════
 let slInited=false;
 async function initSelling(){if(!slInited){const now=new Date();const dEl=document.getElementById('sr-d'),mEl=document.getElementById('sr-m'),yEl=document.getElementById('sr-y');for(let d=1;d<=31;d++)dEl.innerHTML+=`<option value="${String(d).padStart(2,'0')}">${String(d).padStart(2,'0')}</option>`;MS.forEach((m,i)=>mEl.innerHTML+=`<option value="${m}" ${i===now.getMonth()?'selected':''}>${MF[i]}</option>`);for(let y=2018;y<=now.getFullYear();y++)yEl.innerHTML+=`<option value="${y}" ${y===now.getFullYear()?'selected':''}>${y}</option>`;slInited=true;}const rs=await req('/resellers')||[];const rsel=document.getElementById('sr-rs');rsel.innerHTML='<option value="">All Reseller</option>';rs.forEach(r=>rsel.innerHTML+=`<option value="${r.id}">${r.name} (${r.id})</option>`);loadSelling();}
-async function loadSelling(){if(!CS)return;showL();const day=v('sr-d'),mon=v('sr-m'),yr=v('sr-y'),rs=v('sr-rs');let p=day?`idhr=${mon}/${day}/${yr}`:`idbl=${mon}${yr}`;if(rs)p+=`&reseller=${rs}`;const data=await req(`/report/${CS}/selling?${p}`)||{};selData=data.records||[];rslGrps=data.resellerGroups||[];const s=data.summary||{};document.getElementById('sr-vcr').textContent=s.totalVouchers||0;document.getElementById('sr-inc').textContent=fmtC(s.totalIncome||0,s.currency,s.isIndo);document.getElementById('sr-rct').textContent=rslGrps.length;se('t-sel',selData.length?selData.map((r,i)=>`<tr><td>${i+1}</td><td>${r.date}</td><td>${r.time}</td><td>${r.username}</td><td><span class="badge b-bl">${r.profile}</span></td><td><span class="badge b-pu">${r.resellerTag}</span></td><td style="text-align:right">${s.isIndo?r.price.toLocaleString('id-ID'):r.price.toFixed(2)}</td></tr>`).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:18px">Tidak ada data</td></tr>','innerHTML');const mx=Math.max(...rslGrps.map(r=>r.total),1);se('rsl-grp',rslGrps.length?`<table><thead><tr><th>Reseller</th><th>Vouchers</th><th style="text-align:right">Total Income</th><th style="min-width:130px">Progress</th></tr></thead><tbody>${rslGrps.map(r=>`<tr><td><span class="badge b-pu">${r.tag}</span></td><td>${r.vouchers}</td><td style="text-align:right;color:var(--green);font-weight:600">${fmtC(r.total,s.currency,s.isIndo)}</td><td><div style="background:var(--border);border-radius:3px;height:6px;overflow:hidden"><div style="height:100%;width:${Math.round(r.total/mx*100)}%;background:var(--acc2);border-radius:3px"></div></div></td></tr>`).join('')}</tbody></table>`:'<p style="color:var(--muted);padding:16px 0">Tidak ada data</p>','innerHTML');hideL();}
+async function loadSelling(isPg = false){
+  if(!CS)return;
+  let s = { currency: 'Rp', isIndo: true };
+  if(!isPg) {
+    showL();
+    const day=v('sr-d'),mon=v('sr-m'),yr=v('sr-y'),rs=v('sr-rs');
+    let p=day?`idhr=${mon}/${day}/${yr}`:`idbl=${mon}${yr}`;
+    if(rs)p+=`&reseller=${rs}`;
+    const data=await req(`/report/${CS}/selling?${p}`)||{};
+    selData=data.records||[];
+    rslGrps=data.resellerGroups||[];
+    s=data.summary||{};
+    document.getElementById('sr-vcr').textContent=s.totalVouchers||0;
+    document.getElementById('sr-inc').textContent=fmtC(s.totalIncome||0,s.currency,s.isIndo);
+    document.getElementById('sr-rct').textContent=rslGrps.length;
+    
+    PG['t-sel'].data = selData;
+    PG['t-sel'].page = 1;
+    PG['t-sel'].extra = s; // store summary for render
+    hideL();
+  } else {
+    s = PG['t-sel'].extra;
+  }
+
+  document.getElementById('pg-t-sel').innerHTML = renderPagination('t-sel', renderSelling);
+  
+  const mx=Math.max(...rslGrps.map(r=>r.total),1);
+  se('rsl-grp',rslGrps.length?`<table><thead><tr><th>Reseller</th><th>Vouchers</th><th style="text-align:right">Total Income</th><th style="min-width:130px">Progress</th></tr></thead><tbody>${rslGrps.map(r=>`<tr><td><span class="badge b-pu">${r.tag}</span></td><td>${r.vouchers}</td><td style="text-align:right;color:var(--green);font-weight:600">${fmtC(r.total,s.currency,s.isIndo)}</td><td><div style="background:var(--border);border-radius:3px;height:6px;overflow:hidden"><div style="height:100%;width:${Math.round(r.total/mx*100)}%;background:var(--acc2);border-radius:3px"></div></div></td></tr>`).join('')}</tbody></table>`:'<p style="color:var(--muted);padding:16px 0">Tidak ada data</p>','innerHTML');
+}
+
+function renderSelling(subset) {
+  const s = PG['t-sel'].extra;
+  se('t-sel',subset.length?subset.map((r,i)=>`<tr><td>${((PG['t-sel'].page-1)*PG['t-sel'].limit)+i+1}</td><td>${r.date}</td><td>${r.time}</td><td>${r.username}</td><td><span class="badge b-bl">${r.profile}</span></td><td><span class="badge b-pu">${r.resellerTag}</span></td><td style="text-align:right">${s.isIndo?r.price.toLocaleString('id-ID'):r.price.toFixed(2)}</td></tr>`).join(''):'<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:18px">Tidak ada data</td></tr>','innerHTML');
+}
 function switchTab(t){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.getElementById('pnl-det').style.display=t==='det'?'':'none';document.getElementById('pnl-rsl').style.display=t==='rsl'?'':'none';}
 function exportCSV(){if(!selData.length){toast('Tidak ada data',true);return;}const rows=[['#','Date','Time','Username','Profile','Reseller','Price']];selData.forEach((r,i)=>rows.push([i+1,r.date,r.time,r.username,r.profile,r.resellerTag,r.price]));const csv=rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=`selling-${CS}-${Date.now()}.csv`;a.click();}
 
@@ -2277,7 +2711,24 @@ async function broadcastMsg() {
 // ════════════════════════════════════════════════
 // HELPERS
 // ════════════════════════════════════════════════
-async function req(path) { try { const r=await fetch(API+path,{credentials:'include'}); if(r.status===401){location.reload();return null;} return await r.json(); } catch(e){toast('Error: '+e.message,true);hideL();return null;} }
+async function req(path) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+  try {
+    const r = await fetch(API + path, { credentials: 'include', signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (r.status === 401) {
+      if (path !== '/auth/me') document.getElementById('ls').classList.remove('hide');
+      return null;
+    }
+    return await r.json();
+  } catch (e) {
+    clearTimeout(timeoutId);
+    console.error('Request failed:', path, e);
+    return null;
+  }
+}
+
 async function post(path,body) { try { return await fetch(API+path,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()); } catch(e){toast('Error: '+e.message,true);return null;} }
 async function del(path) { try { return await fetch(API+path,{method:'DELETE',credentials:'include'}).then(r=>r.json()); } catch(e){toast('Error: '+e.message,true);return null;} }
 function v(id) { return document.getElementById(id)?.value||''; }
@@ -2979,21 +3430,28 @@ const PERM_LABELS = {
 const ROLE_COLOR = { admin:'var(--acc2)', reseller:'var(--purple)', collector:'var(--green)' };
 const ROLE_BADGE = { admin:'b-bl', reseller:'b-pu', collector:'b-gr' };
 
-async function loadUserManagement() {
-  // Fetch role defaults + sessions + users in parallel
-  const [users, defaults, sessions] = await Promise.all([
-    req('/users'),
-    req('/users/roles/defaults'),
-    req('/sessions'),
-  ]);
-  umRoleDefaults = defaults || {};
-  umSessions = sessions || [];
-
+async function loadUserManagement(isPg = false) {
+  if (!isPg) {
+    showL();
+    const [users, defaults, sessions] = await Promise.all([
+      req('/users'),
+      req('/users/roles/defaults'),
+      req('/sessions'),
+    ]);
+    umRoleDefaults = defaults || {};
+    umSessions = sessions || [];
+    PG['t-users'].data = users || [];
+    PG['t-users'].page = 1;
+    hideL();
+  }
+  
   const tb = document.getElementById('t-users');
   if (!tb) return;
-  const list = users || [];
+  document.getElementById('pg-t-users').innerHTML = renderPagination('t-users', renderUserManagement);
+}
 
-  tb.innerHTML = list.length ? list.map(u => {
+function renderUserManagement(subset) {
+  se('t-users', subset.length ? subset.map(u => {
     const lastLogin = u.lastLogin
       ? new Date(u.lastLogin).toLocaleString('id-ID', {dateStyle:'short', timeStyle:'short'})
       : 'Belum pernah';
@@ -3026,7 +3484,7 @@ async function loadUserManagement() {
   : `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">
       <i class="fa fa-users" style="font-size:1.5rem;display:block;margin-bottom:8px;opacity:.3"></i>
       Belum ada user tambahan. Klik "+ Tambah User".
-    </td></tr>`;
+    </td></tr>`, 'innerHTML');
 }
 
 async function openUmModal(data = null) {

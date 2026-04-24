@@ -7,14 +7,20 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('login')
-  login(@Body() body: { username: string; password: string }, @Req() req: Request, @Res() res: Response) {
+  async login(@Body() body: { username: string; password: string }, @Req() req: Request, @Res() res: Response) {
     // Try multi-user system first, then fall back to legacy single admin
-    const result = this.authService.validateUserFull(body.username, body.password);
-    if (result) {
-      (req.session as any).mikhmon    = body.username;
-      (req.session as any).userId     = result.id;
-      (req.session as any).userRole   = result.role;
-      (req.session as any).userPerms  = result.permissions;
+    const result = await this.authService.validateUserFull(body.username, body.password);
+    if (!result) {
+      return res.status(401).json({ success: false, message: 'Username atau password salah' });
+    }
+
+    (req.session as any).mikhmon    = body.username;
+    (req.session as any).userId     = result.id;
+    (req.session as any).userRole   = result.role;
+    (req.session as any).userPerms  = result.permissions;
+
+    req.session.save((err) => {
+      if (err) return res.status(500).json({ success: false, message: 'Gagal simpan session' });
       return res.json({
         success:     true,
         username:    body.username,
@@ -22,8 +28,7 @@ export class AuthController {
         role:        result.role,
         permissions: result.permissions,
       });
-    }
-    return res.status(401).json({ success: false, message: 'Username atau password salah' });
+    });
   }
 
   @Post('logout')
@@ -35,6 +40,7 @@ export class AuthController {
   @Get('me')
   me(@Req() req: Request) {
     const user = (req.session as any).mikhmon;
+    console.log(`[Auth] Check session for user: ${user || 'GUEST'} (ID: ${req.sessionID})`);
     if (!user) return { authenticated: false };
     return {
       authenticated: true,

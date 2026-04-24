@@ -1,6 +1,11 @@
-import { Controller, Get, Post, Put, Body, Delete, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Delete, Param, UseGuards, Req } from '@nestjs/common';
 import { ConfigService, RouterSession } from './config.service';
 import { AuthGuard } from '../auth/auth.guard';
+import { Request } from 'express';
+
+interface RequestWithSession extends Request {
+  session: any;
+}
 
 @Controller('api/sessions')
 @UseGuards(AuthGuard)
@@ -8,9 +13,22 @@ export class ConfigController {
   constructor(private readonly configService: ConfigService) {}
 
   @Get()
-  getSessions() {
-    return Object.values(this.configService.getSessions()).map(s => ({
-      ...s, password: '***',
+  getSessions(@Req() req: RequestWithSession) {
+    const s = req.session;
+    const allSessions = Object.values(this.configService.getSessions());
+    
+    // Jika bukan admin (misal reseller/collector), filter router yang diizinkan
+    if (s.userRole && s.userRole !== 'admin') {
+      const allowed = s.userPerms?.allowedSessions || [];
+      if (allowed && allowed.length > 0) {
+        return allSessions
+          .filter(sess => allowed.includes(sess.id))
+          .map(sess => ({ ...sess, password: '***' }));
+      }
+    }
+
+    return allSessions.map(sess => ({
+      ...sess, password: '***',
     }));
   }
 

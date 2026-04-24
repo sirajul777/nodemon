@@ -32,7 +32,7 @@ export class UserController {
   }
 
   @Post()
-  create(@Body() body: {
+  async create(@Body() body: {
     username: string; password: string; name: string;
     role: UserRole; allowedSessions?: string[];
     permissions?: any; note?: string;
@@ -41,7 +41,7 @@ export class UserController {
       return { error: 'username, password, name, role wajib diisi' };
     }
     try {
-      return this.userSvc.create(body);
+      return await this.userSvc.create(body);
     } catch(e: any) {
       return { error: e.message };
     }
@@ -71,16 +71,16 @@ export class UserController {
   }
 
   @Post(':id/reset-password')
-  resetPassword(@Param('id') id: string, @Body() body: { newPassword: string }) {
+  async resetPassword(@Param('id') id: string, @Body() body: { newPassword: string }) {
     if (!body.newPassword || body.newPassword.length < 4) {
       return { error: 'Password minimal 4 karakter' };
     }
-    return { success: this.userSvc.resetPassword(id, body.newPassword) };
+    return { success: await this.userSvc.resetPassword(id, body.newPassword) };
   }
 
   // Change own password
   @Post('me/change-password')
-  changePassword(@Req() req: any, @Body() body: { oldPassword: string; newPassword: string }) {
+  async changePassword(@Req() req: any, @Body() body: { oldPassword: string; newPassword: string }) {
     const sessionUser = (req.session as any)?.mikhmon;
     if (!sessionUser) return { error: 'Tidak terautentikasi' };
     const u = this.userSvc.getByUsername(sessionUser);
@@ -90,7 +90,7 @@ export class UserController {
     }
     if (!body.oldPassword || !body.newPassword) return { error: 'oldPassword dan newPassword wajib diisi' };
     if (body.newPassword.length < 4) return { error: 'Password minimal 4 karakter' };
-    const ok = this.userSvc.changePassword(u.id, body.oldPassword, body.newPassword);
+    const ok = await this.userSvc.changePassword(u.id, body.oldPassword, body.newPassword);
     return ok ? { success: true } : { error: 'Password lama tidak sesuai' };
   }
 }

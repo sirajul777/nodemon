@@ -14,11 +14,11 @@ export class AuthService {
    * Validate against multi-user system first,
    * then fall back to legacy single-admin in config.json
    */
-  validateUserFull(username: string, password: string): any | null {
+  async validateUserFull(username: string, password: string): Promise<any | null> {
     // Try multi-user system
     if (userServiceRef) {
       try {
-        const u = userServiceRef.validate(username, password);
+        const u = await userServiceRef.validate(username, password);
         if (u) return u;
       } catch {}
     }
@@ -40,15 +40,15 @@ export class AuthService {
     return null;
   }
 
-  validateUser(username: string, password: string): boolean {
-    return this.validateUserFull(username, password) !== null;
+  async validateUser(username: string, password: string): Promise<boolean> {
+    return (await this.validateUserFull(username, password)) !== null;
   }
 
-  changePassword(username: string, oldPassword: string, newPassword: string): boolean {
+  async changePassword(username: string, oldPassword: string, newPassword: string): Promise<boolean> {
     // Try multi-user system
     if (userServiceRef) {
       const u = userServiceRef.getByUsername(username);
-      if (u) return userServiceRef.changePassword(u.id, oldPassword, newPassword);
+      if (u) return await userServiceRef.changePassword(u.id, oldPassword, newPassword);
     }
     // Legacy admin
     if (this.configService.validateAdmin(username, oldPassword)) {
