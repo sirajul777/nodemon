@@ -1,6 +1,16 @@
 [
   {
     "reselerId": "RS-1776568273859",
+    "amount": -800,
+    "type": "purchase",
+    "note": "VOCER-1K",
+    "by": "bot",
+    "at": "2026-04-25T03:57:31.010Z",
+    "balanceBefore": 389000,
+    "balanceAfter": 388200
+  },
+  {
+    "reselerId": "RS-1776568273859",
     "amount": -1600,
     "type": "purchase",
     "note": "Beli VOCER-2k (nda2n)",

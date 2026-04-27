@@ -28,7 +28,9 @@
     "name": "MIRZA",
     "role": "collector",
     "active": true,
-    "allowedSessions": [],
+    "allowedSessions": [
+      "SIWARNET"
+    ],
     "permissions": {
       "viewDashboard": true,
       "manageVoucher": false,
