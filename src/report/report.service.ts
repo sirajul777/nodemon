@@ -91,7 +91,7 @@ export class ReportService {
       const idhr = `${mm}/${dd}/${yyyy}`;
       const idbl = `${mm}${yyyy}`;
 
-      const allScripts = await client.run('/system/script/print', { '?owner': idbl });
+      const allScripts = await client.run('/system/script/print', { '?owner': idbl, '?source': idhr });
       
       let todayVouchers = 0, todayIncome = 0, monthIncome = 0;
       for (const row of allScripts) {
