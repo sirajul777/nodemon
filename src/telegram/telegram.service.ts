@@ -155,29 +155,29 @@ export class TelegramService implements OnModuleInit {
     }
   }
 
-  private loadTopupRequests(sessionId?: string): TopupRequest[] {
+  private readonly TOPUP_FILE = path.join(process.cwd(), 'data', 'topup-requests.json');
+
+  private loadTopupRequests(): TopupRequest[] {
     try {
-      const file = this.getFilePath('topup-requests.json', sessionId);
-      if (fs.existsSync(file)) {
-        return JSON.parse(fs.readFileSync(file, 'utf8'));
+      if (fs.existsSync(this.TOPUP_FILE)) {
+        return JSON.parse(fs.readFileSync(this.TOPUP_FILE, 'utf8'));
       }
     } catch {}
     return [];
   }
 
-  private saveTopupRequests(requests: TopupRequest[], sessionId?: string) {
-    const file = this.getFilePath('topup-requests.json', sessionId);
-    const dir = path.dirname(file);
+  private saveTopupRequests(requests: TopupRequest[]) {
+    const dir = path.dirname(this.TOPUP_FILE);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(file, JSON.stringify(requests, null, 2));
+    fs.writeFileSync(this.TOPUP_FILE, JSON.stringify(requests, null, 2));
   }
 
-  private async addTopupRequest(req: TopupRequest, sessionId: string): Promise<any> {
-    const requests = this.loadTopupRequests(sessionId);
+  private addTopupRequest(req: TopupRequest) {
+    const requests = this.loadTopupRequests();
     requests.unshift(req);
     // Simpan max 100 request
     if (requests.length > 100) requests.splice(100);
-    this.saveTopupRequests(requests, sessionId);
+    this.saveTopupRequests(requests);
   }
 
   // ── Telegram API ──────────────────────────────────────
@@ -320,6 +320,10 @@ export class TelegramService implements OnModuleInit {
         await this.handleQtyInput(chatId, userId, username, text, cfg);
         return;
       }
+      if (state?.step === 'awaiting_topup_amount') {
+        await this.handleTopupAmountInput(chatId, userId, username, text, cfg);
+        return;
+      }
       return;
     }
 
@@ -394,11 +398,97 @@ export class TelegramService implements OnModuleInit {
       // Tambah di switch(action)
       case 'topup_approve': await this.cbTopupApprove(chatId, userId, msgId, params[0], cfg); break;
       case 'topup_reject':  await this.cbTopupReject(chatId, userId, msgId, params[0], cfg); break;
+      // Tambah di switch(action)
+      case 'topup_req':    await this.cbTopupSelectNominal(chatId, userId, username, msgId, parseInt(params[0]), cfg); break;
+      case 'topup_custom': await this.cbTopupCustom(chatId, userId, msgId, cfg); break;
+      // Di switch(action) di handleCallback
+      case 'topup_confirm': await this.cbTopupConfirm(chatId, userId, username, msgId, parseInt(params[0]), cfg); break;
+      case 'topup_back':    await this.handleTopupRequest(chatId, userId, username, [], cfg); break;
       default:
         this.logger.warn('Unknown callback: ' + data);
     }
   }
 
+  // ── Callback: Pilih nominal topup ────────────────────────────
+  private async cbTopupSelectNominal(
+    chatId: string, userId: string, username: string,
+    msgId: number, amount: number, cfg: TelegramConfig
+  ): Promise<void> {
+    const reseller = this.resellerSvc?.getByTelegramId(userId);
+    if (!reseller) {
+      await this.editMessage(chatId, msgId, '❌ Reseller tidak ditemukan.');
+      return;
+    }
+
+    // Konfirmasi sebelum submit
+    await this.editMessage(chatId, msgId,
+      `💰 <b>Konfirmasi Request Topup</b>\n\n` +
+      `👤 ${reseller.name}\n` +
+      `💵 Jumlah: <b>Rp ${amount.toLocaleString('id-ID')}</b>\n` +
+      `💳 Saldo saat ini: <b>Rp ${reseller.saldo.toLocaleString('id-ID')}</b>\n` +
+      `💳 Saldo setelah topup: <b>Rp ${(reseller.saldo + amount).toLocaleString('id-ID')}</b>\n\n` +
+      `Konfirmasi request?`,
+      {
+        reply_markup: {
+          inline_keyboard: [[
+            { text: '✅ Ya, Request Sekarang', callback_data: `topup_confirm:${amount}` },
+            { text: '◀️ Kembali', callback_data: 'topup_back' },
+            { text: '❌ Batal', callback_data: 'cancel' },
+          ]],
+        },
+      }
+    );
+  }
+
+  private async cbTopupConfirm(
+    chatId: string, userId: string, username: string,
+    msgId: number, amount: number, cfg: TelegramConfig
+  ): Promise<void> {
+    const reseller = this.resellerSvc?.getByTelegramId(userId);
+    if (!reseller) {
+      await this.editMessage(chatId, msgId, '❌ Reseller tidak ditemukan.');
+      return;
+    }
+
+    // Cek pending lagi (double check)
+    const requests   = this.loadTopupRequests();
+    const hasPending = requests.find(
+      r => r.telegramId === userId && r.status === 'pending'
+    );
+    if (hasPending) {
+      await this.editMessage(chatId, msgId,
+        `⏳ Masih ada request pending Rp ${hasPending.amount.toLocaleString('id-ID')}.\n` +
+        `Tunggu admin memproses dulu.`
+      );
+      return;
+    }
+
+    await this.editMessage(chatId, msgId,
+      `⏳ Mengirim request topup Rp ${amount.toLocaleString('id-ID')}...`
+    );
+
+    await this.processTopupRequest(chatId, userId, username, reseller, amount, '', cfg);
+  }
+// ── Callback: Custom nominal ──────────────────────────────────
+  private async cbTopupCustom(
+    chatId: string, userId: string, msgId: number, cfg: TelegramConfig
+  ): Promise<void> {
+    this.setState(chatId, { step: 'awaiting_topup_amount' });
+    await this.editMessage(chatId, msgId,
+      `✏️ <b>Nominal Custom</b>\n\n` +
+      `Ketik jumlah topup yang diinginkan:\n` +
+      `<i>Contoh: 75000</i>\n\n` +
+      `Minimal: Rp 1.000`,
+      {
+        reply_markup: {
+          inline_keyboard: [[
+            { text: '◀️ Kembali', callback_data: 'topup_back' },
+            { text: '❌ Batal', callback_data: 'cancel' },
+          ]],
+        },
+      }
+    );
+  }
   // ── Callback: Admin approve topup ────────────────────────────
   private async cbTopupApprove(
     chatId: string, userId: string, msgId: number,
@@ -1127,8 +1217,44 @@ export class TelegramService implements OnModuleInit {
     );
   }
 
+  private async handleTopupAmountInput(
+    chatId: string, userId: string, username: string,
+    text: string, cfg: TelegramConfig
+  ): Promise<void> {
+    const amount = parseInt(text.replace(/\D/g, '')); // hapus non-angka
+    if (isNaN(amount) || amount < 1000) {
+      await this.sendMessage(chatId,
+        '❌ Nominal tidak valid. Minimal Rp 1.000\n\nKetik ulang nominalnya:'
+      );
+      return;
+    }
+
+    this.clearState(chatId);
+
+    const reseller = this.resellerSvc?.getByTelegramId(userId);
+    if (!reseller) return;
+
+    // Tampil konfirmasi
+    await this.sendMessage(chatId,
+      `💰 <b>Konfirmasi Request Topup</b>\n\n` +
+      `👤 ${reseller.name}\n` +
+      `💵 Jumlah: <b>Rp ${amount.toLocaleString('id-ID')}</b>\n` +
+      `💳 Saldo saat ini: <b>Rp ${reseller.saldo.toLocaleString('id-ID')}</b>\n` +
+      `💳 Saldo setelah topup: <b>Rp ${(reseller.saldo + amount).toLocaleString('id-ID')}</b>\n\n` +
+      `Konfirmasi request?`,
+      {
+        reply_markup: {
+          inline_keyboard: [[
+            { text: '✅ Ya, Request Sekarang', callback_data: `topup_confirm:${amount}` },
+            { text: '❌ Batal', callback_data: 'cancel' },
+          ]],
+        },
+      }
+    );
+  }
+
   // ── Reseller request topup ────────────────────────────────────
-private async handleTopupRequest(
+  private async handleTopupRequest(
     chatId: string, userId: string, username: string,
     args: string[], cfg: TelegramConfig
   ): Promise<void> {
@@ -1149,21 +1275,8 @@ private async handleTopupRequest(
       return;
     }
 
-    // Validasi jumlah
-    const amount = parseInt(args[0]);
-    if (!amount || amount < 1000) {
-      await this.sendMessage(chatId,
-        `💰 <b>Request Topup Saldo</b>\n\n` +
-        `Format: /topup [jumlah]\n` +
-        `Contoh: /topup 50000\n\n` +
-        `Minimal topup: Rp 1.000\n` +
-        `💳 Saldo kamu sekarang: <b>Rp ${reseller.saldo.toLocaleString('id-ID')}</b>`
-      );
-      return;
-    }
-
-    // Cek apakah ada request pending
-    const requests = this.loadTopupRequests();
+    // Cek pending request dulu
+    const requests  = this.loadTopupRequests();
     const hasPending = requests.find(
       r => r.telegramId === userId && r.status === 'pending'
     );
@@ -1178,9 +1291,49 @@ private async handleTopupRequest(
       return;
     }
 
-    const note = args.slice(1).join(' ') || '';
+    // Kalau ada angka langsung di args — proses langsung
+    if (args[0] && !isNaN(parseInt(args[0]))) {
+      const amount = parseInt(args[0]);
+      if (amount < 1000) {
+        await this.sendMessage(chatId, '❌ Minimal topup Rp 1.000');
+        return;
+      }
+      await this.processTopupRequest(chatId, userId, username, reseller, amount, args.slice(1).join(' '), cfg);
+      return;
+    }
 
-    // Simpan request
+    // Tampil menu pilihan nominal dengan tombol
+    const nominals = [50000, 100000, 150000, 200000, 300000, 500000];
+    const keyboard: any[][] = [];
+
+    // 2 tombol per baris
+    for (let i = 0; i < nominals.length; i += 2) {
+      const row: any[] = [];
+      for (let j = i; j < Math.min(i + 2, nominals.length); j++) {
+        row.push({
+          text: `Rp ${nominals[j].toLocaleString('id-ID')}`,
+          callback_data: `topup_req:${nominals[j]}`,
+        });
+      }
+      keyboard.push(row);
+    }
+
+    // Tombol custom
+    keyboard.push([{ text: '✏️ Nominal Lain', callback_data: 'topup_custom' }]);
+    keyboard.push([{ text: '❌ Batal', callback_data: 'cancel' }]);
+
+    await this.sendMessage(chatId,
+      `💰 <b>Request Topup Saldo</b>\n\n` +
+      `👤 ${reseller.name}\n` +
+      `💳 Saldo saat ini: <b>Rp ${reseller.saldo.toLocaleString('id-ID')}</b>\n\n` +
+      `Pilih nominal topup:`,
+      { reply_markup: { inline_keyboard: keyboard } }
+    );
+  }
+  private async processTopupRequest(
+    chatId: string, userId: string, username: string,
+    reseller: any, amount: number, note: string, cfg: TelegramConfig
+  ): Promise<void> {
     const reqId = `TR-${Date.now()}`;
     const topupReq: TopupRequest = {
       id:           reqId,
@@ -1192,45 +1345,38 @@ private async handleTopupRequest(
       requestedAt:  new Date().toISOString(),
       status:       'pending',
     };
-    this.addTopupRequest(topupReq, cfg.sessionId);
+    this.addTopupRequest(topupReq);
 
     // Konfirmasi ke reseller
     await this.sendMessage(chatId,
       `✅ <b>Request Topup Terkirim!</b>\n\n` +
       `💰 Jumlah: <b>Rp ${amount.toLocaleString('id-ID')}</b>\n` +
       `${note ? `📝 Catatan: ${note}\n` : ''}` +
-      `🕐 Waktu: ${new Date().toLocaleString('id-ID')}\n\n` +
-      `Tunggu konfirmasi dari admin.\n` +
-      `Ketik /cektopup untuk cek status.`
+      `🕐 ${new Date().toLocaleString('id-ID')}\n\n` +
+      `Tunggu konfirmasi admin.\nKetik /cektopup untuk cek status.`
     );
 
-    // Notif ke admin dengan tombol approve/reject
+    // Notif ke admin
     if (cfg.chatId) {
-      const adminMsg =
+      await this.sendMessage(cfg.chatId,
         `💰 <b>Request Topup Saldo</b>\n\n` +
-        `👤 Reseller: <b>${reseller.name}</b>\n` +
+        `👤 <b>${reseller.name}</b>\n` +
         `🆔 ID: <code>${reseller.id}</code>\n` +
-        `📱 Telegram: @${username} (<code>${userId}</code>)\n` +
+        `📱 @${username} (<code>${userId}</code>)\n` +
         `💵 Jumlah: <b>Rp ${amount.toLocaleString('id-ID')}</b>\n` +
         `${note ? `📝 Catatan: ${note}\n` : ''}` +
         `💳 Saldo saat ini: <b>Rp ${reseller.saldo.toLocaleString('id-ID')}</b>\n` +
-        `🕐 Waktu: ${new Date().toLocaleString('id-ID')}\n\n` +
-        `<i>ID Request: ${reqId}</i>`;
-
-      await this.sendMessage(cfg.chatId, adminMsg, {
-        reply_markup: {
-          inline_keyboard: [[
-            {
-              text: `✅ Approve Rp ${amount.toLocaleString('id-ID')}`,
-              callback_data: `topup_approve:${reqId}`,
-            },
-            {
-              text: '❌ Reject',
-              callback_data: `topup_reject:${reqId}`,
-            },
-          ]],
-        },
-      });
+        `🕐 ${new Date().toLocaleString('id-ID')}\n\n` +
+        `<i>ID: ${reqId}</i>`,
+        {
+          reply_markup: {
+            inline_keyboard: [[
+              { text: `✅ Approve Rp ${amount.toLocaleString('id-ID')}`, callback_data: `topup_approve:${reqId}` },
+              { text: '❌ Reject', callback_data: `topup_reject:${reqId}` },
+            ]],
+          },
+        }
+      );
     }
 
     this.addLog(username, `Request topup Rp ${amount.toLocaleString('id-ID')}`);
