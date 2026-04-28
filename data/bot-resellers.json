@@ -5,13 +5,14 @@
     "username": "sirajulwathani",
     "telegramId": "5510679225",
     "sessionId": "SIWARNET",
-    "saldo": 490600,
-    "totalVoucher": 10,
-    "totalIncome": 9400,
+    "saldo": 388200,
+    "totalVoucher": 12,
+    "totalIncome": 11800,
     "status": "active",
     "markup": 15,
     "discount": 0,
     "createdAt": "2026-04-19T03:11:13.859Z",
-    "note": ""
+    "note": "",
+    "lastActive": "2026-04-25T03:57:31.010Z"
   }
 ]

@@ -19,7 +19,7 @@
     },
     "createdAt": "2026-04-19T13:06:06.583Z",
     "note": "",
-    "lastLogin": "2026-04-20T04:03:40.290Z"
+    "lastLogin": "2026-04-24T04:47:29.455Z"
   },
   {
     "id": "USR-1776617241275",
@@ -28,7 +28,9 @@
     "name": "MIRZA",
     "role": "collector",
     "active": true,
-    "allowedSessions": [],
+    "allowedSessions": [
+      "SIWARNET"
+    ],
     "permissions": {
       "viewDashboard": true,
       "manageVoucher": false,
