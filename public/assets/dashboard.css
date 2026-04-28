@@ -1,0 +1,76 @@
+/* ══════════════════════════════════════════════
+   08 — DASHBOARD: NAS STATUS & NET PANELS
+   .nas-card, .nas-bar, .net-panel, .ns
+══════════════════════════════════════════════ */
+
+/* ── Net panel (Hotspot / PPPoE summary) ── */
+.net-panel {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 16px; padding: 20px;
+}
+.net-label {
+  font-size: 0.7rem; font-weight: 800;
+  letter-spacing: 1px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 15px;
+  display: flex; align-items: center; gap: 8px;
+}
+.net-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* ── Net stat box ── */
+.ns {
+  background: var(--card2); border-radius: 12px; padding: 15px;
+  display: flex; align-items: center; gap: 12px;
+  border: 1px solid var(--border);
+}
+.ns-ico {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem;
+}
+.ns-ico.gr { background: rgba(46,160,67,0.1);   color: var(--green);  }
+.ns-ico.bl { background: rgba(56,139,253,0.1);  color: #58a6ff;       }
+.ns-ico.pu { background: rgba(188,140,255,0.1); color: var(--purple); }
+.ns-ico.or { background: rgba(219,109,40,0.1);  color: var(--orange); }
+.ns-val { font-size: 1.4rem; font-weight: 800; line-height: 1; }
+.ns-lbl { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+
+/* ── NAS Router status card ── */
+.nas-card {
+  background: var(--card2);
+  border-radius: 14px; padding: 18px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+}
+.nas-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.nas-name   { font-weight: 700; font-size: 0.95rem; }
+
+/* FIX: .nas-ip and .nas-info were missing */
+.nas-ip   { font-size: 0.73rem; color: var(--muted); margin-top: 2px; }
+.nas-info { font-size: 0.75rem; color: var(--muted); margin-bottom: 12px; line-height: 1.6; }
+
+.nas-status { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 600; }
+.nas-status .dot { width: 8px; height: 8px; border-radius: 50%; animation: pulse 2s infinite; }
+.dot-on  { background: var(--green); box-shadow: 0 0 10px var(--green); }
+.dot-off { background: var(--red); animation: none; }
+
+/* ── Progress bars ── */
+.nas-bar-row { margin-bottom: 10px; }
+.nas-bar-label {
+  display: flex; justify-content: space-between;
+  font-size: 0.72rem; color: var(--muted); margin-bottom: 4px;
+}
+.nas-bar {
+  height: 6px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 4px; overflow: hidden;
+}
+.nas-bar-fill {
+  height: 100%;
+  transition: 0.5s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* FIX: fill-* color classes were missing */
+.fill-green  { background: linear-gradient(90deg, var(--green),  #2ea043); }
+.fill-yellow { background: linear-gradient(90deg, var(--yellow), #b07d12); }
+.fill-red    { background: linear-gradient(90deg, var(--red),    #c93b33); }

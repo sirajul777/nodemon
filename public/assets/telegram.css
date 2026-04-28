@@ -1,0 +1,38 @@
+/* ══════════════════════════════════════════════
+   10 — TELEGRAM TOOLS
+   .tg-row, .tg-badge (running/stopped/polling)
+══════════════════════════════════════════════ */
+
+/* FIX: semua class berikut tidak ada sebelumnya */
+
+/* ── Info rows di kartu Info Bot ── */
+.tg-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.84rem;
+}
+.tg-row:last-child { border-bottom: none; }
+.tg-row .lbl { color: var(--muted); }
+.tg-row .val { font-weight: 500; }
+
+/* ── Status badge ── */
+.tg-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 0.75rem; font-weight: 700;
+}
+.tg-badge.running {
+  background: rgba(63,185,80,0.15); color: var(--green);
+  border: 1px solid rgba(63,185,80,0.3);
+}
+.tg-badge.stopped {
+  background: rgba(248,81,73,0.15); color: var(--red);
+  border: 1px solid rgba(248,81,73,0.3);
+}
+.tg-badge.polling {
+  background: rgba(56,139,253,0.15); color: #58a6ff;
+  border: 1px solid rgba(56,139,253,0.3);
+}

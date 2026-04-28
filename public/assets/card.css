@@ -1,0 +1,83 @@
+/* ══════════════════════════════════════════════
+   04 — CARDS & LAYOUT GRIDS
+   .card, .stat-bar, .sbc (stat box card),
+   grid systems: .g2 .g3 .g4 .fg2 .fg3 .gcol
+══════════════════════════════════════════════ */
+
+/* ── Base Card ── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+.card-hd {
+  font-size: 1rem; font-weight: 700; margin-bottom: 18px;
+  display: flex; align-items: center; gap: 10px; color: #fff;
+}
+.card-hd .ml { margin-left: auto; }
+
+/* ── Stat bar ── */
+.stat-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+/* ── Stat Box Card (sbc) ── */
+.sbc {
+  background: linear-gradient(145deg, #11151c, #0d1117);
+  border-radius: 16px; padding: 18px;
+  border: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+  position: relative; overflow: hidden;
+}
+.sbc-icon {
+  width: 42px; height: 42px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; flex-shrink: 0;
+}
+.sbc-val { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; }
+.sbc-lbl { color: var(--muted); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; }
+
+/* ── Stat card color variants ── */
+/* FIX: c-* classes were missing entirely */
+.sbc.c-green  .sbc-icon { background: rgba(63,185,80,0.12);   color: var(--green);  }
+.sbc.c-cyan   .sbc-icon { background: rgba(57,197,207,0.12);  color: var(--cyan);   }
+.sbc.c-blue   .sbc-icon { background: rgba(56,139,253,0.12);  color: #58a6ff;       }
+.sbc.c-purple .sbc-icon { background: rgba(188,140,255,0.12); color: var(--purple); }
+.sbc.c-yellow .sbc-icon { background: rgba(210,153,34,0.12);  color: var(--yellow); }
+.sbc.c-orange .sbc-icon { background: rgba(219,109,40,0.12);  color: var(--orange); }
+.sbc.c-red    .sbc-icon { background: rgba(248,81,73,0.12);   color: var(--red);    }
+
+.sbc.c-green  .sbc-val { color: var(--green);  }
+.sbc.c-cyan   .sbc-val { color: var(--cyan);   }
+.sbc.c-blue   .sbc-val { color: #58a6ff;       }
+.sbc.c-purple .sbc-val { color: var(--purple); }
+.sbc.c-yellow .sbc-val { color: var(--yellow); }
+.sbc.c-orange .sbc-val { color: var(--orange); }
+.sbc.c-red    .sbc-val { color: var(--red);    }
+
+/* ── Layout grids ── */
+/* FIX: .g3 dan .g4 tidak ada sama sekali */
+.g2  { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.g3  { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+.g4  { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+.fg2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fg3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+/* Dashboard specific 2-col layout */
+.gcol { display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
+
+/* ── Responsive breakpoints ── */
+@media(max-width:1100px) {
+  .gcol { grid-template-columns: 1fr; }
+  .g4   { grid-template-columns: repeat(2, 1fr); }
+}
+@media(max-width:900px)  { .g3  { grid-template-columns: repeat(2, 1fr); } }
+@media(max-width:800px)  { .g2, .fg2, .fg3 { grid-template-columns: 1fr; } }
+@media(max-width:600px)  { .g3, .g4 { grid-template-columns: 1fr; } }

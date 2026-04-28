@@ -1,0 +1,93 @@
+/* ══════════════════════════════════════════════
+   12 — BATCH VOUCHER CARDS
+   .batch-card dan semua sub-elementnya
+══════════════════════════════════════════════ */
+
+/* FIX: semua class ini tidak ada */
+
+.batch-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden; cursor: pointer;
+  transition: 0.2s; position: relative;
+}
+.batch-card:hover {
+  border-color: rgba(56,139,253,0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+/* Reveal delete button on hover */
+.batch-del {
+  position: absolute; bottom: 9px; right: 10px;
+  display: flex; gap: 4px;
+  opacity: 0; transition: 0.15s;
+}
+.batch-card:hover .batch-del { opacity: 1; }
+
+/* ── Card top section ── */
+.batch-card-top {
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.batch-card-id {
+  font-size: 0.7rem; font-weight: 700;
+  color: var(--muted); letter-spacing: 0.5px;
+  text-transform: uppercase; margin-bottom: 3px;
+}
+.batch-card-profile {
+  font-size: 1rem; font-weight: 800;
+  color: #fff; margin-bottom: 8px;
+}
+.batch-card-meta {
+  display: flex; flex-direction: column; gap: 3px;
+  font-size: 0.75rem; color: var(--muted); margin-bottom: 10px;
+}
+.batch-card-price {
+  display: flex; align-items: baseline;
+  gap: 8px; flex-wrap: wrap;
+}
+.batch-card-price .unit  { font-size: 1.1rem; font-weight: 800; }
+.batch-card-price .total { font-size: 0.75rem; color: var(--muted); }
+.batch-card-price .fmt   {
+  font-size: 0.68rem;
+  background: rgba(255,255,255,0.07);
+  border-radius: 4px; padding: 1px 7px;
+  color: var(--muted); margin-left: auto;
+}
+
+/* ── Card bottom section ── */
+.batch-card-bot { padding: 12px 16px; }
+.batch-card-bar {
+  height: 5px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 99px; overflow: hidden; margin-bottom: 8px;
+}
+.batch-card-fill {
+  height: 100%; border-radius: 99px;
+  transition: width 0.5s ease;
+}
+.batch-card-stats {
+  display: flex; justify-content: space-between;
+  font-size: 0.72rem; color: var(--muted);
+}
+
+/* ── Generate voucher result grid ── */
+/* FIX: .vcr-grid, .vcr-card, .vu, .vp, .vpr tidak ada */
+.vcr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px; margin-top: 4px;
+}
+.vcr-card {
+  background: var(--card2); border-radius: 10px; padding: 12px;
+  border-top: 3px solid #388bfd; /* overridden inline per profile */
+}
+.vu { font-size: 1rem; font-weight: 800; font-family: monospace; letter-spacing: 0.5px; color: #fff; margin-bottom: 4px; }
+.vp { font-size: 0.8rem; color: var(--muted); font-family: monospace; margin-bottom: 6px; }
+.vp i { color: var(--yellow); margin-right: 3px; }
+.vpr { font-size: 0.72rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 6px; }
+
+/* Voucher type name in settings table */
+.vt-name { font-weight: 600; }

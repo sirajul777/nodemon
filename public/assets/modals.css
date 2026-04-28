@@ -1,0 +1,100 @@
+/* ══════════════════════════════════════════════
+   07 — MODALS & OVERLAYS
+   .ov, .modal, .mfoot — dan #ld loading overlay
+══════════════════════════════════════════════ */
+
+/* ── Modal overlay backdrop ── */
+.ov {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  align-items: center; justify-content: center;
+}
+.ov.show { display: flex; }
+
+/* ── Modal box ── */
+.modal {
+  background: #0d1117;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 25px;
+  width: 500px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+.modal h3 { margin-bottom: 16px; font-size: 1rem; }
+
+/* ── Modal footer ── */
+.mfoot {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* ── Loading overlay ── */
+/* FIX: #ld ada di JS (showL/hideL) tapi tidak pernah dibuat di HTML/CSS */
+#ld {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(3px);
+  z-index: 99999;
+  align-items: center; justify-content: center;
+}
+#ld.show { display: flex; }
+
+/* ── Spinner ── */
+.spin {
+  width: 30px; height: 30px;
+  border: 3px solid rgba(255,255,255,0.1);
+  border-top-color: #388bfd;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* ── Login screen ── */
+#ls {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 10000;
+}
+#ls.hide { display: none; }
+.lbox {
+  background: #0d1117;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 40px; width: 380px;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+.lbox .logo-big {
+  width: 60px; height: 60px;
+  background: var(--acc);
+  border-radius: 15px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem; color: #fff;
+  margin: 0 auto 20px;
+  box-shadow: var(--acc-glow);
+}
+
+/* ── Toast notifications ── */
+#toast { position: fixed; bottom: 25px; right: 25px; z-index: 11000; }
+.ti {
+  background: #161b22;
+  border: 1px solid var(--border);
+  border-left: 4px solid #388bfd;
+  border-radius: 10px;
+  padding: 12px 20px;
+  margin-top: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  font-weight: 500;
+  animation: slideIn 0.3s ease;
+}

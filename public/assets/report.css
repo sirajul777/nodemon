@@ -1,0 +1,27 @@
+/* ══════════════════════════════════════════════
+   11 — SELLING REPORT TABS
+   .tab-bar, .tab
+══════════════════════════════════════════════ */
+
+/* FIX: .tab-bar dan .tab tidak ada */
+
+.tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.tab {
+  padding: 9px 18px;
+  font-size: 0.83rem; font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: 0.2s;
+  display: flex; align-items: center; gap: 7px;
+}
+.tab:hover { color: var(--text); }
+.tab.active {
+  color: #58a6ff;
+  border-bottom-color: #388bfd;
+}

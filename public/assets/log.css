@@ -1,0 +1,67 @@
+/* ══════════════════════════════════════════════
+   09 — DASHBOARD: ACTIVITY LOG
+   .log-filters, .log-list, .log-item, .log-tag
+══════════════════════════════════════════════ */
+
+/* ── Filter chips ── */
+.log-filters { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
+.lf-btn {
+  padding: 6px 14px; border-radius: 20px;
+  border: 1px solid var(--border);
+  background: transparent; color: var(--muted);
+  font-size: 0.8rem; font-family: inherit;
+  cursor: pointer; transition: 0.2s;
+  display: flex; align-items: center; gap: 6px;
+}
+.lf-btn:hover,
+.lf-btn.active {
+  background: rgba(56,139,253,0.1);
+  border-color: #388bfd; color: #fff;
+}
+.lf-btn .cnt {
+  background: rgba(255,255,255,0.1);
+  padding: 1px 7px; border-radius: 10px; font-size: 0.7rem;
+}
+
+/* ── Log scrollable list ── */
+.log-list {
+  max-height: 400px; overflow-y: auto; padding-right: 5px;
+}
+.log-list::-webkit-scrollbar { width: 4px; }
+.log-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ── Single log item ── */
+.log-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.log-item:last-child { border-bottom: none; }
+
+.log-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  margin-top: 5px; flex-shrink: 0;
+}
+.log-body { flex: 1; min-width: 0; }
+.log-title {
+  font-size: 0.85rem; font-weight: 500;
+  color: var(--text); margin-bottom: 2px;
+  word-break: break-word;
+}
+.log-sub  { font-size: 0.78rem; color: var(--muted); }
+.log-time {
+  font-size: 0.72rem; color: var(--muted);
+  margin-left: auto; white-space: nowrap;
+  padding-left: 8px; flex-shrink: 0;
+}
+
+/* ── Log type tags ── */
+/* FIX: .log-tag, .lt-hs, .lt-ppp were missing */
+.log-tag {
+  display: inline-block;
+  padding: 1px 7px; border-radius: 4px;
+  font-size: 0.68rem; font-weight: 700;
+  margin-right: 6px;
+}
+.lt-hs  { background: rgba(56,139,253,0.15);  color: #58a6ff;       }
+.lt-ppp { background: rgba(188,140,255,0.15); color: var(--purple); }
