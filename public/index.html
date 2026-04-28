@@ -111,7 +111,7 @@
     <div class="tb-right">
       <div class="tb-refresh" id="refresh-indicator" style="display:none">
         <div class="dot"></div>
-        <span>Live &nbsp;<span id="countdown-val" style="font-variant-numeric:tabular-nums;color:var(--text);font-weight:600">20s</span></span>
+        <span>Live &nbsp;<span id="countdown-val" style="font-variant-numeric:tabular-nums;color:var(--text);font-weight:600">30s</span></span>
       </div>
       <button class="btn b-s b-sm" onclick="loadPage()" title="Refresh"><i class="fa fa-refresh"></i></button>
       <div class="tb-user" onclick="go('sessions')">
@@ -2404,7 +2404,7 @@ async function broadcastMsg() {
 // ════════════════════════════════════════════════
 async function req(path) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+  const timeoutId = setTimeout(() => controller.abort(), 25000); // 15s timeout
   try {
     const r = await fetch(API + path, { credentials: 'include', signal: controller.signal });
     clearTimeout(timeoutId);

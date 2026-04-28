@@ -92,7 +92,7 @@ export class ReportService {
       const idbl = `${mm}${yyyy}`;
 
       const allScripts = await client.run('/system/script/print', {'?source': idhr });
-      console.log(allScripts)
+      
       let todayVouchers = 0, todayIncome = 0, monthIncome = 0;
       for (const row of allScripts) {
         const parsed = this.mikrotikService.parseScriptName(row.name || '');
