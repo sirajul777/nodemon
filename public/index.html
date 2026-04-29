@@ -1760,8 +1760,8 @@ async function loadDashboard() {
     document.getElementById('db-month-inc').textContent = fmt(live?.month?.income||0);
     document.getElementById('db-today-vcr').textContent = live?.today?.vouchers ?? '—';
     document.getElementById('db-month-vcr').textContent = live?.month?.vouchers ?? '—';
-    document.getElementById('db-hs-online').textContent = dash.hotspot?.active ?? '—';
-    document.getElementById('db-ppp-online').textContent = (pppActive||[]).length;
+    // document.getElementById('db-hs-online').textContent = dash.hotspot?.active ?? '—';
+    // document.getElementById('db-ppp-online').textContent = (pppActive||[]).length;
 
     // HS + PPPoE panels
     document.getElementById('db-hs-total').textContent = dash.hotspot?.total ?? '—';
