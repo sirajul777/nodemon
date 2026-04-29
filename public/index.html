@@ -205,57 +205,57 @@
             </div>
           </div>
           <div class="traffic-card" id="traffic-card">
- 
-          <!-- Header -->
-          <div class="traffic-hd">
-            <div class="traffic-hd-left">
-              <div style="width:32px;height:32px;border-radius:9px;background:rgba(56,189,248,.12);
-                          color:#38bdf8;display:flex;align-items:center;justify-content:center;font-size:.9rem">
-                <i class="fa fa-line-chart"></i>
+  
+            <!-- Header -->
+            <div class="traffic-hd">
+              <div class="traffic-hd-left">
+                <div style="width:32px;height:32px;border-radius:9px;background:rgba(56,189,248,.12);
+                            color:#38bdf8;display:flex;align-items:center;justify-content:center;font-size:.9rem">
+                  <i class="fa fa-line-chart"></i>
+                </div>
+                <div>
+                  <div class="traffic-hd-title">Trafik Interface</div>
+                  <div class="traffic-live-dot">Live · 5s</div>
+                </div>
               </div>
-              <div>
-                <div class="traffic-hd-title">Trafik Interface</div>
-                <div class="traffic-live-dot">Live · 5s</div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <select id="traffic-iface-sel" onchange="onTrafficIfaceChange()">
+                  <option value="">— Pilih Interface —</option>
+                </select>
+                <!-- Countdown ring -->
+                <div class="traffic-countdown" title="Refresh dalam...">
+                  <svg width="22" height="22" viewBox="0 0 22 22">
+                    <circle cx="11" cy="11" r="9" fill="none" stroke="var(--border)" stroke-width="2.5"/>
+                    <circle id="traffic-ring" cx="11" cy="11" r="9" fill="none"
+                            stroke="#38bdf8" stroke-width="2.5"
+                            stroke-dasharray="56.5" stroke-dashoffset="0"
+                            stroke-linecap="round"/>
+                  </svg>
+                  <span id="traffic-cd">5s</span>
+                </div>
+                <!-- Pause -->
+                <button class="traffic-pause-btn" id="traffic-pause-btn" onclick="toggleTrafficPause()">
+                  <i class="fa fa-pause" id="traffic-pause-icon"></i>
+                  <span id="traffic-pause-lbl">Pause</span>
+                </button>
+                <!-- Refresh -->
+                <button class="btn b-s b-sm" onclick="fetchTrafficNow()" title="Refresh sekarang">
+                  <i class="fa fa-refresh"></i>
+                </button>
               </div>
             </div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-              <select id="traffic-iface-sel" onchange="onTrafficIfaceChange()">
-                <option value="">— Pilih Interface —</option>
-              </select>
-              <!-- Countdown ring -->
-              <div class="traffic-countdown" title="Refresh dalam...">
-                <svg width="22" height="22" viewBox="0 0 22 22">
-                  <circle cx="11" cy="11" r="9" fill="none" stroke="var(--border)" stroke-width="2.5"/>
-                  <circle id="traffic-ring" cx="11" cy="11" r="9" fill="none"
-                          stroke="#38bdf8" stroke-width="2.5"
-                          stroke-dasharray="56.5" stroke-dashoffset="0"
-                          stroke-linecap="round"/>
-                </svg>
-                <span id="traffic-cd">5s</span>
+          
+            <!-- Body: empty state or live data -->
+            <div id="traffic-body">
+              <div class="traffic-empty">
+                <i class="fa fa-plug"></i>
+                Pilih router dan interface untuk melihat trafik realtime
               </div>
-              <!-- Pause -->
-              <button class="traffic-pause-btn" id="traffic-pause-btn" onclick="toggleTrafficPause()">
-                <i class="fa fa-pause" id="traffic-pause-icon"></i>
-                <span id="traffic-pause-lbl">Pause</span>
-              </button>
-              <!-- Refresh -->
-              <button class="btn b-s b-sm" onclick="fetchTrafficNow()" title="Refresh sekarang">
-                <i class="fa fa-refresh"></i>
-              </button>
             </div>
-          </div>
+          
+          </div><!-- /traffic-card -->
         
-          <!-- Body: empty state or live data -->
-          <div id="traffic-body">
-            <div class="traffic-empty">
-              <i class="fa fa-plug"></i>
-              Pilih router dan interface untuk melihat trafik realtime
-            </div>
-          </div>
-        
-        </div><!-- /traffic-card -->
-        
-        </div><!-- /STEP2 wrapper -->
+          </div><!-- /STEP2 wrapper -->
         </div>
       </div>
     </div>
