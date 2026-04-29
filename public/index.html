@@ -4530,7 +4530,7 @@ async function fetchTrafficNow() {
   try {
     // MikroTik RouterOS API: /interface/monitor-traffic
     const stats = await req(
-      `/mikrotik/${CS}/interface/traffic?name=${encodeURIComponent(TRAFFIC.iface)}`
+      `/mikrotik/${CS}/interface/traffic/${encodeURIComponent(TRAFFIC.iface)}`
     );
  
     if (!stats || stats.error) return;
