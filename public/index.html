@@ -373,6 +373,13 @@
             <button class="btn b-s" onclick="syncUsedFromMikrotik()" style="color:var(--cyan);border-color:var(--cyan)">
               <i class="fa fa-refresh"></i> Sync Status Terpakai
             </button>
+            <div id="STEP2_HTML_INSERT_BEFORE_IMPORT_BUTTON">
+  <!-- Paste baris ini: -->
+            <div class="ar-toggle-wrap" id="ar-toggle" onclick="toggleAutoRemoveSetting()" title="Otomatis hapus batch yang sudah habis terjual">
+                <div class="ar-pill" id="ar-pill"></div>
+                <span id="ar-label">Auto Hapus Batch Habis</span>
+              </div>
+            </div>
             <button class="btn b-p" id="btn-import" onclick="importFromMikrotik()">
               <i class="fa fa-download"></i> Import dari MikroTik
             </button>
@@ -1660,6 +1667,10 @@ async function autoSyncBatchUsed() {
     // Hanya tampil notif jika ada yang berubah
     if (d?.success && d.updated > 0) {
       toast(`🔄 ${d.updated} voucher batch ditandai terpakai`);
+        // ── AUTO-REMOVE: silent scan setelah auto-sync ──
+      // Jalankan di background, jangan ganggu dashboard
+      checkAndAutoRemoveAll().catch(() => {});
+      // ── END AUTO-REMOVE ──
     }
   } catch {
     // Silent — jangan ganggu dashboard
@@ -2072,6 +2083,7 @@ async function saveBatchToServer(rawVouchers, genBody, pmeta = {}, reseller = nu
     const saved = await res.json();
     if (saved?.id) {
       toast(`💾 Batch tersimpan: ${saved.id} (${rawVouchers.length} voucher)`);
+      await checkAndAutoRemoveByProfile(profileName);
     } else {
       console.error('saveBatchToServer response:', saved);
       toast('⚠️ Batch gagal disimpan', true);
@@ -2585,6 +2597,7 @@ async function startImport() {
 }
 
 async function loadBatchList() {
+  initAutoRemoveSetting(); 
   if (!CS) {
     const grid = document.getElementById('batch-grid');
     if (grid) grid.innerHTML = `<div style="color:var(--muted);padding:30px;text-align:center;grid-column:1/-1">
@@ -2618,6 +2631,12 @@ async function loadBatchList() {
       <i class="fa fa-archive" style="font-size:2.5rem;display:block;margin-bottom:12px;opacity:.35"></i>
       <div style="font-size:.95rem;margin-bottom:8px">Belum ada batch voucher</div>
       <div style="font-size:.82rem;margin-bottom:16px">Generate voucher baru atau import dari MikroTik</div>
+      <div id="STEP2_HTML_INSERT_BEFORE_IMPORT_BUTTON">
+      <div class="ar-toggle-wrap" id="ar-toggle" onclick="toggleAutoRemoveSetting()" title="Otomatis hapus batch yang sudah habis terjual">
+          <div class="ar-pill" id="ar-pill"></div>
+          <span id="ar-label">Auto Hapus Batch Habis</span>
+        </div>
+      </div>
       <button class="btn b-p" onclick="importFromMikrotik()"><i class="fa fa-download"></i> Import dari MikroTik</button>
     </div>`;
     return;
@@ -2772,6 +2791,19 @@ async function markVoucherUsed(username) {
     document.getElementById('bd-progress').style.width = s.usedPct + '%';
     renderBatchDetail();
     toast('Voucher ditandai terpakai');
+     // ── AUTO-REMOVE: cek jika batch sudah full ──
+    if (s.remaining === 0) {
+      const batchId = currentBatch.id;
+      setTimeout(async () => {
+        const removed = await checkAndAutoRemoveSingle(batchId);
+        if (removed) {
+          toast(`🗑️ Batch "${currentBatch?.profileName || batchId}" habis, otomatis dihapus`);
+          closeBatchDetail();
+          loadBatchList();
+        }
+      }, 600); // small delay agar user sempat lihat "0 tersisa"
+    }
+    // ── END AUTO-REMOVE ──
   }
 }
 
@@ -2885,7 +2917,11 @@ async function syncUsedFromMikrotik() {
     hideL();
     if (d?.success) {
       toast(`✅ ${d.updated} voucher ditandai terpakai`);
-      loadBatchList(); // refresh tampilan
+      // ── AUTO-REMOVE: scan semua batch setelah sync ──
+      const removedCount = await checkAndAutoRemoveAll();
+      // loadBatchList() sudah dipanggil di dalam checkAndAutoRemoveAll jika ada yg dihapus
+      if (removedCount === 0) loadBatchList();
+      // ── END AUTO-REMOVE ──
     } else {
       toast('Gagal: ' + (d?.error || 'error'), true);
     }
@@ -4173,6 +4209,145 @@ async function fetchBotInfo(token) {
 initTheme();
 startClock();
 checkAuth();
+
+/* ═══════════════════════════════════════════════════════════
+   AUTO-REMOVE BATCH — SETTINGS
+═══════════════════════════════════════════════════════════ */
+let AUTO_REMOVE_BATCH = localStorage.getItem('mh_auto_remove') !== 'false'; // default ON
+ 
+function initAutoRemoveSetting() {
+  const pill  = document.getElementById('ar-pill');
+  const wrap  = document.getElementById('ar-toggle');
+  const label = document.getElementById('ar-label');
+  if (!pill) return;
+  pill.className  = 'ar-pill' + (AUTO_REMOVE_BATCH ? ' on' : '');
+  wrap.className  = 'ar-toggle-wrap' + (AUTO_REMOVE_BATCH ? ' active' : '');
+  label.textContent = AUTO_REMOVE_BATCH ? 'Auto Hapus: ON' : 'Auto Hapus: OFF';
+}
+ 
+function toggleAutoRemoveSetting() {
+  AUTO_REMOVE_BATCH = !AUTO_REMOVE_BATCH;
+  localStorage.setItem('mh_auto_remove', AUTO_REMOVE_BATCH);
+  initAutoRemoveSetting();
+  toast(AUTO_REMOVE_BATCH
+    ? '🗑️ Auto hapus batch aktif'
+    : 'Auto hapus batch dinonaktifkan'
+  );
+}
+ 
+/* ═══════════════════════════════════════════════════════════
+   AUTO-REMOVE BATCH — CORE
+═══════════════════════════════════════════════════════════ */
+ 
+/**
+ * Check a SINGLE batch by ID.
+ * If remaining === 0, animate-remove it from DOM and call DELETE.
+ * Returns true if batch was removed.
+ */
+async function checkAndAutoRemoveSingle(batchId) {
+  if (!AUTO_REMOVE_BATCH || !CS || !batchId) return false;
+  try {
+    const b = await req(`/batches/${CS}/${batchId}`);
+    if (!b || b.error) return false;
+ 
+    const s = b.stats || {};
+    if (s.total > 0 && s.remaining === 0) {
+      await removeBatchWithAnimation(batchId);
+      return true;
+    }
+  } catch (e) { console.warn('checkAndAutoRemoveSingle:', e.message); }
+  return false;
+}
+ 
+/**
+ * Scan ALL batches for the current router session.
+ * Remove every batch where remaining === 0.
+ * Returns number of batches removed.
+ */
+async function checkAndAutoRemoveAll() {
+  if (!AUTO_REMOVE_BATCH || !CS) return 0;
+  try {
+    const batches = await req(`/batches/${CS}`) || [];
+    const fullBatches = batches.filter(b => {
+      const s = b.stats || {};
+      return s.total > 0 && s.remaining === 0;
+    });
+    if (!fullBatches.length) return 0;
+ 
+    let removed = 0;
+    for (const b of fullBatches) {
+      const ok = await removeBatchWithAnimation(b.id);
+      if (ok) removed++;
+    }
+ 
+    if (removed > 0) {
+      toast(`🗑️ ${removed} batch habis otomatis dihapus`);
+      // Refresh batch count label
+      const remaining = (await req(`/batches/${CS}`) || []).length;
+      const lbl = document.getElementById('batch-count-label');
+      if (lbl) lbl.textContent = `${remaining} batch tersedia`;
+    }
+    return removed;
+  } catch (e) {
+    console.warn('checkAndAutoRemoveAll:', e.message);
+    return 0;
+  }
+}
+ 
+/**
+ * Animate a batch card out of the DOM, then call DELETE on the server.
+ * Works whether we're in grid view or detail view.
+ */
+async function removeBatchWithAnimation(batchId) {
+  // Find and animate the card in the grid (if visible)
+  const card = document.querySelector(`.batch-card[onclick*="${batchId}"]`);
+  if (card) {
+    card.classList.add('removing');
+    // Wait for animation to finish before removing from DOM
+    await new Promise(r => setTimeout(r, 580));
+    card.remove();
+  }
+ 
+  // If we're viewing this batch's detail, go back to list
+  if (currentBatch?.id === batchId) {
+    closeBatchDetail();
+  }
+ 
+  // Call DELETE on server
+  try {
+    const r = await fetch(`${API}/batches/${CS}/${batchId}`, {
+      method: 'DELETE', credentials: 'include'
+    }).then(res => res.json());
+    return !!(r?.success || r?.deleted);
+  } catch { return false; }
+}
+ 
+/**
+ * Check a batch by profile name — scan all batches for that profile.
+ * Used after buying a single voucher.
+ */
+async function checkAndAutoRemoveByProfile(profileName) {
+  if (!AUTO_REMOVE_BATCH || !CS || !profileName) return;
+  try {
+    const batches = await req(`/batches/${CS}`) || [];
+    const matching = batches.filter(b =>
+      b.profileName === profileName &&
+      b.stats && b.stats.total > 0 && b.stats.remaining === 0
+    );
+    let removed = 0;
+    for (const b of matching) {
+      const ok = await removeBatchWithAnimation(b.id);
+      if (ok) removed++;
+    }
+    if (removed > 0) toast(`🗑️ ${removed} batch "${profileName}" habis, otomatis dihapus`);
+  } catch (e) { console.warn('checkAndAutoRemoveByProfile:', e.message); }
+}
+ 
+/* ═══════════════════════════════════════════════════════════
+   INIT — call initAutoRemoveSetting when batch-list page loads
+   Add this call inside loadBatchList() at the top:
+     initAutoRemoveSetting();
+═══════════════════════════════════════════════════════════ */
 </script>
 </body>
 </html>

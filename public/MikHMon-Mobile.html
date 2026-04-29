@@ -625,6 +625,26 @@ body.role-collector{
           <div class="info-row"><span class="k">Diskon</span><span class="v" id="pf-disc" style="color:var(--acc2)">—</span></div>
           <div class="info-row"><span class="k">Server</span><span class="v" id="pf-server" style="font-family:'DM Mono',monospace;font-size:.76rem;color:var(--muted)">—</span></div>
         </div>
+        <div class="info-list" style="margin-bottom:12px">
+          <!-- Auto-remove batch toggle -->
+          <div class="info-row" style="cursor:pointer" onclick="toggleAutoRemove()">
+            <div>
+              <div style="font-weight:600;font-size:.88rem;margin-bottom:2px">
+                <i class="fa fa-trash-o" style="color:var(--red);margin-right:6px"></i>Auto Hapus Batch Habis
+              </div>
+              <div style="font-size:.74rem;color:var(--muted)">Batch otomatis dihapus saat semua voucher terpakai</div>
+            </div>
+            <!-- Toggle pill -->
+            <div id="auto-remove-toggle"
+                 style="width:44px;height:24px;border-radius:99px;position:relative;
+                        transition:.2s;flex-shrink:0;cursor:pointer"
+                 onclick="event.stopPropagation();toggleAutoRemove()">
+              <div id="auto-remove-knob"
+                   style="position:absolute;top:3px;width:18px;height:18px;
+                          border-radius:50%;background:#fff;transition:.2s"></div>
+            </div>
+          </div>
+        </div>
         <div class="info-list" style="margin-bottom:16px">
           <div class="info-row" style="cursor:pointer" onclick="showScreen('s-r-saldo')">
             <div style="display:flex;align-items:center;gap:10px">
@@ -815,18 +835,20 @@ body.role-collector{
    STATE
 ═══════════════════════════════════════════════════ */
 let STATE = {
-  serverUrl: localStorage.getItem('mhm_url') || '',
-  token:     localStorage.getItem('mhm_token') || '',
-  user:      JSON.parse(localStorage.getItem('mhm_user') || 'null'),
-  role:      localStorage.getItem('mhm_role') || '',   // 'reseller' | 'collector'
-  profiles:  [],
-  invoices:  [],
-  selProfile: null,
-  genQty: 10,
-  lastBought: null,
-  lastBatch: null,
-  payingInv: null,
-  invFilter: '',
+  serverUrl:       localStorage.getItem('mhm_url') || '',
+  token:           localStorage.getItem('mhm_token') || '',
+  user:            JSON.parse(localStorage.getItem('mhm_user') || 'null'),
+  role:            localStorage.getItem('mhm_role') || '',  // 'reseller' | 'collector'
+  profiles:        [],
+  invoices:        [],
+  selProfile:      null,
+  genQty:          10,
+  lastBought:      null,
+  lastBatch:       null,
+  payingInv:       null,
+  invFilter:       '',
+  // Auto-remove batch when all vouchers are used
+  autoRemoveBatch: localStorage.getItem('mhm_auto_remove') !== 'false', // default ON
 };
 
 /* ═══════════════════════════════════════════════════
@@ -1014,6 +1036,32 @@ function renderResellerProfile(u) {
   document.getElementById('pf-vcr').textContent   = (u.totalVoucher||0) + ' voucher';
   document.getElementById('pf-disc').textContent  = (u.discount||0) + '%';
   document.getElementById('pf-server').textContent = STATE.serverUrl;
+  // Sync toggle UI
+  syncAutoRemoveToggleUI();
+}
+
+/**
+ * Sync the toggle pill visual to match STATE.autoRemoveBatch
+ */
+function syncAutoRemoveToggleUI() {
+  const pill  = document.getElementById('auto-remove-toggle');
+  const knob  = document.getElementById('auto-remove-knob');
+  if (!pill || !knob) return;
+  const on = STATE.autoRemoveBatch;
+  pill.style.background = on ? 'var(--green)' : 'var(--border)';
+  knob.style.left       = on ? '23px' : '3px';
+}
+
+/**
+ * Toggle auto-remove setting — persisted to localStorage
+ */
+function toggleAutoRemove() {
+  STATE.autoRemoveBatch = !STATE.autoRemoveBatch;
+  localStorage.setItem('mhm_auto_remove', STATE.autoRemoveBatch);
+  syncAutoRemoveToggleUI();
+  toast(STATE.autoRemoveBatch
+    ? '🗑️ Auto hapus batch aktif'
+    : 'Auto hapus batch dinonaktifkan');
 }
 
 async function loadDashboard() {
@@ -1146,6 +1194,8 @@ async function doBuy() {
     STATE.user.saldo = d.saldoSesudah;
     localStorage.setItem('mhm_user', JSON.stringify(STATE.user));
     showBuyResult(d.voucher, p);
+    // Auto-remove batch if all vouchers fully used
+    checkAndAutoRemoveBatch(p.name);
   } catch(e) { toast('Error: '+e.message, true); }
   finally { btn.disabled=false; btn.innerHTML='<i class="fa fa-check"></i> Beli Sekarang'; }
 }
@@ -1239,21 +1289,80 @@ function showBatchResult(d, p) {
   document.getElementById('br-cost').textContent  = fmtRp(d.totalCost);
   document.getElementById('br-saldo').textContent = fmtRp(d.saldoSesudah);
   const color = profileColor(p.name);
-  document.getElementById('batch-result-list').innerHTML = (d.vouchers||[]).map((v,i) => `
-    <div class="vcr-card">
-      <div class="vcr-head" style="background:${color}">
+
+  // Track used state locally so we can auto-remove when all gone
+  STATE.lastBatch._localVouchers = (d.vouchers||[]).map(v => ({
+    ...v, _used: false
+  }));
+
+  renderBatchResultList(color, p);
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('s-r-batch-result').classList.add('active');
+}
+
+function renderBatchResultList(color, p) {
+  const vouchers = STATE.lastBatch._localVouchers || STATE.lastBatch.vouchers || [];
+  const remaining = vouchers.filter(v => !v._used);
+  const usedCount = vouchers.length - remaining.length;
+
+  // Update header counts
+  document.getElementById('br-count').textContent = remaining.length + ' tersisa';
+
+  document.getElementById('batch-result-list').innerHTML = vouchers.map((v, i) => `
+    <div class="vcr-card" id="vcr-row-${i}" style="${v._used ? 'opacity:.38;pointer-events:none' : ''}">
+      <div class="vcr-head" style="background:${v._used ? '#374151' : color}">
         <div style="font-weight:700;font-size:.82rem">${String(i+1).padStart(3,'0')}. ${p.name}</div>
-        <div class="v-price" style="font-size:.9rem">${fmtRp(p.resellerPrice)}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${v._used
+            ? `<span style="font-size:.7rem;opacity:.7"><i class="fa fa-check-circle"></i> Terpakai</span>`
+            : `<button onclick="markVoucherUsedLocal(${i},'${p.name}')"
+                style="background:rgba(255,255,255,.15);border:none;border-radius:6px;
+                       color:#fff;font-size:.68rem;font-weight:700;padding:3px 8px;cursor:pointer">
+                 ✓ Tandai Pakai
+               </button>`
+          }
+          <div class="v-price" style="font-size:.9rem">${fmtRp(p.resellerPrice)}</div>
+        </div>
       </div>
       <div class="vcr-body">
         <div class="vcr-row"><span class="lbl">Username</span><span class="val">${v.username}</span></div>
         <div class="vcr-row"><span class="lbl">Password</span><span class="val">${v.password}</span></div>
         <hr class="vcr-divider">
-        <div class="vcr-footer"><span>${v.validity||p.name}</span></div>
+        <div class="vcr-footer"><span>${v.validity || p.name}</span></div>
       </div>
     </div>`).join('');
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('s-r-batch-result').classList.add('active');
+}
+
+async function markVoucherUsedLocal(index, profileName) {
+  const vouchers = STATE.lastBatch._localVouchers;
+  if (!vouchers || vouchers[index]._used) return;
+
+  // Mark locally first for instant UI feedback
+  vouchers[index]._used = true;
+  const p = STATE.selProfile || { name: profileName, resellerPrice: 0 };
+  const color = profileColor(p.name);
+  renderBatchResultList(color, p);
+
+  const usedCount = vouchers.filter(v => v._used).length;
+  const total     = vouchers.length;
+
+  // Notify server (fire-and-forget — don't block UI)
+  try {
+    const batchId = STATE.lastBatch.batchId;
+    if (batchId) {
+      await api(`/batches/${batchId}/mark-used`, 'POST', {
+        username: vouchers[index].username,
+        usedBy: STATE.user?.name || 'Reseller',
+      }).catch(() => {}); // silent if endpoint not available
+    }
+  } catch {}
+
+  toast(`Voucher #${index+1} ditandai terpakai`);
+
+  // If all used → auto-remove batch
+  if (usedCount === total) {
+    await autoRemoveBatchAfterFull();
+  }
 }
 
 function copyAllVouchers() {
@@ -1264,8 +1373,107 @@ function copyAllVouchers() {
 }
 
 /* ═══════════════════════════════════════════════════
-   RESELLER — SALDO & LOG
+   AUTO-REMOVE BATCH — CORE LOGIC
+   Triggered after every buy or after all vouchers
+   in a batch are manually marked as used.
 ═══════════════════════════════════════════════════ */
+
+/**
+ * Called after doBuy() succeeds.
+ * Fetches all batches for profileName, finds any where
+ * remaining === 0, and removes them silently.
+ */
+async function checkAndAutoRemoveBatch(profileName) {
+  if (!STATE.autoRemoveBatch) return;
+  try {
+    const d = await api('/batches');
+    if (!d.success && !Array.isArray(d)) return;
+    const batches = Array.isArray(d) ? d : (d.batches || []);
+
+    // Find fully-used batches matching this profile
+    const fullBatches = batches.filter(b =>
+      b.profileName === profileName &&
+      b.stats &&
+      b.stats.remaining === 0 &&
+      b.stats.total > 0
+    );
+
+    if (!fullBatches.length) return;
+
+    // Remove each silently in background
+    let removed = 0;
+    for (const b of fullBatches) {
+      try {
+        const r = await api(`/batches/${b.id}`, 'DELETE');
+        if (r?.success || r?.deleted) removed++;
+      } catch {}
+    }
+
+    if (removed > 0) {
+      toast(`🗑️ ${removed} batch habis otomatis dihapus`);
+    }
+  } catch (e) {
+    // Silent — auto-remove is non-critical
+    console.warn('checkAndAutoRemoveBatch:', e.message);
+  }
+}
+
+/**
+ * Called when the user has manually marked ALL vouchers
+ * in the current batch-result screen as used.
+ * Removes that specific batch immediately.
+ */
+async function autoRemoveBatchAfterFull() {
+  if (!STATE.autoRemoveBatch) {
+    // Still show the full-used notice even if auto-remove is off
+    showBatchFullNotice(false);
+    return;
+  }
+
+  const batchId = STATE.lastBatch?.batchId;
+
+  try {
+    let deleted = false;
+    if (batchId) {
+      const r = await api(`/batches/${batchId}`, 'DELETE');
+      deleted = !!(r?.success || r?.deleted);
+    } else {
+      // No batchId from server — run profile-level scan instead
+      const profileName = STATE.selProfile?.name || STATE.lastBatch?.profileName;
+      if (profileName) await checkAndAutoRemoveBatch(profileName);
+      deleted = true;
+    }
+    showBatchFullNotice(deleted);
+  } catch (e) {
+    showBatchFullNotice(false);
+  }
+}
+
+/**
+ * Shows a bottom sheet celebrating batch completion
+ * and offering to go back home.
+ */
+function showBatchFullNotice(wasAutoDeleted) {
+  openSheet(`
+    <div style="text-align:center;padding:8px 0 20px">
+      <div style="font-size:2.8rem;margin-bottom:10px">🎉</div>
+      <div style="font-weight:800;font-size:1.05rem;margin-bottom:6px">Batch Habis Terjual!</div>
+      <div style="color:var(--muted);font-size:.82rem;line-height:1.6;margin-bottom:20px">
+        Semua voucher dalam batch ini sudah terpakai.
+        ${wasAutoDeleted
+          ? '<br><span style="color:var(--green)"><i class="fa fa-trash-o"></i> Batch otomatis dihapus.</span>'
+          : ''}
+      </div>
+      <button class="btn btn-primary" onclick="closeSheet();showTab('r-home')">
+        <i class="fa fa-home"></i> Kembali ke Home
+      </button>
+      <button class="btn btn-ghost" onclick="closeSheet();goVoucher()" style="margin-top:8px">
+        <i class="fa fa-bolt"></i> Generate Batch Baru
+      </button>
+    </div>`);
+}
+
+
 async function loadSaldo() {
   document.getElementById('saldo-log').innerHTML = '<div class="loading"><div class="spin"></div></div>';
   try {

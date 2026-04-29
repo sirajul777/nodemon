@@ -91,3 +91,52 @@
 
 /* Voucher type name in settings table */
 .vt-name { font-weight: 600; }
+
+/* ── Auto-remove: fade-out animation for batch card ── */
+@keyframes batchRemove {
+  0%   { opacity:1; transform:scale(1); max-height:300px; margin-bottom:12px; }
+  60%  { opacity:0; transform:scale(.94); }
+  100% { opacity:0; max-height:0;  margin-bottom:0; padding:0; border:0; overflow:hidden; }
+}
+.batch-card.removing {
+  animation: batchRemove .55s cubic-bezier(.4,0,.2,1) forwards;
+  pointer-events: none;
+}
+ 
+/* ── Auto-remove toggle switch ── */
+.ar-toggle-wrap {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px; border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,.03);
+  cursor: pointer; user-select: none;
+  font-size: .78rem; color: var(--muted);
+  transition: .2s;
+}
+.ar-toggle-wrap:hover { border-color: rgba(255,255,255,.15); color: var(--text); }
+.ar-toggle-wrap.active { border-color: rgba(63,185,80,.3); color: var(--green); background: rgba(63,185,80,.06); }
+ 
+.ar-pill {
+  width: 34px; height: 18px; border-radius: 99px;
+  background: var(--border); position: relative;
+  transition: .2s; flex-shrink: 0;
+}
+.ar-pill.on { background: var(--green); }
+.ar-pill::after {
+  content: ''; position: absolute;
+  top: 3px; left: 3px;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: #fff; transition: .2s;
+}
+.ar-pill.on::after { left: 19px; }
+ 
+/* ── "All used" badge on batch card ── */
+.batch-card.all-used { opacity: .55; }
+.batch-card.all-used::after {
+  content: '✓ HABIS';
+  position: absolute; top: 10px; right: 10px;
+  background: rgba(63,185,80,.15); color: var(--green);
+  border: 1px solid rgba(63,185,80,.25);
+  border-radius: 6px; padding: 2px 8px;
+  font-size: .65rem; font-weight: 800; letter-spacing: .5px;
+}
