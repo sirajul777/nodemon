@@ -495,8 +495,8 @@ export class MikrotikController {
     const { ip, user, password, port } = this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
     try {
-      const data  = await client.run('/interface/print', {'?proplist':'name,comment,running,disabled,type'});
-      return {data};
+      const ifaces  = await client.run('/interface/print', {'?proplist':'name,comment,running,disabled,type'});
+      return ifaces;
     } finally { client.close(); }
   };
 }
