@@ -5292,7 +5292,8 @@
       }
       async function saveVt() {
         const nm = v("mvt-nm"),
-          prof = v("mvt-prof");
+          prof = v("mvt-prof"),
+          userType = v("mvt-type");
         if (!nm) {
           se("mvt-err", "Nama wajib");
           return;
@@ -5310,6 +5311,7 @@
           codeLength: parseInt(v("mvt-len")) || 6,
           codeFormat: v("mvt-fmt"),
           maxPerOrder: parseInt(v("mvt-max")) || 10,
+          userType: userType || "up",
           active: v("mvt-act") === "true"
         };
         showL();
