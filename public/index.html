@@ -1566,7 +1566,8 @@ function go(pg) {
 
   // Stop live refresh when leaving dashboard
   if (pg !== 'dashboard') {stopLive(); stopTrafficLoop(); }
-  else if (CS) startLive();
+    
+  else if (CS) {initTrafficPanel(); startLive(); };
   loadPage(pg);
 }
 
@@ -1810,7 +1811,6 @@ async function loadDashboard() {
     });
 
     autoSyncBatchUsed();
-    initTrafficPanel();
     renderLog();
   } catch(e) {
     console.error('Dashboard error:', e);
