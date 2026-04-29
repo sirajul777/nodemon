@@ -3571,6 +3571,13 @@
         </div>
         <div class="fg2">
           <div class="fg">
+            <label>User Type</label
+            ><select id="mvt-type">
+              <option value="up">User + Password</option>
+              <option value="vc">User = Password</option>
+            </select>
+          </div>
+          <div class="fg">
             <label>Panjang Kode</label
             ><input id="mvt-len" type="number" value="6" min="4" max="12" />
           </div>
@@ -5258,7 +5265,7 @@
         document.getElementById("mvt-max").value = data?.maxPerOrder || 10;
         document.getElementById("mvt-act").value =
           data?.active !== false ? "true" : "false";
-
+        document.getElementById("mvt-type").value = data?.userType || "";
         const psel = document.getElementById("mvt-prof");
         psel.innerHTML = '<option value="">Loading...</option>';
 
