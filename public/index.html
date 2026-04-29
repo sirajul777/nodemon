@@ -4456,6 +4456,10 @@ async function initTrafficPanel() {
     sorted.forEach(iface => {
       if (iface['running'] === 'false' && iface['disabled'] === 'true') return;
       sel.innerHTML += `<option value="${iface.name}"
+        data-comment="${iface.comment||''}"
+        data-running="${iface.running}">
+        ${iface.name}${iface.comment?' · '+iface.comment:''}
+        ${iface.running==='false'?' (down)':''}
       </option>`;
     });
  
