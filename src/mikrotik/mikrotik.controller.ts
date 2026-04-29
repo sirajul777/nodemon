@@ -477,9 +477,9 @@ export class MikrotikController {
   async interfaceTraffic(@Param('session') session: string, @Param('name') name: string) { 
     const { ip, user, password, port } = this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
+    
     try {
-       // Option A: monitor-traffic (gives bits/s directly)
-      const data = await client.run('/interface/monitor-traffic', {'?interface': '=interface=' + name,'?once':'once',});
+      const data = await client.run('/interface/monitor-traffic', {'interface': name,'once':'',});
       console.log(data)
       return {
          'tx-bits-per-second': parseInt(data['tx-bits-per-second']) || 0,

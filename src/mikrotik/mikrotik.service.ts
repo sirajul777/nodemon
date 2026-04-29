@@ -8,6 +8,7 @@ export interface MikrotikResponse {
 @Injectable()
 export class MikrotikService {
   private readonly logger = new Logger(MikrotikService.name);
+  
 
   async createClient(ip: string, user: string, password: string, port = 8728): Promise<RosClient> {
     const client = new RosClient(ip, user, password, port, this.logger);
@@ -131,6 +132,8 @@ export class RosClient {
         words.push(`=${k}=${v}`);
       }
     }
+    
+   
 
     // Only pass words if non-empty — avoid hanging on write(cmd, [])
     const result = words.length > 0
@@ -139,6 +142,7 @@ export class RosClient {
 
     return result as MikrotikResponse[];
   }
+
 
   close(): void {
     try { this.api.close(); } catch {}
