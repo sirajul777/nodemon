@@ -1747,6 +1747,7 @@ async function loadDashboard() {
       req(`/pppoe/${CS}/active`).catch(() => []),
       req(`/pppoe/${CS}/secrets`).catch(() => []),
       req(`/mikrotik/${CS}/hotspot/log`).catch(() => []),
+      req(`/mikrotik/${CS}/interfaces`).catch(() => []),
     ]);
     
     if (!dash) return;
@@ -4441,7 +4442,7 @@ async function initTrafficPanel() {
  
   // Load interface list
   try {
-    const ifaces = await req(`/mikrotik/${CS}/interfaces`) || [];
+    const ifaces = await req(`/mikrotik/${CS}/interfaces`).catch(()=>[]);
     const sel = document.getElementById('traffic-iface-sel');
     sel.innerHTML = '<option value="">— Pilih Interface —</option>';
  
