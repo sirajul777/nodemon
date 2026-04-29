@@ -481,7 +481,8 @@ export class MikrotikController {
       
        // Option A: monitor-traffic (gives bits/s directly)
       const data = await client.run('/interface/monitor-traffic', {
-         '?interface' : name,});
+         '?interface' : name});
+         console.log(data)
       return {
          'tx-bits-per-second': parseInt(data['tx-bits-per-second']) || 0,
          'rx-bits-per-second': parseInt(data['rx-bits-per-second']) || 0,
