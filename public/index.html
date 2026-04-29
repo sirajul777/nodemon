@@ -8059,6 +8059,7 @@
 
       function formatMikrotikTime(durasiStr) {
         // Jika tidak ada data
+
         if (!durasiStr) return "Unlimited";
 
         // Cek huruf terakhir
@@ -8089,7 +8090,7 @@
         const caption = vcr.caption || vcr.profile || "";
         const duration = vcr.limitUptime || vcr.validity || "—";
 
-        if (vc.username === vc.password) {
+        if (vcr.username === vcr.password) {
           // Lighten color for gradient
           return `<div class="pv-card">
             <div class="pv-card-hd" style="background:${color}">
