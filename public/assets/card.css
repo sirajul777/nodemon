@@ -81,3 +81,121 @@
 @media(max-width:900px)  { .g3  { grid-template-columns: repeat(2, 1fr); } }
 @media(max-width:800px)  { .g2, .fg2, .fg3 { grid-template-columns: 1fr; } }
 @media(max-width:600px)  { .g3, .g4 { grid-template-columns: 1fr; } }
+
+/* ── Traffic card ── */
+.traffic-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin-top: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.2);
+}
+ 
+.traffic-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px; gap: 10px; flex-wrap: wrap;
+}
+.traffic-hd-left {
+  display: flex; align-items: center; gap: 10px;
+}
+.traffic-hd-title {
+  font-size: .95rem; font-weight: 700; color: #fff;
+}
+ 
+/* Live pulse dot */
+.traffic-live-dot {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: .7rem; color: var(--green); font-weight: 600;
+}
+.traffic-live-dot::before {
+  content: '';
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: pulse 1.5s ease infinite;
+  flex-shrink: 0;
+}
+ 
+/* Interface selector */
+#traffic-iface-sel {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 5px 10px;
+  color: var(--text);
+  font-size: .78rem;
+  cursor: pointer;
+  min-width: 130px;
+}
+ 
+/* Countdown ring */
+.traffic-countdown {
+  font-size: .68rem; color: var(--muted);
+  display: flex; align-items: center; gap: 5px;
+}
+.traffic-countdown svg { transform: rotate(-90deg); }
+.traffic-countdown circle { transition: stroke-dashoffset .4s linear; }
+ 
+/* Current speed pills */
+.traffic-speeds {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px; margin-bottom: 14px;
+}
+.speed-pill {
+  background: var(--card2);
+  border-radius: 10px; padding: 10px 14px;
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid var(--border);
+}
+.speed-pill-dot {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+}
+.speed-pill-val {
+  font-size: 1.15rem; font-weight: 800;
+  font-family: 'Courier New', monospace;
+  letter-spacing: -.5px; line-height: 1;
+}
+.speed-pill-lbl {
+  font-size: .67rem; color: var(--muted); font-weight: 600;
+  text-transform: uppercase; letter-spacing: .4px;
+  margin-top: 2px;
+}
+.speed-pill.tx .speed-pill-dot { background: #38bdf8; box-shadow: 0 0 8px #38bdf855; }
+.speed-pill.rx .speed-pill-dot { background: #a78bfa; box-shadow: 0 0 8px #a78bfa55; }
+.speed-pill.tx .speed-pill-val { color: #38bdf8; }
+.speed-pill.rx .speed-pill-val { color: #a78bfa; }
+ 
+/* Canvas wrapper */
+.traffic-chart-wrap {
+  position: relative; height: 160px;
+}
+ 
+/* Peak / avg stats row */
+.traffic-stats-row {
+  display: flex; gap: 20px; margin-top: 12px;
+  padding-top: 12px; border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.traffic-stat {
+  font-size: .75rem; color: var(--muted);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.traffic-stat b { color: var(--text); font-size: .82rem; }
+ 
+/* No router selected state */
+.traffic-empty {
+  text-align: center; padding: 32px 20px;
+  color: var(--muted); font-size: .83rem;
+}
+.traffic-empty i { font-size: 2rem; display: block; margin-bottom: 10px; opacity: .25; }
+ 
+/* Pause button */
+.traffic-pause-btn {
+  padding: 4px 10px; border-radius: 6px; font-size: .73rem;
+  background: rgba(255,255,255,.05); border: 1px solid var(--border);
+  color: var(--muted); cursor: pointer; transition: .15s;
+  display: flex; align-items: center; gap: 5px;
+}
+.traffic-pause-btn:hover { color: var(--text); background: rgba(255,255,255,.09); }
+.traffic-pause-btn.paused { color: var(--green); border-color: rgba(63,185,80,.3); }
