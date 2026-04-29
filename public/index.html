@@ -1747,7 +1747,6 @@ async function loadDashboard() {
       req(`/pppoe/${CS}/active`).catch(() => []),
       req(`/pppoe/${CS}/secrets`).catch(() => []),
       req(`/mikrotik/${CS}/hotspot/log`).catch(() => []),
-      req(`/mikrotik/${CS}/interfaces`).catch(() => []),
     ]);
     
     if (!dash) return;

@@ -473,7 +473,7 @@ export class MikrotikController {
       return { resource: resource[0], health, rosVersion: resource[0]?.version?.charAt(0) || '7' };
     } finally { client.close(); }
   }
-  @Get(':session/interface/traffic') 
+  @Get(':session/interface/traffic/:name') 
   async interfaceTraffic(@Param('session') session: string, @Query('name') name: string) { 
     const { ip, user, password, port } = this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
@@ -496,7 +496,6 @@ export class MikrotikController {
     const client = await this.mikrotikService.createClient(ip, user, password, port);
     try {
       const ifaces  = await client.run('/interface/print');
-      console.log(ifaces)
       return ifaces;
     } finally { client.close(); }
   };
