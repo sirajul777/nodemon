@@ -5,494 +5,734 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#0d1117">
-<title>MikHMon Mobile</title>
+<meta name="theme-color" content="#080c14">
+<title>MikHMon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <style>
-/* ── Reset & Base ─────────────────────────────── */
+/* ═══════════════════════════════════════════
+   BASE
+═══════════════════════════════════════════ */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  --bg:#0d1117;--card:#161b22;--card2:#1c2333;--border:#30363d;
-  --acc:#1f6feb;--acc2:#388bfd;--text:#e6edf3;--muted:#8b949e;
-  --green:#3fb950;--yellow:#d29922;--red:#f85149;--orange:#db6d28;
-  --purple:#8957e5;--cyan:#39c5cf;
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bot: env(safe-area-inset-bottom, 0px);
+  /* Shared */
+  --bg:#080c14;
+  --card:#0e1420;
+  --card2:#141c2e;
+  --border:rgba(255,255,255,0.07);
+  --text:#eef2ff;
+  --muted:#6b7a99;
+  --green:#22c55e;
+  --red:#ef4444;
+  --yellow:#f59e0b;
+  --radius:16px;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+
+  /* Role accent — diupdate saat login */
+  --acc:#3b82f6;
+  --acc2:#60a5fa;
+  --acc-dim:rgba(59,130,246,0.12);
+  --acc-glow:rgba(59,130,246,0.35);
 }
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI',sans-serif;font-size:15px}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:'DM Sans',sans-serif;font-size:15px}
 button{border:none;cursor:pointer;font-family:inherit;font-size:inherit;transition:.15s}
 input,select,textarea{font-family:inherit;font-size:inherit}
 ::-webkit-scrollbar{width:0;height:0}
 
-/* ── App Shell ────────────────────────────────── */
+/* ═══════════════════════════════════════════
+   APP SHELL
+═══════════════════════════════════════════ */
 #app{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto;position:relative;overflow:hidden}
-
-/* ── Status Bar ───────────────────────────────── */
-#status-bar{height:calc(var(--safe-top) + 0px);background:var(--bg);flex-shrink:0}
-
-/* ── Screen system ────────────────────────────── */
+#status-bar{height:var(--safe-top);background:var(--bg);flex-shrink:0}
 #screens{flex:1;overflow:hidden;position:relative}
 .screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;display:none;flex-direction:column;background:var(--bg)}
 .screen.active{display:flex}
 
-/* ── Top nav bar ──────────────────────────────── */
-.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;position:sticky;top:0;z-index:10}
-.topbar .back{width:36px;height:36px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;color:var(--text);font-size:1rem}
+/* ═══════════════════════════════════════════
+   LOGIN SCREEN
+═══════════════════════════════════════════ */
+#s-login{justify-content:flex-end;background:var(--bg)}
+.login-bg{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.login-orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.35}
+.login-orb.o1{width:300px;height:300px;background:#3b82f6;top:-60px;left:-60px}
+.login-orb.o2{width:200px;height:200px;background:#8b5cf6;top:40px;right:-40px;opacity:.2}
+.login-orb.o3{width:250px;height:250px;background:#06b6d4;bottom:200px;right:-80px;opacity:.15}
+
+.login-panel{position:relative;background:var(--card);border-radius:28px 28px 0 0;padding:32px 24px;padding-bottom:calc(var(--safe-bot) + 32px);border-top:1px solid var(--border)}
+.login-logo-wrap{text-align:center;margin-bottom:28px}
+.login-logo{width:64px;height:64px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 14px;background:linear-gradient(135deg,#3b82f6,#2563eb);box-shadow:0 8px 24px rgba(59,130,246,0.4)}
+.login-logo-wrap h1{font-size:1.5rem;font-weight:800;letter-spacing:-.5px}
+.login-logo-wrap p{color:var(--muted);font-size:.82rem;margin-top:3px}
+
+.field{margin-bottom:14px}
+.field label{display:block;font-size:.73rem;font-weight:600;color:var(--muted);letter-spacing:.4px;text-transform:uppercase;margin-bottom:7px}
+.field input{width:100%;background:var(--card2);border:1.5px solid var(--border);color:var(--text);padding:14px 16px;border-radius:12px;font-size:.92rem;outline:none;transition:.15s}
+.field input:focus{border-color:var(--acc);background:rgba(59,130,246,.05)}
+.field .input-icon{position:relative}
+.field .input-icon input{padding-left:44px}
+.field .input-icon i{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.95rem}
+
+.btn-login{width:100%;padding:16px;border-radius:14px;font-weight:700;font-size:.95rem;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;box-shadow:0 6px 20px rgba(59,130,246,.35);margin-top:4px;display:flex;align-items:center;justify-content:center;gap:8px;transition:.2s}
+.btn-login:active{transform:scale(.98);opacity:.9}
+.login-err{color:var(--red);font-size:.79rem;text-align:center;margin-top:10px;min-height:18px}
+.login-hint{text-align:center;margin-top:14px;font-size:.76rem;color:var(--muted)}
+
+/* ═══════════════════════════════════════════
+   TOPBAR (internal screens)
+═══════════════════════════════════════════ */
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;position:sticky;top:0;z-index:10;backdrop-filter:blur(12px)}
+.topbar .back{width:36px;height:36px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;color:var(--text);font-size:.9rem}
 .topbar .title{font-weight:700;font-size:1rem;flex:1}
-.topbar .action{width:36px;height:36px;border-radius:50%;background:transparent;display:flex;align-items:center;justify-content:center;color:var(--acc2);font-size:1rem}
+.topbar .act{width:36px;height:36px;border-radius:50%;background:transparent;display:flex;align-items:center;justify-content:center;color:var(--acc2);font-size:.95rem}
 
-/* ── Bottom Tab Bar ───────────────────────────── */
+/* ═══════════════════════════════════════════
+   BOTTOM TAB BAR
+═══════════════════════════════════════════ */
 #tabbar{background:var(--card);border-top:1px solid var(--border);display:flex;padding-bottom:var(--safe-bot);flex-shrink:0}
-.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 4px 8px;color:var(--muted);cursor:pointer;gap:3px;transition:.15s}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 4px 8px;color:var(--muted);cursor:pointer;gap:3px;transition:.15s;position:relative}
 .tab-item.active{color:var(--acc2)}
-.tab-item i{font-size:1.25rem}
-.tab-item span{font-size:.6rem;font-weight:600;letter-spacing:.3px}
+.tab-item i{font-size:1.2rem}
+.tab-item span{font-size:.59rem;font-weight:700;letter-spacing:.3px;text-transform:uppercase}
+.tab-item .tab-dot{position:absolute;top:8px;right:calc(50% - 12px);width:7px;height:7px;background:var(--red);border-radius:50%;border:2px solid var(--card);display:none}
 
-/* ── Cards ────────────────────────────────────── */
-.card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:12px}
-.card-sm{background:var(--card2);border-radius:10px;padding:12px;margin-bottom:8px}
-.section-title{font-size:.73rem;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:600;margin:16px 0 8px}
+/* ═══════════════════════════════════════════
+   SCROLL CONTENT
+═══════════════════════════════════════════ */
+.scroll-content{flex:1;padding:16px;overflow-y:auto}
 
-/* ── Stat cards ───────────────────────────────── */
-.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-.stat-card{background:var(--card);border-radius:14px;padding:14px;position:relative;overflow:hidden}
-.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0}
+/* ═══════════════════════════════════════════
+   COMPONENTS — CARDS
+═══════════════════════════════════════════ */
+.card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;border:1px solid var(--border)}
+.card-sm{background:var(--card2);border-radius:12px;padding:13px;margin-bottom:8px}
+.section-title{font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700;margin:18px 0 9px}
+
+/* ═══════════════════════════════════════════
+   HERO BALANCE CARD
+═══════════════════════════════════════════ */
+.hero-card{border-radius:20px;padding:22px 20px;margin-bottom:14px;position:relative;overflow:hidden}
+.hero-card::before{content:'';position:absolute;width:200px;height:200px;border-radius:50%;top:-60px;right:-60px;background:rgba(255,255,255,.06)}
+.hero-card::after{content:'';position:absolute;width:140px;height:140px;border-radius:50%;bottom:-40px;left:20px;background:rgba(255,255,255,.04)}
+.hero-card .lbl{font-size:.73rem;opacity:.75;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.hero-card .amount{font-size:2.4rem;font-weight:800;letter-spacing:-1.5px;line-height:1;margin-bottom:6px;font-family:'DM Mono',monospace}
+.hero-card .sub{font-size:.76rem;opacity:.65;display:flex;gap:14px}
+.hero-card .sub span{display:flex;align-items:center;gap:4px}
+
+/* ═══════════════════════════════════════════
+   QUICK ACTIONS GRID
+═══════════════════════════════════════════ */
+.qa-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.qa-item{background:var(--card);border-radius:14px;padding:14px 8px;text-align:center;cursor:pointer;transition:.12s;border:1px solid var(--border)}
+.qa-item:active{background:var(--card2);transform:scale(.96)}
+.qa-item .qa-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;margin:0 auto 7px}
+.qa-item .qa-lbl{font-size:.64rem;font-weight:700;color:var(--muted);letter-spacing:.2px}
+
+/* ═══════════════════════════════════════════
+   STAT MINI CARDS
+═══════════════════════════════════════════ */
+.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat-card{background:var(--card);border-radius:14px;padding:14px;border:1px solid var(--border);position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:14px 14px 0 0}
 .stat-card.gr::before{background:var(--green)}
-.stat-card.bl::before{background:var(--acc2)}
-.stat-card.yl::before{background:var(--yellow)}
 .stat-card.rd::before{background:var(--red)}
-.stat-card.pu::before{background:var(--purple)}
-.stat-card.cy::before{background:var(--cyan)}
-.stat-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;margin-bottom:8px}
-.stat-card.gr .stat-icon{background:#3fb95018;color:var(--green)}
-.stat-card.bl .stat-icon{background:#388bfd18;color:var(--acc2)}
-.stat-card.yl .stat-icon{background:#d2992218;color:var(--yellow)}
-.stat-card.rd .stat-icon{background:#f8514918;color:var(--red)}
-.stat-card.pu .stat-icon{background:#8957e518;color:var(--purple)}
-.stat-card.cy .stat-icon{background:#39c5cf18;color:var(--cyan)}
-.stat-val{font-size:1.45rem;font-weight:700;line-height:1}
-.stat-lbl{font-size:.72rem;color:var(--muted);margin-top:3px}
+.stat-card.yl::before{background:var(--yellow)}
+.stat-card.ac::before{background:var(--acc2)}
+.stat-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.9rem;margin-bottom:8px}
+.stat-card.gr .stat-icon{background:rgba(34,197,94,.12);color:var(--green)}
+.stat-card.rd .stat-icon{background:rgba(239,68,68,.12);color:var(--red)}
+.stat-card.yl .stat-icon{background:rgba(245,158,11,.12);color:var(--yellow)}
+.stat-card.ac .stat-icon{background:var(--acc-dim);color:var(--acc2)}
+.stat-val{font-size:1.5rem;font-weight:800;letter-spacing:-.5px;line-height:1}
+.stat-lbl{font-size:.69rem;color:var(--muted);margin-top:3px;font-weight:600}
 
-/* ── List items ───────────────────────────────── */
-.list-item{background:var(--card);border-radius:12px;padding:14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:.12s;border:1px solid transparent}
-.list-item:active{background:var(--card2);border-color:var(--border)}
-.list-avatar{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
-.list-body{flex:1;min-width:0}
-.list-title{font-weight:600;font-size:.92rem;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.list-sub{font-size:.77rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.list-right{text-align:right;flex-shrink:0}
-.list-right .amount{font-weight:700;font-size:.88rem}
-.list-right .meta{font-size:.72rem;color:var(--muted);margin-top:2px}
-.list-arrow{color:var(--muted);font-size:.75rem;margin-left:4px}
+/* ═══════════════════════════════════════════
+   LIST ITEMS
+═══════════════════════════════════════════ */
+.list-item{background:var(--card);border-radius:13px;padding:13px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:.12s;border:1px solid transparent}
+.list-item:active{border-color:var(--border);background:var(--card2)}
+.item-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.item-body{flex:1;min-width:0}
+.item-title{font-weight:600;font-size:.88rem;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-sub{font-size:.74rem;color:var(--muted)}
+.item-right{text-align:right;flex-shrink:0}
+.item-right .amount{font-weight:700;font-size:.88rem}
+.item-right .meta{font-size:.7rem;color:var(--muted);margin-top:2px}
+.chevron{color:var(--muted);font-size:.7rem;margin-left:4px}
 
-/* ── Badges ───────────────────────────────────── */
-.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:.7rem;font-weight:700}
-.b-gr{background:#3fb95022;color:var(--green)}
-.b-rd{background:#f8514922;color:var(--red)}
-.b-yl{background:#d2992222;color:var(--yellow)}
-.b-bl{background:#388bfd22;color:var(--acc2)}
-.b-pu{background:#8957e522;color:var(--purple)}
-.b-mu{background:#ffffff12;color:var(--muted)}
+/* ═══════════════════════════════════════════
+   BADGES
+═══════════════════════════════════════════ */
+.badge{display:inline-block;padding:3px 9px;border-radius:99px;font-size:.67rem;font-weight:700;letter-spacing:.2px}
+.b-gr{background:rgba(34,197,94,.15);color:var(--green)}
+.b-rd{background:rgba(239,68,68,.15);color:var(--red)}
+.b-yl{background:rgba(245,158,11,.15);color:var(--yellow)}
+.b-ac{background:var(--acc-dim);color:var(--acc2)}
+.b-mu{background:rgba(255,255,255,.07);color:var(--muted)}
 
-/* ── Buttons ──────────────────────────────────── */
-.btn{padding:14px 20px;border-radius:12px;font-weight:600;font-size:.9rem;display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s}
+/* ═══════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════ */
+.btn{padding:14px 20px;border-radius:13px;font-weight:700;font-size:.9rem;display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s;width:100%}
 .btn:active{opacity:.8;transform:scale(.98)}
-.btn-primary{background:var(--acc);color:#fff;width:100%}
-.btn-primary:active{background:var(--acc2)}
-.btn-success{background:var(--green);color:#fff;width:100%}
-.btn-danger{background:var(--red);color:#fff;width:100%}
-.btn-outline{background:transparent;color:var(--acc2);border:1.5px solid var(--acc2);width:100%}
-.btn-ghost{background:var(--card2);color:var(--text);width:100%}
-.btn-sm{padding:8px 14px;font-size:.8rem;border-radius:9px}
+.btn-primary{background:linear-gradient(135deg,var(--acc),color-mix(in srgb,var(--acc) 80%,#000));color:#fff;box-shadow:0 4px 16px var(--acc-glow)}
+.btn-success{background:linear-gradient(135deg,var(--green),#16a34a);color:#fff;box-shadow:0 4px 16px rgba(34,197,94,.3)}
+.btn-danger{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+.btn-outline{background:transparent;color:var(--acc2);border:1.5px solid var(--acc2)}
+.btn-ghost{background:var(--card2);color:var(--text);border:1px solid var(--border)}
+.btn-sm{padding:9px 16px;font-size:.8rem;border-radius:10px;width:auto}
 .btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
-.btn-fab{position:fixed;bottom:calc(var(--safe-bot) + 76px);right:16px;width:56px;height:56px;border-radius:50%;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.4rem;box-shadow:0 4px 16px #1f6feb55;z-index:20;cursor:pointer;transition:.15s}
-.btn-fab:active{transform:scale(.92)}
 
-/* ── Forms ────────────────────────────────────── */
+/* ═══════════════════════════════════════════
+   FORMS
+═══════════════════════════════════════════ */
 .form-group{margin-bottom:14px}
-.form-label{font-size:.78rem;color:var(--muted);margin-bottom:6px;display:block;font-weight:500}
-.form-input{background:var(--card2);border:1.5px solid var(--border);color:var(--text);padding:13px 14px;border-radius:11px;font-size:.9rem;width:100%;outline:none;transition:.15s;-webkit-appearance:none}
-.form-input:focus{border-color:var(--acc2);background:var(--card)}
-.form-input.err{border-color:var(--red)}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.form-hint{font-size:.72rem;color:var(--muted);margin-top:4px}
-.input-addon{position:relative}
-.input-addon .form-input{padding-left:40px}
-.input-addon .addon-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem}
+.form-label{font-size:.72rem;color:var(--muted);margin-bottom:6px;display:block;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.form-input{background:var(--card2);border:1.5px solid var(--border);color:var(--text);padding:13px 14px;border-radius:12px;font-size:.9rem;width:100%;outline:none;transition:.15s;-webkit-appearance:none}
+.form-input:focus{border-color:var(--acc);background:rgba(59,130,246,.04)}
 
-/* ── Quick amount buttons ─────────────────────── */
-.quick-amounts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
-.qa-btn{padding:7px 14px;border-radius:8px;background:var(--card2);border:1px solid var(--border);color:var(--text);font-size:.8rem;font-weight:600;cursor:pointer;transition:.12s}
-.qa-btn:active{background:var(--acc);color:#fff;border-color:var(--acc)}
+/* ═══════════════════════════════════════════
+   VOUCHER CARD (print style)
+═══════════════════════════════════════════ */
+.vcr-card{border-radius:14px;overflow:hidden;margin-bottom:10px;border:1px solid var(--border)}
+.vcr-head{padding:12px 16px;display:flex;justify-content:space-between;align-items:center;color:#fff}
+.vcr-head .v-profile{font-weight:700;font-size:.9rem}
+.vcr-head .v-price{font-size:1.1rem;font-weight:800;font-family:'DM Mono',monospace}
+.vcr-body{background:#fff;padding:14px 16px;color:#1a1a2e}
+.vcr-row{display:flex;justify-content:space-between;margin-bottom:5px;font-size:.8rem}
+.vcr-row .lbl{color:#888}
+.vcr-row .val{font-weight:700;font-family:'DM Mono',monospace;font-size:.85rem;letter-spacing:.3px}
+.vcr-divider{border:none;border-top:1.5px dashed #e5e7eb;margin:8px 0}
+.vcr-footer{display:flex;justify-content:space-between;font-size:.73rem;color:#aaa}
 
-/* ── Sheet / Modal ────────────────────────────── */
-#overlay{position:absolute;inset:0;background:#00000099;z-index:50;display:none;align-items:flex-end}
-#overlay.show{display:flex}
-.sheet{background:var(--card);border-radius:20px 20px 0 0;width:100%;max-height:90vh;overflow-y:auto;padding:16px;padding-bottom:calc(var(--safe-bot) + 16px);animation:slideUp .25s ease}
-@keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
-.sheet-handle{width:40px;height:4px;background:var(--border);border-radius:99px;margin:0 auto 16px}
-.sheet-title{font-size:1rem;font-weight:700;margin-bottom:16px;text-align:center}
-
-/* ── Toast ────────────────────────────────────── */
-#toast-el{position:absolute;bottom:calc(var(--safe-bot) + 80px);left:16px;right:16px;z-index:100;pointer-events:none}
-.toast-msg{background:var(--card);border-left:3px solid var(--green);border-radius:10px;padding:12px 14px;font-size:.83rem;box-shadow:0 4px 20px #0006;animation:toastIn .3s ease;margin-top:6px}
-.toast-msg.err{border-left-color:var(--red)}
-@keyframes toastIn{from{transform:translateY(20px);opacity:0}to{transform:none;opacity:1}}
-
-/* ── Login screen ─────────────────────────────── */
-#login-wrap{flex:1;display:flex;flex-direction:column;justify-content:center;padding:24px}
-.login-logo{text-align:center;margin-bottom:32px}
-.login-logo .logo-icon{width:72px;height:72px;background:var(--acc);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:2rem;color:#fff;margin:0 auto 14px}
-.login-logo h1{font-size:1.6rem;font-weight:800}
-.login-logo p{color:var(--muted);font-size:.85rem;margin-top:4px}
-
-/* ── Progress bar ─────────────────────────────── */
-.progress-bar{background:var(--border);border-radius:99px;height:6px;overflow:hidden;margin-top:8px}
-.progress-fill{height:100%;border-radius:99px;transition:.4s}
-
-/* ── Avatar initials ──────────────────────────── */
-.avatar{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:700;color:#fff;flex-shrink:0}
-
-/* ── Voucher card ─────────────────────────────── */
-.vcr-card{border-radius:12px;overflow:hidden;margin-bottom:10px}
-.vcr-hd{padding:10px 14px 8px;color:#fff;display:flex;justify-content:space-between;align-items:center}
-.vcr-body{background:#fff;padding:12px 14px;color:#222}
-.vcr-field{display:flex;justify-content:space-between;margin-bottom:4px;font-size:.8rem}
-.vcr-field .lbl{color:#888}
-.vcr-field .val{font-weight:700;font-family:monospace;letter-spacing:.5px;font-size:.85rem}
-.vcr-divider{border:none;border-top:1px dashed #ddd;margin:8px 0}
-
-/* ── Scrollable content ───────────────────────── */
-.scroll-content{flex:1;padding:14px;overflow-y:auto}
-
-/* ── Profile circle list ──────────────────────── */
-.profile-list{display:flex;flex-direction:column;gap:8px}
-.profile-row{display:flex;align-items:center;gap:12px;padding:13px 14px;background:var(--card2);border-radius:12px;cursor:pointer;transition:.12s;border:2px solid transparent}
+/* ═══════════════════════════════════════════
+   PROFILE LIST (pilih paket)
+═══════════════════════════════════════════ */
+.profile-row{display:flex;align-items:center;gap:12px;padding:14px;background:var(--card2);border-radius:13px;cursor:pointer;transition:.12s;border:2px solid transparent;margin-bottom:8px}
 .profile-row:active,.profile-row.selected{border-color:var(--acc2);background:var(--card)}
-.profile-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
-.profile-info{flex:1}
-.profile-name{font-weight:600;font-size:.9rem}
-.profile-meta{font-size:.75rem;color:var(--muted);margin-top:1px}
-.profile-price{font-weight:700;font-size:.9rem;color:var(--green)}
+.pdot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.pinfo{flex:1}
+.pname{font-weight:700;font-size:.9rem}
+.pmeta{font-size:.73rem;color:var(--muted);margin-top:2px}
+.pprice{font-weight:800;font-size:.92rem;color:var(--green);text-align:right}
+.pdisc{font-size:.68rem;color:var(--green);text-align:right;margin-top:1px}
 
-/* ── Invoice item ─────────────────────────────── */
-.inv-item{background:var(--card);border-radius:12px;padding:14px;margin-bottom:8px;border-left:4px solid var(--border)}
-.inv-item.unpaid{border-left-color:var(--yellow)}
-.inv-item.paid{border-left-color:var(--green)}
-.inv-item.overdue{border-left-color:var(--red)}
-.inv-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
-.inv-name{font-weight:600;font-size:.9rem}
-.inv-period{font-size:.75rem;color:var(--muted);margin-top:1px}
-.inv-amount{font-weight:700;color:var(--green);font-size:.9rem}
-.inv-footer{display:flex;justify-content:space-between;align-items:center}
-.inv-due{font-size:.75rem;color:var(--muted)}
-.inv-actions{display:flex;gap:6px}
+/* ═══════════════════════════════════════════
+   SUMMARY BOX
+═══════════════════════════════════════════ */
+.summary-box{background:var(--card2);border-radius:13px;padding:14px;margin:12px 0;border:1px solid var(--border)}
+.summary-row{display:flex;justify-content:space-between;padding:6px 0;font-size:.84rem}
+.summary-row.total{border-top:1px solid var(--border);margin-top:4px;padding-top:10px;font-weight:700;font-size:.94rem}
 
-/* ── Saldo display ────────────────────────────── */
-.saldo-hero{background:linear-gradient(135deg,#1f6feb,#0550ae);border-radius:18px;padding:22px;margin-bottom:14px;color:#fff;text-align:center}
-.saldo-label{font-size:.78rem;opacity:.8;margin-bottom:4px}
-.saldo-amount{font-size:2.2rem;font-weight:800;letter-spacing:-1px}
-.saldo-sub{font-size:.78rem;opacity:.7;margin-top:4px}
-
-/* ── Riwayat log ──────────────────────────────── */
-.log-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+/* ═══════════════════════════════════════════
+   LOG ITEMS (riwayat)
+═══════════════════════════════════════════ */
+.log-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)}
 .log-item:last-child{border-bottom:none}
-.log-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0}
-.log-icon.plus{background:#3fb95018;color:var(--green)}
-.log-icon.minus{background:#f8514918;color:var(--red)}
+.log-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0}
+.log-icon.plus{background:rgba(34,197,94,.12);color:var(--green)}
+.log-icon.minus{background:rgba(239,68,68,.12);color:var(--red)}
 .log-body{flex:1;min-width:0}
-.log-desc{font-size:.85rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.log-time{font-size:.72rem;color:var(--muted);margin-top:1px}
-.log-amount{font-weight:700;font-size:.88rem}
+.log-desc{font-size:.84rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.log-time{font-size:.7rem;color:var(--muted);margin-top:2px}
+.log-amount{font-weight:700;font-size:.86rem;flex-shrink:0}
 .log-amount.plus{color:var(--green)}
 .log-amount.minus{color:var(--red)}
 
-/* ── Connection screen ────────────────────────── */
-.conn-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
-.conn-icon{font-size:3rem;margin-bottom:16px;opacity:.5}
-.conn-title{font-size:1.1rem;font-weight:700;margin-bottom:8px}
-.conn-sub{color:var(--muted);font-size:.85rem;margin-bottom:24px;line-height:1.5}
+/* ═══════════════════════════════════════════
+   INVOICE ITEMS (collector)
+═══════════════════════════════════════════ */
+.inv-item{background:var(--card);border-radius:13px;padding:14px;margin-bottom:8px;border-left:3px solid var(--border);border:1px solid var(--border);border-left-width:3px}
+.inv-item.unpaid{border-left-color:var(--yellow)}
+.inv-item.overdue{border-left-color:var(--red)}
+.inv-item.paid  {border-left-color:var(--green)}
+.inv-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.inv-name{font-weight:700;font-size:.9rem}
+.inv-user{font-size:.73rem;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace}
+.inv-amount{font-weight:800;color:var(--green);font-size:.92rem;font-family:'DM Mono',monospace}
+.inv-foot{display:flex;justify-content:space-between;align-items:center}
+.inv-due{font-size:.73rem;color:var(--muted);display:flex;align-items:center;gap:4px}
 
-/* ── Qty selector ─────────────────────────────── */
-.qty-selector{display:flex;align-items:center;gap:16px;justify-content:center;margin:14px 0}
-.qty-btn{width:44px;height:44px;border-radius:50%;background:var(--card2);border:1.5px solid var(--border);color:var(--text);font-size:1.3rem;display:flex;align-items:center;justify-content:center;cursor:pointer}
-.qty-btn:active{background:var(--acc);color:#fff;border-color:var(--acc)}
-.qty-val{font-size:1.6rem;font-weight:800;min-width:60px;text-align:center}
-
-/* ── Summary box ──────────────────────────────── */
-.summary-box{background:var(--card2);border-radius:12px;padding:14px;margin:12px 0}
-.summary-row{display:flex;justify-content:space-between;padding:6px 0;font-size:.85rem}
-.summary-row.total{border-top:1px solid var(--border);margin-top:4px;padding-top:10px;font-weight:700;font-size:.95rem}
-
-/* ── Loading ──────────────────────────────────── */
-.loading{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--muted)}
-.spin{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--acc2);border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* ── Empty state ──────────────────────────────── */
-.empty{text-align:center;padding:40px 20px;color:var(--muted)}
-.empty i{font-size:2.5rem;display:block;margin-bottom:12px;opacity:.35}
-.empty p{font-size:.85rem}
-
-/* ── Chip filters ─────────────────────────────── */
-.chip-bar{display:flex;gap:8px;overflow-x:auto;padding:2px 0;margin-bottom:12px}
-.chip{padding:7px 14px;border-radius:99px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:.12s}
+/* ═══════════════════════════════════════════
+   CHIPS / FILTERS
+═══════════════════════════════════════════ */
+.chip-bar{display:flex;gap:7px;overflow-x:auto;padding:2px 0;margin-bottom:14px}
+.chip{padding:7px 15px;border-radius:99px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-size:.76rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:.12s;font-family:inherit}
 .chip.active{background:var(--acc);border-color:var(--acc);color:#fff}
 
-/* ── Swipe action hint ────────────────────────── */
-.swipe-hint{font-size:.72rem;color:var(--muted);text-align:center;padding:8px;margin-bottom:4px}
+/* ═══════════════════════════════════════════
+   BOTTOM SHEET / OVERLAY
+═══════════════════════════════════════════ */
+#overlay{position:absolute;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:50;display:none;align-items:flex-end}
+#overlay.show{display:flex}
+.sheet{background:var(--card);border-radius:24px 24px 0 0;width:100%;max-height:88vh;overflow-y:auto;padding:20px 16px;padding-bottom:calc(var(--safe-bot) + 16px);animation:sheetUp .25s cubic-bezier(.32,.72,0,1)}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:none}}
+.sheet-handle{width:36px;height:4px;background:var(--border);border-radius:99px;margin:0 auto 18px}
+.sheet-title{font-size:1rem;font-weight:700;margin-bottom:16px;text-align:center}
+
+/* ═══════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════ */
+#toast-el{position:absolute;bottom:calc(var(--safe-bot) + 80px);left:16px;right:16px;z-index:100;pointer-events:none}
+.toast-msg{background:var(--card2);border-left:3px solid var(--green);border-radius:12px;padding:12px 14px;font-size:.82rem;box-shadow:0 8px 24px rgba(0,0,0,.5);animation:toastIn .3s ease;margin-top:6px;border:1px solid var(--border)}
+.toast-msg.err{border-left-color:var(--red)}
+@keyframes toastIn{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
+
+/* ═══════════════════════════════════════════
+   LOADING
+═══════════════════════════════════════════ */
+.loading{display:flex;align-items:center;justify-content:center;padding:48px;color:var(--muted);gap:10px;font-size:.83rem}
+.spin{width:22px;height:22px;border:2.5px solid var(--border);border-top-color:var(--acc2);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ═══════════════════════════════════════════
+   EMPTY STATE
+═══════════════════════════════════════════ */
+.empty{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty i{font-size:2.2rem;display:block;margin-bottom:12px;opacity:.3}
+.empty p{font-size:.84rem;line-height:1.5}
+
+/* ═══════════════════════════════════════════
+   PROFILE PAGE
+═══════════════════════════════════════════ */
+.avatar-big{width:72px;height:72px;border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:1.9rem;font-weight:800;color:#fff;margin:0 auto 12px}
+.role-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:99px;font-size:.73rem;font-weight:700;margin-top:6px}
+.role-pill.reseller{background:var(--acc-dim);color:var(--acc2);border:1px solid rgba(59,130,246,.25)}
+.role-pill.collector{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+
+.info-list{background:var(--card);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid var(--border)}
+.info-row:last-child{border-bottom:none}
+.info-row .k{font-size:.82rem;color:var(--muted)}
+.info-row .v{font-size:.84rem;font-weight:600}
+
+/* ═══════════════════════════════════════════
+   PAY SCREEN DETAIL
+═══════════════════════════════════════════ */
+.pay-detail{background:var(--card2);border-radius:14px;padding:16px;margin-bottom:16px;border:1px solid var(--border)}
+.pay-status-bar{height:3px;border-radius:99px;margin-bottom:16px}
+.pay-customer{font-weight:700;font-size:1rem;margin-bottom:3px}
+.pay-period{font-size:.78rem;color:var(--muted);margin-bottom:12px}
+.pay-amount-big{font-size:2rem;font-weight:800;font-family:'DM Mono',monospace;letter-spacing:-1px}
+
+/* ═══════════════════════════════════════════
+   COLLECTOR STATS HERO
+═══════════════════════════════════════════ */
+.collector-hero{border-radius:20px;padding:20px;margin-bottom:14px;background:linear-gradient(135deg,#064e3b,#065f46);border:1px solid rgba(34,197,94,.2);position:relative;overflow:hidden}
+.collector-hero::before{content:'';position:absolute;width:160px;height:160px;border-radius:50%;top:-40px;right:-40px;background:rgba(255,255,255,.05)}
+.collector-hero .ch-label{font-size:.72rem;color:rgba(255,255,255,.6);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.collector-hero .ch-count{font-size:2.2rem;font-weight:800;letter-spacing:-1px;color:#fff;line-height:1;font-family:'DM Mono',monospace}
+.collector-hero .ch-sub{font-size:.75rem;color:rgba(255,255,255,.55);margin-top:5px;display:flex;gap:12px}
+.collector-hero .ch-sub span{display:flex;align-items:center;gap:4px}
+
+/* Warn badge for overdue */
+.overdue-warn{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;font-size:.82rem;color:var(--red)}
+.overdue-warn i{font-size:1rem;flex-shrink:0}
+
+/* ═══════════════════════════════════════════
+   ROLE-BASED ACCENT OVERRIDES
+═══════════════════════════════════════════ */
+body.role-collector{
+  --acc:#22c55e;
+  --acc2:#4ade80;
+  --acc-dim:rgba(34,197,94,0.12);
+  --acc-glow:rgba(34,197,94,0.3);
+}
 </style>
 </head>
 <body>
 <div id="app">
   <div id="status-bar"></div>
 
-  <!-- ══ SCREENS ══════════════════════════════ -->
   <div id="screens">
 
-    <!-- LOGIN -->
+    <!-- ════════════════════════════════════
+         LOGIN SCREEN
+    ════════════════════════════════════ -->
     <div class="screen active" id="s-login">
-      <div id="login-wrap">
-        <div class="login-logo">
-          <div class="logo-icon"><i class="fa fa-wifi"></i></div>
-          <h1>MikHMon</h1>
-          <p>Portal Reseller Hotspot</p>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Server URL</label>
-          <input class="form-input" id="l-url" placeholder="http://103.154.76.140:3000" type="url"
-            value="">
-          <div class="form-hint">URL server MikHMon kamu</div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Telegram ID Kamu</label>
-          <div class="input-addon">
-            <i class="fa fa-telegram addon-icon"></i>
-            <input class="form-input" id="l-tid" placeholder="1234567890" type="number" inputmode="numeric">
+      <div class="login-bg">
+        <div class="login-orb o1"></div>
+        <div class="login-orb o2"></div>
+        <div class="login-orb o3"></div>
+      </div>
+      <!-- top area with logo -->
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;position:relative">
+        <div class="login-logo"><i class="fa fa-wifi"></i></div>
+        <h2 style="font-size:1.7rem;font-weight:800;letter-spacing:-.5px;margin-bottom:4px">MikHMon</h2>
+        <p style="color:var(--muted);font-size:.84rem">Portal Reseller &amp; Kolektor</p>
+      </div>
+      <!-- bottom panel -->
+      <div class="login-panel">
+        <div class="field">
+          <label>Server URL</label>
+          <div class="input-icon">
+            <i class="fa fa-server"></i>
+            <input id="l-url" type="url" placeholder="http://103.154.76.140:3000">
           </div>
-          <div class="form-hint">Telegram ID numerik — bisa cek via @userinfobot</div>
         </div>
-        <div class="err" id="l-err" style="color:var(--red);font-size:.8rem;margin-bottom:12px;display:none"></div>
-        <button class="btn btn-primary" onclick="doLogin()" id="l-btn">
+        <div class="field">
+          <label>Telegram ID</label>
+          <div class="input-icon">
+            <i class="fa fa-telegram"></i>
+            <input id="l-tid" type="number" inputmode="numeric" placeholder="1234567890">
+          </div>
+        </div>
+        <div class="login-err" id="l-err"></div>
+        <button class="btn-login" id="l-btn" onclick="doLogin()">
           <i class="fa fa-sign-in"></i> Masuk
         </button>
-        <div style="text-align:center;margin-top:16px;font-size:.78rem;color:var(--muted)">
-          Pastikan akun reseller sudah didaftarkan admin
-        </div>
+        <div class="login-hint">Gunakan Telegram ID yang terdaftar di sistem</div>
       </div>
     </div>
 
-    <!-- HOME / DASHBOARD -->
-    <div class="screen" id="s-home">
+    <!-- ════════════════════════════════════
+         RESELLER — HOME
+    ════════════════════════════════════ -->
+    <div class="screen" id="s-r-home">
       <div class="topbar" style="justify-content:space-between">
         <div>
-          <div style="font-size:.75rem;color:var(--muted)">Selamat datang,</div>
-          <div style="font-weight:700;font-size:1rem" id="h-name">—</div>
+          <div style="font-size:.72rem;color:var(--muted)">Selamat datang,</div>
+          <div style="font-weight:800;font-size:1rem" id="rh-name">—</div>
         </div>
-        <div style="display:flex;gap:8px">
-          <button class="action" onclick="showScreen('s-notif')" style="background:var(--card2);width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--muted);position:relative">
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="act" onclick="showScreen('s-r-notif')" style="background:var(--card2);width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--muted);position:relative;border:none">
             <i class="fa fa-bell"></i>
-            <div id="notif-dot" style="display:none;position:absolute;top:8px;right:8px;width:8px;height:8px;background:var(--red);border-radius:50%;border:2px solid var(--bg)"></div>
+            <div id="r-notif-dot" style="display:none;position:absolute;top:7px;right:7px;width:7px;height:7px;background:var(--red);border-radius:50%;border:2px solid var(--card)"></div>
           </button>
-          <div id="h-avatar" class="avatar" style="background:var(--acc)" onclick="showScreen('s-profile')">R</div>
+          <div id="rh-avatar" class="avatar-big" style="width:38px;height:38px;border-radius:12px;font-size:1rem;cursor:pointer" onclick="showTab('r-profile')">R</div>
         </div>
       </div>
       <div class="scroll-content">
-        <!-- Saldo Hero -->
-        <div class="saldo-hero" id="h-saldo-hero">
-          <div class="saldo-label"><i class="fa fa-wallet"></i> Saldo Tersedia</div>
-          <div class="saldo-amount" id="h-saldo">Rp 0</div>
-          <div class="saldo-sub">Diskon: <span id="h-discount">0%</span> · <span id="h-vcr-total">0 voucher</span></div>
+
+        <!-- Balance hero -->
+        <div class="hero-card" id="rh-hero" style="background:linear-gradient(135deg,#1d4ed8,#1e40af)">
+          <div class="lbl"><i class="fa fa-wallet"></i> Saldo Tersedia</div>
+          <div class="amount" id="rh-saldo">Rp 0</div>
+          <div class="sub">
+            <span><i class="fa fa-tag"></i> Diskon <span id="rh-disc">0%</span></span>
+            <span><i class="fa fa-ticket"></i> <span id="rh-vcr">0</span> voucher</span>
+          </div>
         </div>
 
-        <!-- Quick Actions -->
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px">
-          <div class="card" style="padding:12px;text-align:center;cursor:pointer;margin-bottom:0" onclick="goVoucher()">
-            <div style="font-size:1.4rem;margin-bottom:4px">🎟️</div>
-            <div style="font-size:.7rem;color:var(--muted);font-weight:600">Beli</div>
+        <!-- Quick actions -->
+        <div class="qa-grid">
+          <div class="qa-item" onclick="goVoucher()">
+            <div class="qa-icon" style="background:var(--acc-dim);color:var(--acc2)"><i class="fa fa-ticket"></i></div>
+            <div class="qa-lbl">Beli</div>
           </div>
-          <div class="card" style="padding:12px;text-align:center;cursor:pointer;margin-bottom:0" onclick="goGenerate()">
-            <div style="font-size:1.4rem;margin-bottom:4px">📦</div>
-            <div style="font-size:.7rem;color:var(--muted);font-weight:600">Generate</div>
+          <div class="qa-item" onclick="goVoucher('batch')">
+            <div class="qa-icon" style="background:rgba(139,92,246,.12);color:#a78bfa"><i class="fa fa-th"></i></div>
+            <div class="qa-lbl">Batch</div>
           </div>
-          <div class="card" style="padding:12px;text-align:center;cursor:pointer;margin-bottom:0" onclick="showTab('t-billing')">
-            <div style="font-size:1.4rem;margin-bottom:4px">🧾</div>
-            <div style="font-size:.7rem;color:var(--muted);font-weight:600">Tagihan</div>
+          <div class="qa-item" onclick="showScreen('s-r-saldo')">
+            <div class="qa-icon" style="background:rgba(245,158,11,.12);color:var(--yellow)"><i class="fa fa-history"></i></div>
+            <div class="qa-lbl">Riwayat</div>
           </div>
-          <div class="card" style="padding:12px;text-align:center;cursor:pointer;margin-bottom:0" onclick="showScreen('s-saldo')">
-            <div style="font-size:1.4rem;margin-bottom:4px">💰</div>
-            <div style="font-size:.7rem;color:var(--muted);font-weight:600">Saldo</div>
+          <div class="qa-item" onclick="showTab('r-profile')">
+            <div class="qa-icon" style="background:rgba(34,197,94,.12);color:var(--green)"><i class="fa fa-user"></i></div>
+            <div class="qa-lbl">Profil</div>
           </div>
         </div>
 
         <!-- Stats -->
         <div class="stats-row">
-          <div class="stat-card yl">
-            <div class="stat-icon"><i class="fa fa-file-text"></i></div>
-            <div class="stat-val" id="h-unpaid">0</div>
-            <div class="stat-lbl">Belum Bayar</div>
-          </div>
-          <div class="stat-card rd">
-            <div class="stat-icon"><i class="fa fa-exclamation"></i></div>
-            <div class="stat-val" id="h-overdue">0</div>
-            <div class="stat-lbl">Overdue</div>
-          </div>
           <div class="stat-card gr">
-            <div class="stat-icon"><i class="fa fa-users"></i></div>
-            <div class="stat-val" id="h-customers">0</div>
-            <div class="stat-lbl">Pelanggan</div>
+            <div class="stat-icon"><i class="fa fa-ticket"></i></div>
+            <div class="stat-val" id="rh-vcr-stat">0</div>
+            <div class="stat-lbl">Total Voucher</div>
           </div>
-          <div class="stat-card bl">
-            <div class="stat-icon"><i class="fa fa-check-circle"></i></div>
-            <div class="stat-val" id="h-paid">0</div>
-            <div class="stat-lbl">Lunas Bulan Ini</div>
+          <div class="stat-card ac">
+            <div class="stat-icon"><i class="fa fa-money"></i></div>
+            <div class="stat-val" id="rh-income" style="font-size:1rem;padding-top:5px">Rp 0</div>
+            <div class="stat-lbl">Total Pendapatan</div>
           </div>
         </div>
 
-        <!-- Recent Activity -->
-        <div class="section-title">Aktivitas Terakhir</div>
-        <div id="h-activity">
-          <div class="loading"><div class="spin"></div></div>
+        <!-- Recent activity -->
+        <div class="section-title">Transaksi Terakhir</div>
+        <div class="card" id="rh-activity">
+          <div class="loading"><div class="spin"></div> Memuat...</div>
         </div>
+
       </div>
     </div>
 
-    <!-- VOUCHER - PILIH PROFILE -->
-    <div class="screen" id="s-voucher">
+    <!-- ════════════════════════════════════
+         RESELLER — VOUCHER LIST (pilih paket)
+    ════════════════════════════════════ -->
+    <div class="screen" id="s-r-voucher">
       <div class="topbar">
         <button class="back" onclick="goBack()"><i class="fa fa-arrow-left"></i></button>
-        <div class="title">Pilih Voucher</div>
-        <button class="action" onclick="refreshProfiles()"><i class="fa fa-refresh"></i></button>
+        <div class="title" id="vmode-title">Beli Voucher</div>
+        <button class="act" onclick="loadProfiles()"><i class="fa fa-refresh"></i></button>
       </div>
       <div class="scroll-content">
         <div class="chip-bar">
-          <div class="chip active" onclick="filterMode='buy';renderProfiles()" id="chip-buy">🎟️ Beli 1</div>
-          <div class="chip" onclick="filterMode='gen';renderProfiles()" id="chip-gen">📦 Generate Batch</div>
+          <div class="chip active" id="chip-buy" onclick="setVMode('buy')"><i class="fa fa-ticket"></i> Beli 1</div>
+          <div class="chip" id="chip-batch" onclick="setVMode('batch')"><i class="fa fa-th"></i> Batch Generate</div>
         </div>
-        <div class="section-title">Daftar Paket</div>
-        <div id="profile-list" class="profile-list">
-          <div class="loading"><div class="spin"></div></div>
+        <div class="section-title">Pilih Paket</div>
+        <div id="profile-list">
+          <div class="loading"><div class="spin"></div> Memuat paket...</div>
         </div>
       </div>
     </div>
 
-    <!-- VOUCHER - KONFIRMASI BELI 1 -->
-    <div class="screen" id="s-buy-confirm">
+    <!-- ════════════════════════════════════
+         RESELLER — KONFIRMASI BELI
+    ════════════════════════════════════ -->
+    <div class="screen" id="s-r-buy">
       <div class="topbar">
         <button class="back" onclick="goBack()"><i class="fa fa-arrow-left"></i></button>
-        <div class="title">Konfirmasi Pembelian</div>
+        <div class="title">Konfirmasi Beli</div>
       </div>
       <div class="scroll-content">
-        <div class="card" id="buy-profile-info"></div>
+        <div class="card" id="buy-profile-card"></div>
         <div class="summary-box">
-          <div class="summary-row"><span>Harga Normal</span><span id="buy-normal-price">—</span></div>
-          <div class="summary-row" id="buy-disc-row" style="display:none"><span style="color:var(--green)">Diskon <span id="buy-disc-pct"></span></span><span style="color:var(--green)" id="buy-disc-amt">—</span></div>
+          <div class="summary-row"><span>Harga Normal</span><span id="buy-normal">—</span></div>
+          <div class="summary-row" id="buy-disc-row" style="display:none"><span style="color:var(--green)">Diskon <span id="buy-disc-pct">0%</span></span><span style="color:var(--green)" id="buy-disc-amt">—</span></div>
           <div class="summary-row total"><span>Total Bayar</span><span id="buy-total" style="color:var(--green)">—</span></div>
-          <div class="summary-row"><span style="color:var(--muted)">Saldo setelah beli</span><span id="buy-after-saldo" style="color:var(--muted)">—</span></div>
+          <div class="summary-row"><span style="color:var(--muted)">Saldo setelah</span><span id="buy-after" style="color:var(--muted)">—</span></div>
         </div>
-        <div id="buy-saldo-warn" style="display:none;background:#f8514912;border:1px solid #f8514940;border-radius:10px;padding:12px;margin-bottom:14px;font-size:.82rem;color:var(--red)">
-          <i class="fa fa-exclamation-triangle"></i> Saldo tidak cukup. Hubungi admin untuk topup.
-        </div>
-        <button class="btn btn-success" id="buy-btn" onclick="doBuy()">
-          <i class="fa fa-check"></i> Beli Sekarang
-        </button>
+        <div id="buy-warn" style="display:none" class="overdue-warn"><i class="fa fa-exclamation-triangle"></i> Saldo tidak cukup. Hubungi admin untuk topup.</div>
+        <button class="btn btn-success" id="buy-btn" onclick="doBuy()"><i class="fa fa-check"></i> Beli Sekarang</button>
       </div>
     </div>
 
-    <!-- VOUCHER - HASIL BELI -->
-    <div class="screen" id="s-buy-result">
+    <!-- ════════════════════════════════════
+         RESELLER — HASIL BELI
+    ════════════════════════════════════ -->
+    <div class="screen" id="s-r-result">
       <div class="topbar">
-        <div class="title" style="text-align:center;flex:1">Voucher Berhasil! 🎉</div>
+        <div class="title" style="flex:1;text-align:center">Voucher Berhasil 🎉</div>
       </div>
-      <div class="scroll-content" style="display:flex;flex-direction:column;align-items:center">
-        <div style="text-align:center;padding:16px 0 20px">
+      <div class="scroll-content" style="align-items:center">
+        <div style="text-align:center;padding:20px 0 24px">
           <div style="font-size:3rem;margin-bottom:8px">✅</div>
-          <div style="font-weight:700;font-size:1.1rem">Pembelian Berhasil</div>
-          <div style="color:var(--muted);font-size:.83rem;margin-top:4px">Voucher siap digunakan</div>
+          <div style="font-weight:800;font-size:1.05rem">Pembelian Berhasil</div>
+          <div style="color:var(--muted);font-size:.81rem;margin-top:4px">Voucher siap digunakan</div>
         </div>
-        <div id="buy-result-card" style="width:100%"></div>
-        <div style="width:100%;margin-top:8px">
-          <button class="btn btn-outline" onclick="copyVoucher()" style="margin-bottom:10px">
-            <i class="fa fa-copy"></i> Copy Username & Password
-          </button>
-          <button class="btn btn-primary" onclick="showScreen('s-voucher')">
-            <i class="fa fa-ticket"></i> Beli Lagi
-          </button>
-          <button class="btn btn-ghost" onclick="showTab('t-home')" style="margin-top:8px">
-            <i class="fa fa-home"></i> Kembali ke Home
-          </button>
+        <div id="result-vcr-card" style="width:100%"></div>
+        <div style="width:100%;margin-top:10px">
+          <button class="btn btn-outline" onclick="copyVoucher()" style="margin-bottom:10px"><i class="fa fa-copy"></i> Copy Username &amp; Password</button>
+          <button class="btn btn-primary" onclick="goVoucher()"><i class="fa fa-ticket"></i> Beli Lagi</button>
+          <button class="btn btn-ghost" onclick="showTab('r-home')" style="margin-top:8px"><i class="fa fa-home"></i> Kembali ke Home</button>
         </div>
       </div>
     </div>
 
-    <!-- GENERATE BATCH -->
-    <div class="screen" id="s-generate">
+    <!-- ════════════════════════════════════
+         RESELLER — BATCH GENERATE
+    ════════════════════════════════════ -->
+    <div class="screen" id="s-r-batch">
       <div class="topbar">
         <button class="back" onclick="goBack()"><i class="fa fa-arrow-left"></i></button>
         <div class="title">Generate Batch</div>
       </div>
       <div class="scroll-content">
-        <div class="card" id="gen-profile-info" style="margin-bottom:12px"></div>
+        <div class="card" id="batch-profile-card" style="margin-bottom:14px"></div>
         <div class="section-title">Jumlah Voucher</div>
-        <div class="qty-selector">
-          <button class="qty-btn" onclick="changeQty(-1)"><i class="fa fa-minus"></i></button>
-          <div class="qty-val" id="gen-qty">10</div>
-          <button class="qty-btn" onclick="changeQty(1)"><i class="fa fa-plus"></i></button>
+        <!-- qty selector -->
+        <div style="display:flex;align-items:center;gap:16px;justify-content:center;margin:8px 0 12px">
+          <button onclick="changeQty(-1)" style="width:44px;height:44px;border-radius:50%;background:var(--card2);border:1.5px solid var(--border);color:var(--text);font-size:1.2rem;display:flex;align-items:center;justify-content:center"><i class="fa fa-minus"></i></button>
+          <div id="batch-qty" style="font-size:2rem;font-weight:800;min-width:60px;text-align:center;font-family:'DM Mono',monospace">10</div>
+          <button onclick="changeQty(1)" style="width:44px;height:44px;border-radius:50%;background:var(--card2);border:1.5px solid var(--border);color:var(--text);font-size:1.2rem;display:flex;align-items:center;justify-content:center"><i class="fa fa-plus"></i></button>
         </div>
-        <div class="quick-amounts" style="justify-content:center">
-          <button class="qa-btn" onclick="setQty(5)">5</button>
-          <button class="qa-btn" onclick="setQty(10)">10</button>
-          <button class="qa-btn" onclick="setQty(20)">20</button>
-          <button class="qa-btn" onclick="setQty(50)">50</button>
-          <button class="qa-btn" onclick="setQty(100)">100</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:16px">
+          <button class="btn btn-ghost btn-sm" onclick="setQty(5)">5</button>
+          <button class="btn btn-ghost btn-sm" onclick="setQty(10)">10</button>
+          <button class="btn btn-ghost btn-sm" onclick="setQty(20)">20</button>
+          <button class="btn btn-ghost btn-sm" onclick="setQty(50)">50</button>
+          <button class="btn btn-ghost btn-sm" onclick="setQty(100)">100</button>
         </div>
         <div class="summary-box">
-          <div class="summary-row"><span>Harga per voucher</span><span id="gen-price-each">—</span></div>
-          <div class="summary-row"><span>Jumlah</span><span id="gen-qty-label">0 voucher</span></div>
-          <div class="summary-row total"><span>Total Biaya</span><span id="gen-total-cost" style="color:var(--red)">—</span></div>
-          <div class="summary-row"><span style="color:var(--muted)">Saldo setelah</span><span id="gen-after-saldo" style="color:var(--muted)">—</span></div>
+          <div class="summary-row"><span>Harga per voucher</span><span id="b-price-each">—</span></div>
+          <div class="summary-row"><span>Jumlah</span><span id="b-qty-lbl">—</span></div>
+          <div class="summary-row total"><span>Total Biaya</span><span id="b-total" style="color:var(--red)">—</span></div>
+          <div class="summary-row"><span style="color:var(--muted)">Saldo setelah</span><span id="b-after" style="color:var(--muted)">—</span></div>
         </div>
-        <div id="gen-saldo-warn" style="display:none;background:#f8514912;border:1px solid #f8514940;border-radius:10px;padding:12px;margin-bottom:14px;font-size:.82rem;color:var(--red)">
-          <i class="fa fa-exclamation-triangle"></i> Saldo tidak cukup.
-        </div>
-        <button class="btn btn-success" id="gen-btn" onclick="doGenerate()">
-          <i class="fa fa-bolt"></i> Generate Sekarang
-        </button>
+        <div id="batch-warn" style="display:none" class="overdue-warn"><i class="fa fa-exclamation-triangle"></i> Saldo tidak cukup.</div>
+        <button class="btn btn-success" id="batch-btn" onclick="doBatch()"><i class="fa fa-bolt"></i> Generate Sekarang</button>
       </div>
     </div>
 
-    <!-- GENERATE RESULT -->
-    <div class="screen" id="s-gen-result">
+    <!-- ════════════════════════════════════
+         RESELLER — BATCH RESULT
+    ════════════════════════════════════ -->
+    <div class="screen" id="s-r-batch-result">
       <div class="topbar">
-        <button class="back" onclick="showTab('t-home')" style="background:transparent"><i class="fa fa-times"></i></button>
+        <button class="back" onclick="showTab('r-home')" style="background:transparent"><i class="fa fa-times"></i></button>
         <div class="title" style="flex:1">Hasil Generate 📦</div>
-        <button class="action" onclick="copyAllVouchers()"><i class="fa fa-copy"></i></button>
+        <button class="act" onclick="copyAllVouchers()"><i class="fa fa-copy"></i></button>
       </div>
       <div style="padding:12px 14px;background:var(--card);border-bottom:1px solid var(--border)">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div style="font-size:.82rem;color:var(--muted)">Total <b id="gr-count" style="color:var(--text)">0</b> voucher</div>
-          <div style="font-size:.82rem;color:var(--red);font-weight:600">Biaya: <span id="gr-cost">—</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.81rem">
+          <span style="color:var(--muted)">Total <b id="br-count" style="color:var(--text)">0</b> voucher</span>
+          <span style="color:var(--red);font-weight:600">Biaya: <span id="br-cost">—</span></span>
         </div>
-        <div style="font-size:.78rem;color:var(--muted)">Sisa saldo: <b id="gr-saldo" style="color:var(--green)">—</b></div>
+        <div style="font-size:.76rem;color:var(--muted);margin-top:4px">Sisa saldo: <b id="br-saldo" style="color:var(--green)">—</b></div>
       </div>
       <div class="scroll-content" style="padding:10px 14px">
-        <div id="gen-result-list"></div>
+        <div id="batch-result-list"></div>
       </div>
     </div>
 
-    <!-- BILLING - INVOICES -->
-    <div class="screen" id="s-billing">
+    <!-- ════════════════════════════════════
+         RESELLER — SALDO & RIWAYAT
+    ════════════════════════════════════ -->
+    <div class="screen" id="s-r-saldo">
+      <div class="topbar">
+        <button class="back" onclick="goBack()"><i class="fa fa-arrow-left"></i></button>
+        <div class="title">Saldo &amp; Riwayat</div>
+        <button class="act" onclick="loadSaldo()"><i class="fa fa-refresh"></i></button>
+      </div>
+      <div class="scroll-content">
+        <div class="hero-card" id="saldo-hero" style="background:linear-gradient(135deg,#1d4ed8,#1e40af)">
+          <div class="lbl"><i class="fa fa-wallet"></i> Saldo Tersedia</div>
+          <div class="amount" id="saldo-big">Rp 0</div>
+          <div class="sub">
+            <span><i class="fa fa-ticket"></i> <span id="saldo-vcr">0</span> voucher</span>
+            <span><i class="fa fa-money"></i> <span id="saldo-income">Rp 0</span></span>
+          </div>
+        </div>
+        <div class="section-title">Riwayat Transaksi</div>
+        <div class="card" id="saldo-log">
+          <div class="loading"><div class="spin"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════
+         RESELLER — PROFIL
+    ════════════════════════════════════ -->
+    <div class="screen" id="s-r-profile">
+      <div class="topbar">
+        <button class="back" onclick="goBack()"><i class="fa fa-arrow-left"></i></button>
+        <div class="title">Profil Saya</div>
+      </div>
+      <div class="scroll-content">
+        <div style="text-align:center;padding:20px 0 8px">
+          <div id="pf-avatar" class="avatar-big" style="background:var(--acc)">R</div>
+          <div style="font-weight:800;font-size:1.05rem" id="pf-name">—</div>
+          <div style="color:var(--muted);font-size:.79rem;margin-top:2px" id="pf-tid">—</div>
+          <div style="margin-top:8px"><span class="role-pill reseller" id="pf-role-pill"><i class="fa fa-tag"></i> Reseller</span></div>
+        </div>
+        <div class="info-list" style="margin-bottom:12px">
+          <div class="info-row"><span class="k">Saldo</span><span class="v" id="pf-saldo" style="color:var(--green)">—</span></div>
+          <div class="info-row"><span class="k">Total Voucher</span><span class="v" id="pf-vcr">—</span></div>
+          <div class="info-row"><span class="k">Diskon</span><span class="v" id="pf-disc" style="color:var(--acc2)">—</span></div>
+          <div class="info-row"><span class="k">Server</span><span class="v" id="pf-server" style="font-family:'DM Mono',monospace;font-size:.76rem;color:var(--muted)">—</span></div>
+        </div>
+        <div class="info-list" style="margin-bottom:16px">
+          <div class="info-row" style="cursor:pointer" onclick="showScreen('s-r-saldo')">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:32px;height:32px;border-radius:9px;background:rgba(245,158,11,.12);color:var(--yellow);display:flex;align-items:center;justify-content:center;font-size:.85rem"><i class="fa fa-history"></i></div>
+              <span style="font-weight:600;font-size:.88rem">Riwayat Transaksi</span>
+            </div>
+            <i class="fa fa-chevron-right chevron"></i>
+          </div>
+          <div class="info-row" style="cursor:pointer" onclick="showChangeServer()">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:32px;height:32px;border-radius:9px;background:var(--acc-dim);color:var(--acc2);display:flex;align-items:center;justify-content:center;font-size:.85rem"><i class="fa fa-server"></i></div>
+              <span style="font-weight:600;font-size:.88rem">Ganti Server</span>
+            </div>
+            <i class="fa fa-chevron-right chevron"></i>
+          </div>
+        </div>
+        <button class="btn btn-danger" onclick="doLogout()"><i class="fa fa-sign-out"></i> Keluar</button>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════
+         RESELLER — NOTIFIKASI
+    ════════════════════════════════════ -->
+    <div class="screen" id="s-r-notif">
+      <div class="topbar">
+        <button class="back" onclick="goBack()"><i class="fa fa-arrow-left"></i></button>
+        <div class="title">Notifikasi</div>
+      </div>
+      <div class="scroll-content">
+        <div class="empty"><i class="fa fa-bell-slash-o"></i><p>Belum ada notifikasi</p></div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════
+         COLLECTOR — HOME
+    ════════════════════════════════════ -->
+    <div class="screen" id="s-c-home">
+      <div class="topbar" style="justify-content:space-between">
+        <div>
+          <div style="font-size:.72rem;color:var(--muted)">Kolektor,</div>
+          <div style="font-weight:800;font-size:1rem" id="ch-name">—</div>
+        </div>
+        <div id="ch-avatar" class="avatar-big" style="width:38px;height:38px;border-radius:12px;font-size:1rem;cursor:pointer;background:var(--green)" onclick="showTab('c-profile')">C</div>
+      </div>
+      <div class="scroll-content">
+
+        <!-- Collector stats hero -->
+        <div class="collector-hero">
+          <div class="ch-label"><i class="fa fa-file-text"></i> Tagihan Bulan Ini</div>
+          <div class="ch-count" id="ch-unpaid-count">0</div>
+          <div class="ch-sub">
+            <span style="color:rgba(255,255,255,.55)">belum terbayar</span>
+          </div>
+        </div>
+
+        <!-- Overdue warning -->
+        <div class="overdue-warn" id="ch-overdue-warn" style="display:none">
+          <i class="fa fa-exclamation-triangle"></i>
+          <span id="ch-overdue-text">Ada tagihan jatuh tempo</span>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-row">
+          <div class="stat-card yl">
+            <div class="stat-icon"><i class="fa fa-clock-o"></i></div>
+            <div class="stat-val" id="ch-unpaid">0</div>
+            <div class="stat-lbl">Belum Bayar</div>
+          </div>
+          <div class="stat-card rd">
+            <div class="stat-icon"><i class="fa fa-exclamation"></i></div>
+            <div class="stat-val" id="ch-overdue">0</div>
+            <div class="stat-lbl">Overdue</div>
+          </div>
+          <div class="stat-card gr">
+            <div class="stat-icon"><i class="fa fa-check-circle"></i></div>
+            <div class="stat-val" id="ch-paid">0</div>
+            <div class="stat-lbl">Lunas Bulan Ini</div>
+          </div>
+          <div class="stat-card ac">
+            <div class="stat-icon"><i class="fa fa-users"></i></div>
+            <div class="stat-val" id="ch-customers">0</div>
+            <div class="stat-lbl">Pelanggan</div>
+          </div>
+        </div>
+
+        <div class="section-title">Tagihan Mendekati Jatuh Tempo</div>
+        <div id="ch-urgent-list">
+          <div class="loading"><div class="spin"></div></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════
+         COLLECTOR — DAFTAR TAGIHAN
+    ════════════════════════════════════ -->
+    <div class="screen" id="s-c-invoices">
       <div class="topbar">
         <button class="back" onclick="goBack()"><i class="fa fa-arrow-left"></i></button>
         <div class="title">Tagihan</div>
-        <button class="action" onclick="loadInvoices()"><i class="fa fa-refresh"></i></button>
+        <button class="act" onclick="loadInvoices()"><i class="fa fa-refresh"></i></button>
       </div>
       <div style="padding:12px 14px 0">
         <div class="chip-bar">
-          <div class="chip active" id="inv-chip-all" onclick="setInvFilter('',this)">Semua</div>
-          <div class="chip" id="inv-chip-unpaid" onclick="setInvFilter('unpaid',this)">Belum Bayar</div>
-          <div class="chip" id="inv-chip-overdue" onclick="setInvFilter('overdue',this)">Overdue</div>
-          <div class="chip" id="inv-chip-paid" onclick="setInvFilter('paid',this)">Lunas</div>
+          <div class="chip active" id="inv-chip-all"     onclick="setInvFilter('',this)">Semua</div>
+          <div class="chip"        id="inv-chip-unpaid"  onclick="setInvFilter('unpaid',this)">Belum Bayar</div>
+          <div class="chip"        id="inv-chip-overdue" onclick="setInvFilter('overdue',this)">Overdue</div>
+          <div class="chip"        id="inv-chip-paid"    onclick="setInvFilter('paid',this)">Lunas</div>
         </div>
       </div>
       <div class="scroll-content" style="padding-top:4px">
@@ -502,147 +742,63 @@ input,select,textarea{font-family:inherit;font-size:inherit}
       </div>
     </div>
 
-    <!-- BILLING - BAYAR INVOICE -->
-    <div class="screen" id="s-pay">
+    <!-- ════════════════════════════════════
+         COLLECTOR — BAYAR TAGIHAN
+    ════════════════════════════════════ -->
+    <div class="screen" id="s-c-pay">
       <div class="topbar">
         <button class="back" onclick="goBack()"><i class="fa fa-arrow-left"></i></button>
-        <div class="title">Konfirmasi Pembayaran</div>
+        <div class="title">Konfirmasi Bayar</div>
       </div>
       <div class="scroll-content">
-        <div class="card" id="pay-invoice-detail"></div>
+        <div class="pay-detail" id="pay-detail-card"></div>
         <div class="form-group">
           <label class="form-label">Keterangan Pembayaran</label>
           <input class="form-input" id="pay-note" placeholder="Transfer BRI, Cash, dst...">
         </div>
         <div class="form-group">
-          <label class="form-label">Diterima oleh</label>
-          <input class="form-input" id="pay-by" placeholder="Nama admin">
+          <label class="form-label">Diterima Oleh</label>
+          <input class="form-input" id="pay-by" placeholder="Nama admin / kolektor">
         </div>
-        <button class="btn btn-success" onclick="doPayInvoice()">
-          <i class="fa fa-check"></i> Konfirmasi Lunas
-        </button>
+        <button class="btn btn-success" onclick="doPayInvoice()"><i class="fa fa-check"></i> Konfirmasi Lunas</button>
       </div>
     </div>
 
-    <!-- SALDO -->
-    <div class="screen" id="s-saldo">
-      <div class="topbar">
-        <button class="back" onclick="goBack()"><i class="fa fa-arrow-left"></i></button>
-        <div class="title">Saldo & Riwayat</div>
-        <button class="action" onclick="loadSaldo()"><i class="fa fa-refresh"></i></button>
-      </div>
-      <div class="scroll-content">
-        <div class="saldo-hero" id="saldo-hero-big">
-          <div class="saldo-label">Saldo Tersedia</div>
-          <div class="saldo-amount" id="saldo-big">Rp 0</div>
-          <div class="saldo-sub" id="saldo-sub-info">0 voucher terjual</div>
-        </div>
-        <div class="stats-row" style="margin-bottom:16px">
-          <div class="stat-card gr">
-            <div class="stat-icon"><i class="fa fa-ticket"></i></div>
-            <div class="stat-val" id="saldo-vcr">0</div>
-            <div class="stat-lbl">Total Voucher</div>
-          </div>
-          <div class="stat-card cy">
-            <div class="stat-icon"><i class="fa fa-money"></i></div>
-            <div class="stat-val" id="saldo-income" style="font-size:1rem;padding-top:4px">Rp 0</div>
-            <div class="stat-lbl">Total Pendapatan</div>
-          </div>
-        </div>
-        <div class="section-title">Riwayat Transaksi</div>
-        <div class="card" id="saldo-log-list">
-          <div class="loading"><div class="spin"></div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- PROFILE / SETTINGS -->
-    <div class="screen" id="s-profile">
+    <!-- ════════════════════════════════════
+         COLLECTOR — PROFIL
+    ════════════════════════════════════ -->
+    <div class="screen" id="s-c-profile">
       <div class="topbar">
         <button class="back" onclick="goBack()"><i class="fa fa-arrow-left"></i></button>
         <div class="title">Profil Saya</div>
       </div>
       <div class="scroll-content">
-        <div style="text-align:center;padding:20px 0">
-          <div id="pf-avatar" class="avatar" style="width:72px;height:72px;border-radius:20px;font-size:1.8rem;background:var(--acc);margin:0 auto 12px">R</div>
-          <div style="font-weight:700;font-size:1.1rem" id="pf-name">—</div>
-          <div style="color:var(--muted);font-size:.82rem;margin-top:2px" id="pf-tid">—</div>
-          <div style="margin-top:8px"><span class="badge b-gr">Active</span></div>
+        <div style="text-align:center;padding:20px 0 8px">
+          <div id="cpf-avatar" class="avatar-big" style="background:var(--green)">C</div>
+          <div style="font-weight:800;font-size:1.05rem" id="cpf-name">—</div>
+          <div style="color:var(--muted);font-size:.79rem;margin-top:2px" id="cpf-tid">—</div>
+          <div style="margin-top:8px"><span class="role-pill collector"><i class="fa fa-briefcase"></i> Kolektor</span></div>
         </div>
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
-            <span style="color:var(--muted);font-size:.85rem">Saldo</span>
-            <span style="font-weight:700;color:var(--green)" id="pf-saldo">—</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
-            <span style="color:var(--muted);font-size:.85rem">Total Voucher</span>
-            <span style="font-weight:600" id="pf-vcr">—</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
-            <span style="color:var(--muted);font-size:.85rem">Diskon</span>
-            <span style="font-weight:600;color:var(--acc2)" id="pf-disc">—</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:10px 0">
-            <span style="color:var(--muted);font-size:.85rem">Server</span>
-            <span style="font-size:.8rem;color:var(--muted);font-family:monospace" id="pf-server">—</span>
+        <div class="info-list" style="margin-bottom:16px">
+          <div class="info-row"><span class="k">Server</span><span class="v" id="cpf-server" style="font-family:'DM Mono',monospace;font-size:.76rem;color:var(--muted)">—</span></div>
+          <div class="info-row" style="cursor:pointer" onclick="showChangeServer()">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:32px;height:32px;border-radius:9px;background:rgba(34,197,94,.12);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:.85rem"><i class="fa fa-server"></i></div>
+              <span style="font-weight:600;font-size:.88rem">Ganti Server</span>
+            </div>
+            <i class="fa fa-chevron-right chevron"></i>
           </div>
         </div>
-        <div class="card" style="padding:0;overflow:hidden">
-          <div class="list-item" style="border-radius:0;border-bottom:1px solid var(--border)" onclick="showScreen('s-saldo')">
-            <div class="list-avatar" style="background:#d2992218;color:var(--yellow)"><i class="fa fa-history"></i></div>
-            <div class="list-body"><div class="list-title">Riwayat Transaksi</div></div>
-            <i class="fa fa-chevron-right list-arrow"></i>
-          </div>
-          <div class="list-item" style="border-radius:0" onclick="showChangeServer()">
-            <div class="list-avatar" style="background:#388bfd18;color:var(--acc2)"><i class="fa fa-server"></i></div>
-            <div class="list-body"><div class="list-title">Ganti Server</div></div>
-            <i class="fa fa-chevron-right list-arrow"></i>
-          </div>
-        </div>
-        <button class="btn btn-danger" style="margin-top:16px" onclick="doLogout()">
-          <i class="fa fa-sign-out"></i> Keluar
-        </button>
-      </div>
-    </div>
-
-    <!-- NOTIFIKASI -->
-    <div class="screen" id="s-notif">
-      <div class="topbar">
-        <button class="back" onclick="goBack()"><i class="fa fa-arrow-left"></i></button>
-        <div class="title">Notifikasi</div>
-      </div>
-      <div class="scroll-content">
-        <div id="notif-list">
-          <div class="empty">
-            <i class="fa fa-bell-slash-o"></i>
-            <p>Belum ada notifikasi</p>
-          </div>
-        </div>
+        <button class="btn btn-danger" onclick="doLogout()"><i class="fa fa-sign-out"></i> Keluar</button>
       </div>
     </div>
 
   </div><!-- /screens -->
 
-  <!-- ══ TAB BAR ══════════════════════════════ -->
-  <div id="tabbar">
-    <div class="tab-item active" id="tb-home" onclick="showTab('t-home')">
-      <i class="fa fa-home"></i><span>Home</span>
-    </div>
-    <div class="tab-item" id="tb-voucher" onclick="showTab('t-voucher')">
-      <i class="fa fa-ticket"></i><span>Voucher</span>
-    </div>
-    <div class="tab-item" id="tb-billing" onclick="showTab('t-billing')">
-      <i class="fa fa-file-text"></i><span>Tagihan</span>
-    </div>
-    <div class="tab-item" id="tb-saldo" onclick="showTab('t-saldo')">
-      <i class="fa fa-money"></i><span>Saldo</span>
-    </div>
-    <div class="tab-item" id="tb-profile" onclick="showTab('t-profile')">
-      <i class="fa fa-user"></i><span>Profil</span>
-    </div>
-  </div>
+  <!-- TAB BAR — rendered per-role via JS -->
+  <div id="tabbar" style="display:none"></div>
 
-  <!-- ══ BOTTOM SHEET OVERLAY ═════════════════ -->
+  <!-- Bottom sheet overlay -->
   <div id="overlay" onclick="closeSheet()">
     <div class="sheet" onclick="event.stopPropagation()" id="sheet-body">
       <div class="sheet-handle"></div>
@@ -650,42 +806,36 @@ input,select,textarea{font-family:inherit;font-size:inherit}
     </div>
   </div>
 
-  <!-- ══ TOAST ════════════════════════════════ -->
+  <!-- Toast -->
   <div id="toast-el"></div>
 </div><!-- /app -->
 
 <script>
-// ══════════════════════════════════════════════════════
-// STATE
-// ══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════ */
 let STATE = {
-  serverUrl: localStorage.getItem('mh_url') || '',
-  token:     localStorage.getItem('mh_token') || '',
-  reseller:  JSON.parse(localStorage.getItem('mh_reseller') || 'null'),
+  serverUrl: localStorage.getItem('mhm_url') || '',
+  token:     localStorage.getItem('mhm_token') || '',
+  user:      JSON.parse(localStorage.getItem('mhm_user') || 'null'),
+  role:      localStorage.getItem('mhm_role') || '',   // 'reseller' | 'collector'
   profiles:  [],
   invoices:  [],
-  saldoData: null,
-  lastScreen: null,
-  selectedProfile: null,
+  selProfile: null,
   genQty: 10,
   lastBought: null,
-  lastGenerated: null,
-  payingInvoice: null,
-  filterMode: 'buy',
+  lastBatch: null,
+  payingInv: null,
   invFilter: '',
 };
-let filterMode = 'buy';
 
-// ══════════════════════════════════════════════════════
-// API
-// ══════════════════════════════════════════════════════
-async function api(path, method = 'GET', body = null) {
+/* ═══════════════════════════════════════════════════
+   API
+═══════════════════════════════════════════════════ */
+async function api(path, method='GET', body=null) {
   const opts = {
     method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(STATE.token ? { Authorization: `Bearer ${STATE.token}` } : {}),
-    },
+    headers: { 'Content-Type':'application/json', ...(STATE.token?{Authorization:`Bearer ${STATE.token}`}:{}) }
   };
   if (body) opts.body = JSON.stringify(body);
   const r = await fetch(STATE.serverUrl + '/mobile/v1' + path, opts);
@@ -693,9 +843,9 @@ async function api(path, method = 'GET', body = null) {
   return r.json();
 }
 
-// ══════════════════════════════════════════════════════
-// NAVIGATION
-// ══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════════════ */
 let screenStack = [];
 
 function showScreen(id) {
@@ -708,58 +858,77 @@ function showScreen(id) {
 function goBack() {
   const prev = screenStack.pop();
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(prev || 's-home').classList.add('active');
+  document.getElementById(prev || (STATE.role === 'collector' ? 's-c-home' : 's-r-home')).classList.add('active');
 }
 
+/* Tab switching */
 function showTab(tab) {
-  const map = { 't-home': 's-home', 't-voucher': 's-voucher', 't-billing': 's-billing', 't-saldo': 's-saldo', 't-profile': 's-profile' };
   screenStack = [];
+  const homeId = STATE.role === 'collector' ? 's-c-home' : 's-r-home';
+
+  const tabMap = {
+    // Reseller
+    'r-home':    's-r-home',
+    'r-voucher': 's-r-voucher',
+    'r-saldo':   's-r-saldo',
+    'r-profile': 's-r-profile',
+    // Collector
+    'c-home':     's-c-home',
+    'c-invoices': 's-c-invoices',
+    'c-profile':  's-c-profile',
+  };
+
   document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
-  document.getElementById('tb-' + tab.replace('t-','')).classList.add('active');
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(map[tab] || 's-home').classList.add('active');
-  // Load data
-  if (tab === 't-home') loadDashboard();
-  else if (tab === 't-voucher') { filterMode = 'buy'; loadProfiles(); }
-  else if (tab === 't-billing') loadInvoices();
-  else if (tab === 't-saldo') loadSaldo();
-  else if (tab === 't-profile') renderProfile();
+  const screenId = tabMap[tab] || homeId;
+  document.getElementById(screenId).classList.add('active');
+  const tabEl = document.getElementById('tb-' + tab);
+  if (tabEl) tabEl.classList.add('active');
+
+  // load data on tab switch
+  if (tab === 'r-home')     loadDashboard();
+  if (tab === 'r-voucher')  { STATE.vmode = 'buy'; loadProfiles(); }
+  if (tab === 'r-saldo')    loadSaldo();
+  if (tab === 'c-home')     loadCollectorDash();
+  if (tab === 'c-invoices') loadInvoices();
 }
 
-function goVoucher() { filterMode = 'buy'; document.getElementById('chip-buy').click(); showTab('t-voucher'); }
-function goGenerate() { filterMode = 'gen'; showTab('t-voucher'); }
-
-// ══════════════════════════════════════════════════════
-// AUTH
-// ══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════
+   AUTH — LOGIN
+═══════════════════════════════════════════════════ */
 async function doLogin() {
-  const url = document.getElementById('l-url').value.trim().replace(/\/$/, '');
+  const url = document.getElementById('l-url').value.trim().replace(/\/$/,'');
   const tid = document.getElementById('l-tid').value.trim();
   const errEl = document.getElementById('l-err');
-  const btn = document.getElementById('l-btn');
+  const btn   = document.getElementById('l-btn');
 
-  if (!url) { showErr(errEl, 'Masukkan URL server'); return; }
-  if (!tid) { showErr(errEl, 'Masukkan Telegram ID'); return; }
+  if (!url) { errEl.textContent = 'Masukkan URL server'; return; }
+  if (!tid)  { errEl.textContent = 'Masukkan Telegram ID'; return; }
 
-  errEl.style.display = 'none';
+  errEl.textContent = '';
   btn.disabled = true;
-  btn.innerHTML = '<div class="spin" style="width:20px;height:20px;border-width:2px;margin-right:8px"></div> Masuk...';
+  btn.innerHTML = '<div class="spin" style="width:18px;height:18px;border-width:2px;margin-right:6px"></div>Masuk...';
 
   try {
     STATE.serverUrl = url;
     const d = await api('/auth/login', 'POST', { telegramId: tid });
-    if (!d.success) { showErr(errEl, d.error || 'Login gagal'); return; }
+    if (!d.success) { errEl.textContent = d.error || 'Login gagal'; return; }
 
-    STATE.token    = d.token;
-    STATE.reseller = d.reseller;
-    localStorage.setItem('mh_url', url);
-    localStorage.setItem('mh_token', d.token);
-    localStorage.setItem('mh_reseller', JSON.stringify(d.reseller));
+    STATE.token = d.token;
+    STATE.user  = d.reseller || d.user || {};
 
-    document.getElementById('l-url').value = url;
+    // Detect role — server harus kirim field "role" atau kita cek dari endpoint
+    const role = d.role || (d.reseller ? 'reseller' : 'collector');
+    STATE.role = role;
+
+    localStorage.setItem('mhm_url',   url);
+    localStorage.setItem('mhm_token', d.token);
+    localStorage.setItem('mhm_user',  JSON.stringify(STATE.user));
+    localStorage.setItem('mhm_role',  role);
+
     initApp();
   } catch(e) {
-    showErr(errEl, 'Tidak bisa terhubung ke server. Periksa URL dan koneksi.');
+    errEl.textContent = 'Tidak bisa terhubung. Periksa URL dan koneksi.';
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<i class="fa fa-sign-in"></i> Masuk';
@@ -768,221 +937,240 @@ async function doLogin() {
 
 function doLogout() {
   if (!confirm('Keluar dari aplikasi?')) return;
-  localStorage.removeItem('mh_token');
-  localStorage.removeItem('mh_reseller');
-  STATE.token = ''; STATE.reseller = null; screenStack = [];
+  ['mhm_token','mhm_user','mhm_role'].forEach(k => localStorage.removeItem(k));
+  Object.assign(STATE, { token:'', user:null, role:'' });
+  screenStack = [];
+  // reset body class
+  document.body.classList.remove('role-collector');
+  document.getElementById('tabbar').style.display = 'none';
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('s-login').classList.add('active');
 }
 
-function showChangeServer() {
-  openSheet(`
-    <div class="sheet-title">Ganti Server</div>
-    <div class="form-group">
-      <label class="form-label">URL Server</label>
-      <input class="form-input" id="cs-url" value="${STATE.serverUrl}" placeholder="http://...">
-    </div>
-    <button class="btn btn-primary" onclick="applyChangeServer()"><i class="fa fa-save"></i> Simpan</button>
-  `);
-}
-
-function applyChangeServer() {
-  const url = document.getElementById('cs-url').value.trim().replace(/\/$/, '');
-  if (!url) return;
-  STATE.serverUrl = url;
-  localStorage.setItem('mh_url', url);
-  closeSheet();
-  toast('Server diubah. Silakan login ulang.');
-  setTimeout(doLogout, 1500);
-}
-
-// ══════════════════════════════════════════════════════
-// INIT APP
-// ══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════
+   INIT APP — route by role
+═══════════════════════════════════════════════════ */
 function initApp() {
-  const r = STATE.reseller;
-  if (!r) { showScreen('s-login'); return; }
-  document.getElementById('h-name').textContent = r.name;
-  document.getElementById('h-avatar').textContent = r.name[0].toUpperCase();
-  document.getElementById('h-avatar').style.background = strColor(r.name);
-  document.getElementById('h-saldo').textContent = fmtRp(r.saldo);
-  document.getElementById('h-discount').textContent = r.discount + '%';
-  document.getElementById('h-vcr-total').textContent = r.totalVoucher + ' voucher';
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('s-home').classList.add('active');
-  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
-  document.getElementById('tb-home').classList.add('active');
-  loadDashboard();
+  const u = STATE.user;
+  const role = STATE.role;
+
+  if (role === 'collector') {
+    document.body.classList.add('role-collector');
+    buildCollectorTabs();
+    renderCollectorProfile(u);
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('s-c-home').classList.add('active');
+    document.getElementById('tabbar').style.display = 'flex';
+    document.getElementById('tb-c-home').classList.add('active');
+    loadCollectorDash();
+  } else {
+    document.body.classList.remove('role-collector');
+    buildResellerTabs();
+    renderResellerProfile(u);
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('s-r-home').classList.add('active');
+    document.getElementById('tabbar').style.display = 'flex';
+    document.getElementById('tb-r-home').classList.add('active');
+    loadDashboard();
+  }
 }
 
-// ══════════════════════════════════════════════════════
-// DASHBOARD
-// ══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════
+   TAB BARS — built dynamically per role
+═══════════════════════════════════════════════════ */
+function buildResellerTabs() {
+  document.getElementById('tabbar').innerHTML = `
+    <div class="tab-item active" id="tb-r-home" onclick="showTab('r-home')"><i class="fa fa-home"></i><span>Home</span></div>
+    <div class="tab-item" id="tb-r-voucher" onclick="showTab('r-voucher')"><i class="fa fa-ticket"></i><span>Voucher</span></div>
+    <div class="tab-item" id="tb-r-saldo" onclick="showTab('r-saldo')"><i class="fa fa-money"></i><span>Saldo</span></div>
+    <div class="tab-item" id="tb-r-profile" onclick="showTab('r-profile')"><i class="fa fa-user"></i><span>Profil</span></div>`;
+}
+function buildCollectorTabs() {
+  document.getElementById('tabbar').innerHTML = `
+    <div class="tab-item active" id="tb-c-home" onclick="showTab('c-home')"><i class="fa fa-home"></i><span>Home</span></div>
+    <div class="tab-item" id="tb-c-invoices" onclick="showTab('c-invoices')"><i class="fa fa-file-text"></i><span>Tagihan</span><div class="tab-dot" id="inv-dot"></div></div>
+    <div class="tab-item" id="tb-c-profile" onclick="showTab('c-profile')"><i class="fa fa-user"></i><span>Profil</span></div>`;
+}
+
+/* ═══════════════════════════════════════════════════
+   RESELLER — DASHBOARD
+═══════════════════════════════════════════════════ */
+function renderResellerProfile(u) {
+  if (!u) return;
+  const initials = (u.name||'R')[0].toUpperCase();
+  const color = strColor(u.name||'R');
+  document.getElementById('rh-name').textContent = u.name || '—';
+  document.getElementById('rh-avatar').textContent = initials;
+  document.getElementById('rh-avatar').style.background = color;
+  document.getElementById('rh-saldo').textContent = fmtRp(u.saldo||0);
+  document.getElementById('rh-disc').textContent = (u.discount||0) + '%';
+  document.getElementById('rh-vcr').textContent = (u.totalVoucher||0);
+  // profile page
+  document.getElementById('pf-avatar').textContent = initials;
+  document.getElementById('pf-avatar').style.background = color;
+  document.getElementById('pf-name').textContent = u.name || '—';
+  document.getElementById('pf-tid').textContent  = 'ID: ' + (u.telegramId||'—');
+  document.getElementById('pf-saldo').textContent = fmtRp(u.saldo||0);
+  document.getElementById('pf-vcr').textContent   = (u.totalVoucher||0) + ' voucher';
+  document.getElementById('pf-disc').textContent  = (u.discount||0) + '%';
+  document.getElementById('pf-server').textContent = STATE.serverUrl;
+}
+
 async function loadDashboard() {
   try {
     const d = await api('/dashboard');
     if (!d.success) return;
-    const r = d.reseller;
-    STATE.reseller = { ...STATE.reseller, ...r };
-    localStorage.setItem('mh_reseller', JSON.stringify(STATE.reseller));
+    const u = d.reseller;
+    STATE.user = { ...STATE.user, ...u };
+    localStorage.setItem('mhm_user', JSON.stringify(STATE.user));
+    renderResellerProfile(u);
+    document.getElementById('rh-vcr-stat').textContent = u.totalVoucher||0;
+    document.getElementById('rh-income').textContent   = fmtRp(u.totalIncome||0);
 
-    document.getElementById('h-saldo').textContent     = fmtRp(r.saldo);
-    document.getElementById('h-discount').textContent  = r.discount + '%';
-    document.getElementById('h-vcr-total').textContent = r.totalVoucher + ' voucher';
-    document.getElementById('h-name').textContent      = r.name;
-
-    const b = d.billing || {};
-    document.getElementById('h-unpaid').textContent   = b.unpaidCount || 0;
-    document.getElementById('h-customers').textContent = b.totalCustomers || 0;
-    document.getElementById('h-paid').textContent      = b.paidThisMonth || 0;
-
-    // Overdue = unpaid with past due date
-    const overdue = (d.billing?.unpaidCount || 0) > 0 ? '!' : '0';
-    document.getElementById('h-overdue').textContent = b.unpaidCount || 0;
-    if (b.unpaidCount > 0) document.getElementById('notif-dot').style.display = 'block';
-
-    // Activity
     const acts = d.recentActivity || [];
-    const actEl = document.getElementById('h-activity');
-    actEl.innerHTML = acts.length
-      ? acts.map(a => `
+    const el = document.getElementById('rh-activity');
+    if (!acts.length) {
+      el.innerHTML = '<div class="empty" style="padding:16px"><p>Belum ada aktivitas</p></div>';
+    } else {
+      el.innerHTML = acts.slice(0,8).map(a => `
         <div class="log-item">
-          <div class="log-icon ${a.amount >= 0 ? 'plus' : 'minus'}">
-            <i class="fa ${a.type === 'purchase' ? 'fa-ticket' : 'fa-money'}"></i>
+          <div class="log-icon ${a.amount>=0?'plus':'minus'}">
+            <i class="fa ${a.type==='purchase'?'fa-ticket':'fa-money'}"></i>
           </div>
           <div class="log-body">
-            <div class="log-desc">${a.note || a.type}</div>
+            <div class="log-desc">${a.note||a.type}</div>
             <div class="log-time">${fmtDate(a.at)}</div>
           </div>
-          <div class="log-amount ${a.amount >= 0 ? 'plus' : 'minus'}">${a.amount >= 0 ? '+' : ''}${fmtRp(a.amount)}</div>
-        </div>`).join('')
-      : '<div class="empty" style="padding:20px"><p>Belum ada aktivitas</p></div>';
+          <div class="log-amount ${a.amount>=0?'plus':'minus'}">${a.amount>=0?'+':''}${fmtRp(a.amount)}</div>
+        </div>`).join('');
+    }
   } catch(e) { console.error(e); }
 }
 
-// ══════════════════════════════════════════════════════
-// VOUCHER / PROFILES
-// ══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════
+   RESELLER — VOUCHER
+═══════════════════════════════════════════════════ */
+let vmode = 'buy';
+function goVoucher(mode='buy') { vmode = mode; setVMode(mode); showTab('r-voucher'); }
+function setVMode(m) {
+  vmode = m;
+  document.getElementById('chip-buy').className   = 'chip' + (m==='buy'?  ' active':'');
+  document.getElementById('chip-batch').className = 'chip' + (m==='batch'?' active':'');
+  document.getElementById('vmode-title').textContent = m==='buy' ? 'Beli Voucher' : 'Batch Generate';
+}
+
 async function loadProfiles() {
-  document.getElementById('profile-list').innerHTML = '<div class="loading"><div class="spin"></div></div>';
+  document.getElementById('profile-list').innerHTML = '<div class="loading"><div class="spin"></div> Memuat paket...</div>';
   try {
     const d = await api('/voucher/profiles');
     STATE.profiles = d.profiles || [];
     renderProfiles();
   } catch(e) {
-    document.getElementById('profile-list').innerHTML = `<div class="empty"><i class="fa fa-exclamation-circle"></i><p>Gagal memuat profile<br><small>${e.message}</small></p></div>`;
+    document.getElementById('profile-list').innerHTML = `<div class="empty"><i class="fa fa-exclamation-circle"></i><p>Gagal memuat paket</p></div>`;
   }
 }
 
 function renderProfiles() {
   const el = document.getElementById('profile-list');
-  // Update chip styles
-  document.getElementById('chip-buy').className = 'chip' + (filterMode === 'buy' ? ' active' : '');
-  document.getElementById('chip-gen').className = 'chip' + (filterMode === 'gen' ? ' active' : '');
-
   if (!STATE.profiles.length) {
-    el.innerHTML = '<div class="empty"><i class="fa fa-inbox"></i><p>Tidak ada profile tersedia</p></div>';
+    el.innerHTML = '<div class="empty"><i class="fa fa-inbox"></i><p>Tidak ada paket tersedia</p></div>';
     return;
   }
   el.innerHTML = STATE.profiles.map(p => `
     <div class="profile-row" onclick="selectProfile('${p.name}')">
-      <div class="profile-dot" style="background:${profileColor(p.name)}"></div>
-      <div class="profile-info">
-        <div class="profile-name">${p.name}</div>
-        <div class="profile-meta">${p.rateLimit || '—'} · ${p.validity || '—'}</div>
+      <div class="pdot" style="background:${profileColor(p.name)}"></div>
+      <div class="pinfo">
+        <div class="pname">${p.name}</div>
+        <div class="pmeta">${p.rateLimit||'—'} · ${p.validity||'—'}</div>
       </div>
-      <div style="text-align:right">
-        <div class="profile-price">${fmtRp(p.resellerPrice)}</div>
-        ${p.discount > 0 ? `<div style="font-size:.7rem;color:var(--green)">-${p.discount}%</div>` : ''}
+      <div>
+        <div class="pprice">${fmtRp(p.resellerPrice)}</div>
+        ${p.discount>0?`<div class="pdisc">-${p.discount}% diskon</div>`:''}
       </div>
-      <i class="fa fa-chevron-right" style="color:var(--border);font-size:.8rem;margin-left:4px"></i>
-    </div>
-  `).join('');
+      <i class="fa fa-chevron-right chevron"></i>
+    </div>`).join('');
 }
 
 function selectProfile(name) {
-  STATE.selectedProfile = STATE.profiles.find(p => p.name === name);
-  if (!STATE.selectedProfile) return;
-  if (filterMode === 'gen') {
-    openGenerateScreen();
-  } else {
-    openBuyConfirm();
-  }
+  STATE.selProfile = STATE.profiles.find(p => p.name === name);
+  if (!STATE.selProfile) return;
+  if (vmode === 'batch') openBatchScreen();
+  else openBuyScreen();
 }
 
-async function refreshProfiles() { await loadProfiles(); toast('Profile diperbarui'); }
+/* ── BUY 1 ── */
+function openBuyScreen() {
+  const p = STATE.selProfile;
+  const u = STATE.user;
+  const after = (u.saldo||0) - p.resellerPrice;
+  const canBuy = after >= 0;
 
-// ── BUY 1 Voucher ──────────────────────────────────────
-function openBuyConfirm() {
-  const p = STATE.selectedProfile;
-  const r = STATE.reseller;
-  screenStack.push('s-voucher');
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('s-buy-confirm').classList.add('active');
-
-  const afterSaldo = r.saldo - p.resellerPrice;
-  const canBuy = afterSaldo >= 0;
-
-  document.getElementById('buy-profile-info').innerHTML = `
+  document.getElementById('buy-profile-card').innerHTML = `
     <div style="display:flex;align-items:center;gap:12px">
-      <div style="width:48px;height:48px;border-radius:12px;background:${profileColor(p.name)}22;display:flex;align-items:center;justify-content:center;font-size:1.4rem">🎟️</div>
+      <div style="width:46px;height:46px;border-radius:13px;background:${profileColor(p.name)}20;display:flex;align-items:center;justify-content:center;font-size:1.3rem">🎟️</div>
       <div>
-        <div style="font-weight:700;font-size:1rem">${p.name}</div>
-        <div style="color:var(--muted);font-size:.8rem">${p.rateLimit || '—'} · ${p.validity || '—'}</div>
+        <div style="font-weight:700;font-size:.98rem">${p.name}</div>
+        <div style="color:var(--muted);font-size:.78rem">${p.rateLimit||'—'} · ${p.validity||'—'}</div>
       </div>
     </div>`;
-
-  document.getElementById('buy-normal-price').textContent = fmtRp(p.price);
-  document.getElementById('buy-total').textContent = fmtRp(p.resellerPrice);
-  document.getElementById('buy-after-saldo').textContent = canBuy ? fmtRp(afterSaldo) : '— (Saldo tidak cukup)';
+  document.getElementById('buy-normal').textContent = fmtRp(p.price);
+  document.getElementById('buy-total').textContent  = fmtRp(p.resellerPrice);
+  document.getElementById('buy-after').textContent  = canBuy ? fmtRp(after) : '— (tidak cukup)';
+  document.getElementById('buy-warn').style.display = canBuy ? 'none' : 'flex';
 
   if (p.discount > 0) {
     document.getElementById('buy-disc-row').style.display = 'flex';
-    document.getElementById('buy-disc-pct').textContent = p.discount + '%';
-    document.getElementById('buy-disc-amt').textContent = '-' + fmtRp(p.price - p.resellerPrice);
+    document.getElementById('buy-disc-pct').textContent   = p.discount + '%';
+    document.getElementById('buy-disc-amt').textContent   = '-' + fmtRp(p.price - p.resellerPrice);
+  } else {
+    document.getElementById('buy-disc-row').style.display = 'none';
   }
 
-  document.getElementById('buy-saldo-warn').style.display = canBuy ? 'none' : 'block';
   const btn = document.getElementById('buy-btn');
   btn.disabled = !canBuy;
-  btn.style.opacity = canBuy ? '1' : '.5';
+  btn.style.opacity = canBuy ? '1' : '.4';
+  screenStack.push('s-r-voucher');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('s-r-buy').classList.add('active');
 }
 
 async function doBuy() {
-  const p = STATE.selectedProfile;
+  const p = STATE.selProfile;
   const btn = document.getElementById('buy-btn');
   btn.disabled = true;
-  btn.innerHTML = '<div class="spin" style="width:20px;height:20px;border-width:2px"></div>';
+  btn.innerHTML = '<div class="spin" style="width:18px;height:18px;border-width:2.5px"></div>';
   try {
     const d = await api('/voucher/buy', 'POST', { profileName: p.name });
-    if (!d.success) { toast(d.error || 'Gagal beli voucher', true); return; }
+    if (!d.success) { toast(d.error||'Gagal beli voucher', true); return; }
     STATE.lastBought = d.voucher;
-    STATE.reseller.saldo = d.saldoSesudah;
-    localStorage.setItem('mh_reseller', JSON.stringify(STATE.reseller));
+    STATE.user.saldo = d.saldoSesudah;
+    localStorage.setItem('mhm_user', JSON.stringify(STATE.user));
     showBuyResult(d.voucher, p);
-  } catch(e) { toast('Error: ' + e.message, true); }
-  finally { btn.disabled = false; btn.innerHTML = '<i class="fa fa-check"></i> Beli Sekarang'; }
+  } catch(e) { toast('Error: '+e.message, true); }
+  finally { btn.disabled=false; btn.innerHTML='<i class="fa fa-check"></i> Beli Sekarang'; }
 }
 
 function showBuyResult(vcr, profile) {
   screenStack = [];
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('s-buy-result').classList.add('active');
   const color = profileColor(vcr.profile);
-  document.getElementById('buy-result-card').innerHTML = `
+  document.getElementById('result-vcr-card').innerHTML = `
     <div class="vcr-card">
-      <div class="vcr-hd" style="background:${color}">
-        <div><div style="font-size:.72rem;opacity:.8">MikHMon</div><div style="font-weight:700;font-size:.95rem">${vcr.profile}</div></div>
-        <div style="font-size:1.1rem;font-weight:800">${fmtRp(vcr.price)}</div>
+      <div class="vcr-head" style="background:${color}">
+        <div><div style="font-size:.7rem;opacity:.75;margin-bottom:2px">MikHMon</div><div class="v-profile">${vcr.profile}</div></div>
+        <div class="v-price">${fmtRp(vcr.price)}</div>
       </div>
       <div class="vcr-body">
-        <div class="vcr-field"><span class="lbl">Username</span><span class="val" style="font-size:1rem;color:#111">${vcr.username}</span></div>
-        <div class="vcr-field"><span class="lbl">Password</span><span class="val" style="font-size:1rem;color:#111">${vcr.password}</span></div>
+        <div class="vcr-row"><span class="lbl">Username</span><span class="val" style="font-size:.95rem;color:#111">${vcr.username}</span></div>
+        <div class="vcr-row"><span class="lbl">Password</span><span class="val" style="font-size:.95rem;color:#111">${vcr.password}</span></div>
         <hr class="vcr-divider">
-        <div class="vcr-field"><span class="lbl">Kecepatan</span><span class="val">${vcr.rateLimit || '—'}</span></div>
-        <div class="vcr-field"><span class="lbl">Masa aktif</span><span class="val">${vcr.validity || '—'}</span></div>
+        <div class="vcr-footer">
+          <span>${vcr.rateLimit||'—'}</span>
+          <span>${vcr.validity||'—'}</span>
+        </div>
       </div>
     </div>`;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('s-r-result').classList.add('active');
 }
 
 function copyVoucher() {
@@ -991,97 +1179,192 @@ function copyVoucher() {
   navigator.clipboard?.writeText(`Username: ${v.username}\nPassword: ${v.password}`).then(() => toast('Copied!'));
 }
 
-// ── GENERATE BATCH ─────────────────────────────────────
-function openGenerateScreen() {
+/* ── BATCH ── */
+function openBatchScreen() {
   STATE.genQty = 10;
-  screenStack.push('s-voucher');
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('s-generate').classList.add('active');
-  const p = STATE.selectedProfile;
-  document.getElementById('gen-profile-info').innerHTML = `
+  const p = STATE.selProfile;
+  document.getElementById('batch-profile-card').innerHTML = `
     <div style="display:flex;align-items:center;gap:12px">
-      <div style="width:44px;height:44px;border-radius:12px;background:${profileColor(p.name)}22;display:flex;align-items:center;justify-content:center;font-size:1.3rem">📦</div>
-      <div><div style="font-weight:700">${p.name}</div>
-      <div style="color:var(--muted);font-size:.78rem">${fmtRp(p.resellerPrice)}/voucher</div></div>
+      <div style="width:44px;height:44px;border-radius:13px;background:${profileColor(p.name)}20;display:flex;align-items:center;justify-content:center;font-size:1.3rem">📦</div>
+      <div>
+        <div style="font-weight:700">${p.name}</div>
+        <div style="color:var(--muted);font-size:.77rem">${fmtRp(p.resellerPrice)}/voucher</div>
+      </div>
     </div>`;
-  updateGenSummary();
+  updateBatchSummary();
+  screenStack.push('s-r-voucher');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('s-r-batch').classList.add('active');
 }
 
-function changeQty(d) { STATE.genQty = Math.max(1, Math.min(200, STATE.genQty + d)); updateGenSummary(); }
-function setQty(n) { STATE.genQty = n; updateGenSummary(); }
+function changeQty(d) { STATE.genQty = Math.max(1, Math.min(200, STATE.genQty+d)); updateBatchSummary(); }
+function setQty(n)    { STATE.genQty = n; updateBatchSummary(); }
 
-function updateGenSummary() {
-  const p = STATE.selectedProfile;
-  const r = STATE.reseller;
+function updateBatchSummary() {
+  const p = STATE.selProfile;
+  const u = STATE.user;
   if (!p) return;
   const total = p.resellerPrice * STATE.genQty;
-  const after = r.saldo - total;
-  const canGen = after >= 0;
-  document.getElementById('gen-qty').textContent       = STATE.genQty;
-  document.getElementById('gen-price-each').textContent = fmtRp(p.resellerPrice);
-  document.getElementById('gen-qty-label').textContent  = STATE.genQty + ' voucher';
-  document.getElementById('gen-total-cost').textContent = fmtRp(total);
-  document.getElementById('gen-after-saldo').textContent = canGen ? fmtRp(after) : '— (Saldo tidak cukup)';
-  document.getElementById('gen-saldo-warn').style.display = canGen ? 'none' : 'block';
-  const btn = document.getElementById('gen-btn');
-  btn.disabled = !canGen;
-  btn.style.opacity = canGen ? '1' : '.5';
+  const after = (u.saldo||0) - total;
+  const ok = after >= 0;
+  document.getElementById('batch-qty').textContent  = STATE.genQty;
+  document.getElementById('b-price-each').textContent = fmtRp(p.resellerPrice);
+  document.getElementById('b-qty-lbl').textContent   = STATE.genQty + ' voucher';
+  document.getElementById('b-total').textContent     = fmtRp(total);
+  document.getElementById('b-after').textContent     = ok ? fmtRp(after) : '— (tidak cukup)';
+  document.getElementById('batch-warn').style.display = ok ? 'none' : 'flex';
+  const btn = document.getElementById('batch-btn');
+  btn.disabled = !ok; btn.style.opacity = ok ? '1' : '.4';
 }
 
-async function doGenerate() {
-  const p = STATE.selectedProfile;
-  const btn = document.getElementById('gen-btn');
+async function doBatch() {
+  const p = STATE.selProfile;
+  const btn = document.getElementById('batch-btn');
   btn.disabled = true;
-  btn.innerHTML = '<div class="spin" style="width:20px;height:20px;border-width:2px"></div> Generating...';
+  btn.innerHTML = '<div class="spin" style="width:18px;height:18px;border-width:2.5px"></div> Generating...';
   try {
     const d = await api('/voucher/generate', 'POST', { profileName: p.name, quantity: STATE.genQty });
-    if (!d.success) { toast(d.error || 'Gagal generate', true); return; }
-    STATE.lastGenerated = d;
-    STATE.reseller.saldo = d.saldoSesudah;
-    localStorage.setItem('mh_reseller', JSON.stringify(STATE.reseller));
-    showGenResult(d, p);
-  } catch(e) { toast('Error: ' + e.message, true); }
-  finally { btn.disabled = false; btn.innerHTML = '<i class="fa fa-bolt"></i> Generate Sekarang'; }
+    if (!d.success) { toast(d.error||'Gagal generate', true); return; }
+    STATE.lastBatch = d;
+    STATE.user.saldo = d.saldoSesudah;
+    localStorage.setItem('mhm_user', JSON.stringify(STATE.user));
+    showBatchResult(d, p);
+  } catch(e) { toast('Error: '+e.message, true); }
+  finally { btn.disabled=false; btn.innerHTML='<i class="fa fa-bolt"></i> Generate Sekarang'; }
 }
 
-function showGenResult(d, profile) {
+function showBatchResult(d, p) {
   screenStack = [];
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('s-gen-result').classList.add('active');
-  document.getElementById('gr-count').textContent = d.generated;
-  document.getElementById('gr-cost').textContent  = fmtRp(d.totalCost);
-  document.getElementById('gr-saldo').textContent = fmtRp(d.saldoSesudah);
-  const color = profileColor(profile.name);
-  document.getElementById('gen-result-list').innerHTML = (d.vouchers || []).map((v, i) => `
+  document.getElementById('br-count').textContent = d.generated;
+  document.getElementById('br-cost').textContent  = fmtRp(d.totalCost);
+  document.getElementById('br-saldo').textContent = fmtRp(d.saldoSesudah);
+  const color = profileColor(p.name);
+  document.getElementById('batch-result-list').innerHTML = (d.vouchers||[]).map((v,i) => `
     <div class="vcr-card">
-      <div class="vcr-hd" style="background:${color}">
-        <div style="font-weight:700;font-size:.85rem">${String(i+1).padStart(3,'0')}. ${profile.name}</div>
-        <div style="font-size:.88rem;font-weight:700">${fmtRp(profile.resellerPrice)}</div>
+      <div class="vcr-head" style="background:${color}">
+        <div style="font-weight:700;font-size:.82rem">${String(i+1).padStart(3,'0')}. ${p.name}</div>
+        <div class="v-price" style="font-size:.9rem">${fmtRp(p.resellerPrice)}</div>
       </div>
       <div class="vcr-body">
-        <div class="vcr-field"><span class="lbl">Username</span><span class="val">${v.username}</span></div>
-        <div class="vcr-field"><span class="lbl">Password</span><span class="val">${v.password}</span></div>
+        <div class="vcr-row"><span class="lbl">Username</span><span class="val">${v.username}</span></div>
+        <div class="vcr-row"><span class="lbl">Password</span><span class="val">${v.password}</span></div>
         <hr class="vcr-divider">
-        <div class="vcr-field"><span class="lbl">Masa aktif</span><span class="val">${v.validity || '—'}</span></div>
+        <div class="vcr-footer"><span>${v.validity||p.name}</span></div>
       </div>
     </div>`).join('');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('s-r-batch-result').classList.add('active');
 }
 
 function copyAllVouchers() {
-  const d = STATE.lastGenerated;
+  const d = STATE.lastBatch;
   if (!d?.vouchers?.length) return;
-  const text = d.vouchers.map((v, i) => `${i+1}. ${v.username} | ${v.password}`).join('\n');
+  const text = d.vouchers.map((v,i) => `${i+1}. ${v.username} | ${v.password}`).join('\n');
   navigator.clipboard?.writeText(text).then(() => toast(`${d.vouchers.length} voucher di-copy!`));
 }
 
-// ══════════════════════════════════════════════════════
-// BILLING
-// ══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════
+   RESELLER — SALDO & LOG
+═══════════════════════════════════════════════════ */
+async function loadSaldo() {
+  document.getElementById('saldo-log').innerHTML = '<div class="loading"><div class="spin"></div></div>';
+  try {
+    const d = await api('/saldo');
+    if (!d.success) return;
+    document.getElementById('saldo-big').textContent    = fmtRp(d.saldo);
+    document.getElementById('saldo-vcr').textContent    = d.totalVoucher;
+    document.getElementById('saldo-income').textContent = fmtRp(d.totalIncome);
+
+    // Update hero gradient with fresh saldo
+    STATE.user.saldo = d.saldo;
+    localStorage.setItem('mhm_user', JSON.stringify(STATE.user));
+    document.getElementById('rh-saldo').textContent = fmtRp(d.saldo);
+
+    const logs = d.logs || [];
+    const el = document.getElementById('saldo-log');
+    if (!logs.length) { el.innerHTML = '<div class="empty" style="padding:16px"><p>Belum ada transaksi</p></div>'; return; }
+    el.innerHTML = logs.map(l => `
+      <div class="log-item">
+        <div class="log-icon ${l.amount>=0?'plus':'minus'}">
+          <i class="fa ${l.type==='purchase'?'fa-ticket':l.amount>=0?'fa-arrow-down':'fa-arrow-up'}"></i>
+        </div>
+        <div class="log-body">
+          <div class="log-desc">${l.note||l.type}</div>
+          <div class="log-time">${fmtDate(l.at)}</div>
+        </div>
+        <div class="log-amount ${l.amount>=0?'plus':'minus'}">${l.amount>=0?'+':''}${fmtRp(l.amount)}</div>
+      </div>`).join('');
+  } catch(e) {
+    document.getElementById('saldo-log').innerHTML = `<div class="empty"><p>${e.message}</p></div>`;
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   COLLECTOR — DASHBOARD
+═══════════════════════════════════════════════════ */
+function renderCollectorProfile(u) {
+  if (!u) return;
+  const initials = (u.name||'C')[0].toUpperCase();
+  const color = strColor(u.name||'C');
+  document.getElementById('ch-name').textContent = u.name||'—';
+  ['ch-avatar','cpf-avatar'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = initials; el.style.background = color; }
+  });
+  document.getElementById('cpf-name').textContent   = u.name||'—';
+  document.getElementById('cpf-tid').textContent    = 'ID: '+(u.telegramId||'—');
+  document.getElementById('cpf-server').textContent = STATE.serverUrl;
+}
+
+async function loadCollectorDash() {
+  try {
+    const d = await api('/dashboard');
+    if (!d.success) return;
+    const b = d.billing || {};
+    const unpaid  = b.unpaidCount  || 0;
+    const overdue = b.overdueCount || 0;
+    const paid    = b.paidThisMonth || 0;
+    const cust    = b.totalCustomers || 0;
+
+    document.getElementById('ch-unpaid-count').textContent = unpaid;
+    document.getElementById('ch-unpaid').textContent       = unpaid;
+    document.getElementById('ch-overdue').textContent      = overdue;
+    document.getElementById('ch-paid').textContent         = paid;
+    document.getElementById('ch-customers').textContent    = cust;
+
+    // Show overdue warning
+    const warnEl = document.getElementById('ch-overdue-warn');
+    if (overdue > 0) {
+      warnEl.style.display = 'flex';
+      document.getElementById('ch-overdue-text').textContent = `${overdue} tagihan sudah melewati jatuh tempo`;
+      // show dot on invoices tab
+      const dot = document.getElementById('inv-dot');
+      if (dot) dot.style.display = 'block';
+    } else {
+      warnEl.style.display = 'none';
+    }
+
+    // Urgent invoices (unpaid, near due)
+    const urgList = document.getElementById('ch-urgent-list');
+    const invRes = await api('/billing/invoices');
+    STATE.invoices = invRes.invoices || [];
+    const urgent = STATE.invoices.filter(i => i.status !== 'paid').sort((a,b) => new Date(a.dueDate)-new Date(b.dueDate)).slice(0,5);
+    if (!urgent.length) {
+      urgList.innerHTML = '<div class="empty" style="padding:20px"><i class="fa fa-check-circle"></i><p>Semua tagihan sudah lunas 🎉</p></div>';
+    } else {
+      urgList.innerHTML = urgent.map(inv => buildInvItem(inv, true)).join('');
+    }
+  } catch(e) { console.error(e); }
+}
+
+/* ═══════════════════════════════════════════════════
+   COLLECTOR — INVOICES
+═══════════════════════════════════════════════════ */
 let invFilter = '';
 
 function setInvFilter(f, el) {
   invFilter = f;
-  document.querySelectorAll('#s-billing .chip').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('#s-c-invoices .chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   renderInvoices();
 }
@@ -1100,225 +1383,169 @@ async function loadInvoices() {
 function renderInvoices() {
   const list = invFilter ? STATE.invoices.filter(i => i.status === invFilter) : STATE.invoices;
   const el = document.getElementById('invoice-list');
-
   if (!list.length) {
     el.innerHTML = '<div class="empty"><i class="fa fa-file-text-o"></i><p>Tidak ada tagihan</p></div>';
     return;
   }
-
-  const STATUS = {
-    unpaid:  { cls:'b-yl', label:'Belum Bayar' },
-    paid:    { cls:'b-gr', label:'Lunas' },
-    overdue: { cls:'b-rd', label:'Overdue' },
-    cancelled: { cls:'b-mu', label:'Batal' },
-  };
-  const TYPE = { pppoe:'PPPoE', hotspot:'Hotspot' };
-
-  el.innerHTML = list.map(inv => {
-    const st = STATUS[inv.status] || { cls:'b-mu', label:inv.status };
-    const daysLeft = inv.daysLeft;
-    const dueStr = new Date(inv.dueDate).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' });
-    const dueColor = daysLeft < 0 ? 'var(--red)' : daysLeft <= 3 ? 'var(--yellow)' : 'var(--muted)';
-    return `
-      <div class="inv-item ${inv.status}" onclick="openInvoiceDetail('${inv.id}')">
-        <div class="inv-header">
-          <div>
-            <div class="inv-name">${inv.customerName}</div>
-            <div class="inv-period">${TYPE[inv.type]||'—'} · ${inv.period}</div>
-          </div>
-          <div style="text-align:right">
-            <div class="inv-amount">${fmtRp(inv.amount)}</div>
-            <span class="badge ${st.cls}">${st.label}</span>
-          </div>
-        </div>
-        <div class="inv-footer">
-          <div class="inv-due" style="color:${dueColor}">
-            <i class="fa fa-calendar"></i> ${dueStr}
-            ${daysLeft < 0 ? ` · ${Math.abs(daysLeft)}h overdue` : daysLeft === 0 ? ' · Hari ini!' : daysLeft <= 3 ? ` · ${daysLeft}h lagi` : ''}
-          </div>
-          ${inv.status !== 'paid' ? `<button class="btn btn-success btn-sm" style="width:auto" onclick="event.stopPropagation();openPayScreen('${inv.id}')"><i class="fa fa-check"></i> Bayar</button>` : `<span style="font-size:.72rem;color:var(--green)"><i class="fa fa-check-circle"></i> Lunas</span>`}
-        </div>
-      </div>`;
-  }).join('');
+  el.innerHTML = list.map(inv => buildInvItem(inv, false)).join('');
 }
 
-function openInvoiceDetail(id) {
-  const inv = STATE.invoices.find(i => i.id === id);
-  if (!inv) return;
-  const STATUS = { unpaid:'Belum Bayar', paid:'Lunas', overdue:'Overdue', cancelled:'Batal' };
-  const dueStr = new Date(inv.dueDate).toLocaleDateString('id-ID', { dateStyle:'long' });
-  openSheet(`
-    <div class="sheet-title">Detail Tagihan</div>
-    <div class="summary-box">
-      <div class="summary-row"><span style="color:var(--muted)">Pelanggan</span><span style="font-weight:600">${inv.customerName}</span></div>
-      <div class="summary-row"><span style="color:var(--muted)">Username</span><span style="font-family:monospace;font-size:.82rem">${inv.mikrotikUser}</span></div>
-      <div class="summary-row"><span style="color:var(--muted)">Tipe</span><span>${inv.type === 'pppoe' ? 'PPPoE' : 'Hotspot'}</span></div>
-      <div class="summary-row"><span style="color:var(--muted)">Periode</span><span>${inv.period}</span></div>
-      <div class="summary-row"><span style="color:var(--muted)">Jatuh Tempo</span><span>${dueStr}</span></div>
-      <div class="summary-row total"><span>Total Tagihan</span><span style="color:var(--green)">${fmtRp(inv.amount)}</span></div>
+function buildInvItem(inv, compact) {
+  const daysLeft = inv.daysLeft !== undefined ? inv.daysLeft : Math.round((new Date(inv.dueDate)-new Date())/86400000);
+  const dueStr   = new Date(inv.dueDate).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
+  const dueColor = daysLeft < 0 ? 'var(--red)' : daysLeft <= 3 ? 'var(--yellow)' : 'var(--muted)';
+  const daysLabel = daysLeft < 0 ? `${Math.abs(daysLeft)}h overdue` : daysLeft === 0 ? 'Hari ini!' : daysLeft <= 7 ? `${daysLeft}h lagi` : '';
+
+  const STATUS = {
+    unpaid:  {cls:'b-yl', lbl:'Belum Bayar'},
+    paid:    {cls:'b-gr', lbl:'Lunas'},
+    overdue: {cls:'b-rd', lbl:'Overdue'},
+    cancelled:{cls:'b-mu', lbl:'Batal'},
+  };
+  const st = STATUS[inv.status] || {cls:'b-mu', lbl:inv.status};
+
+  return `<div class="inv-item ${inv.status}" onclick="${inv.status!=='paid' ? `openPayScreen('${inv.id}')` : ''}">
+    <div class="inv-head">
+      <div>
+        <div class="inv-name">${inv.customerName}</div>
+        <div class="inv-user">${inv.mikrotikUser||''} · ${inv.period}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="inv-amount">${fmtRp(inv.amount)}</div>
+        <span class="badge ${st.cls}">${st.lbl}</span>
+      </div>
     </div>
-    ${inv.status !== 'paid' ? `<button class="btn btn-success" onclick="closeSheet();openPayScreen('${inv.id}')"><i class="fa fa-check"></i> Bayar Sekarang</button>` : `<div style="text-align:center;color:var(--green);padding:12px"><i class="fa fa-check-circle"></i> Sudah Lunas ${inv.paidAt ? '· ' + fmtDate(inv.paidAt) : ''}</div>`}
-  `);
+    <div class="inv-foot">
+      <div class="inv-due" style="color:${dueColor}">
+        <i class="fa fa-calendar"></i> ${dueStr}
+        ${daysLabel ? `<span class="badge" style="background:${daysLeft<0?'rgba(239,68,68,.15)':'rgba(245,158,11,.15)'};color:${dueColor};margin-left:4px">${daysLabel}</span>` : ''}
+      </div>
+      ${inv.status !== 'paid'
+        ? `<button class="btn btn-success btn-sm" onclick="event.stopPropagation();openPayScreen('${inv.id}')"><i class="fa fa-check"></i> Bayar</button>`
+        : `<span style="font-size:.72rem;color:var(--green)"><i class="fa fa-check-circle"></i> Lunas</span>`}
+    </div>
+  </div>`;
 }
 
 function openPayScreen(id) {
-  STATE.payingInvoice = STATE.invoices.find(i => i.id === id);
-  if (!STATE.payingInvoice) return;
-  const inv = STATE.payingInvoice;
-  screenStack.push('s-billing');
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('s-pay').classList.add('active');
+  STATE.payingInv = STATE.invoices.find(i => i.id === id);
+  if (!STATE.payingInv) return;
+  const inv = STATE.payingInv;
+  const dueStr = new Date(inv.dueDate).toLocaleDateString('id-ID',{dateStyle:'long'});
+  const isOverdue = inv.status === 'overdue';
+
+  document.getElementById('pay-detail-card').innerHTML = `
+    <div class="pay-status-bar" style="background:${isOverdue?'var(--red)':'var(--yellow)'}"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span class="badge ${isOverdue?'b-rd':'b-yl'}">${isOverdue?'OVERDUE':'BELUM BAYAR'}</span>
+      <span style="font-size:.72rem;color:var(--muted)">${inv.period}</span>
+    </div>
+    <div class="pay-customer">${inv.customerName}</div>
+    <div class="pay-period" style="font-family:'DM Mono',monospace">${inv.mikrotikUser||''}</div>
+    <div class="pay-amount-big" style="color:var(--green);margin-bottom:8px">${fmtRp(inv.amount)}</div>
+    <div style="font-size:.76rem;color:var(--muted)"><i class="fa fa-calendar"></i> Jatuh tempo: ${dueStr}</div>`;
+
   document.getElementById('pay-note').value = '';
-  document.getElementById('pay-by').value = STATE.reseller?.name || 'Admin';
-  document.getElementById('pay-invoice-detail').innerHTML = `
-    <div style="margin-bottom:4px"><span class="badge ${inv.status === 'overdue' ? 'b-rd' : 'b-yl'}">${inv.status === 'overdue' ? 'OVERDUE' : 'BELUM BAYAR'}</span></div>
-    <div style="font-weight:700;font-size:1.05rem;margin:8px 0 4px">${inv.customerName}</div>
-    <div style="color:var(--muted);font-size:.82rem">${inv.period}</div>
-    <div style="font-size:1.4rem;font-weight:800;color:var(--green);margin:12px 0">${fmtRp(inv.amount)}</div>
-    <div style="font-size:.78rem;color:var(--muted)">Jatuh tempo: ${new Date(inv.dueDate).toLocaleDateString('id-ID', {dateStyle:'long'})}</div>`;
+  document.getElementById('pay-by').value   = STATE.user?.name || 'Admin';
+
+  screenStack.push(document.querySelector('.screen.active')?.id || 's-c-invoices');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('s-c-pay').classList.add('active');
 }
 
 async function doPayInvoice() {
-  const inv = STATE.payingInvoice;
+  const inv = STATE.payingInv;
   if (!inv) return;
-  const note  = document.getElementById('pay-note').value;
+  const note   = document.getElementById('pay-note').value;
   const paidBy = document.getElementById('pay-by').value || 'Admin';
   try {
     const d = await api(`/billing/invoices/${inv.id}/pay`, 'POST', { note, paidBy });
-    if (!d.success) { toast(d.error || 'Gagal', true); return; }
+    if (!d.success) { toast(d.error||'Gagal', true); return; }
     toast('✓ Tagihan ditandai LUNAS!');
     await loadInvoices();
+    await loadCollectorDash();
     goBack();
-  } catch(e) { toast('Error: ' + e.message, true); }
+  } catch(e) { toast('Error: '+e.message, true); }
 }
 
-// ══════════════════════════════════════════════════════
-// SALDO
-// ══════════════════════════════════════════════════════
-async function loadSaldo() {
-  document.getElementById('saldo-log-list').innerHTML = '<div class="loading"><div class="spin"></div></div>';
-  try {
-    const d = await api('/saldo');
-    if (!d.success) return;
-    STATE.saldoData = d;
-
-    document.getElementById('saldo-big').textContent     = fmtRp(d.saldo);
-    document.getElementById('saldo-sub-info').textContent = `${d.totalVoucher} voucher · ${fmtRp(d.totalIncome)} pendapatan`;
-    document.getElementById('saldo-vcr').textContent     = d.totalVoucher;
-    document.getElementById('saldo-income').textContent  = fmtRp(d.totalIncome);
-
-    // Update state
-    STATE.reseller = { ...STATE.reseller, saldo: d.saldo, totalVoucher: d.totalVoucher, totalIncome: d.totalIncome };
-    document.getElementById('h-saldo').textContent = fmtRp(d.saldo);
-
-    const logs = d.logs || [];
-    const logEl = document.getElementById('saldo-log-list');
-    logEl.innerHTML = logs.length
-      ? `<div style="padding:0">${logs.map(l => `
-          <div class="log-item">
-            <div class="log-icon ${l.amount >= 0 ? 'plus' : 'minus'}">
-              <i class="fa ${l.type === 'purchase' ? 'fa-ticket' : l.amount >= 0 ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
-            </div>
-            <div class="log-body">
-              <div class="log-desc">${l.note || l.type}</div>
-              <div class="log-time">${fmtDate(l.at)}</div>
-            </div>
-            <div class="log-amount ${l.amount >= 0 ? 'plus' : 'minus'}">${l.amount >= 0 ? '+' : ''}${fmtRp(l.amount)}</div>
-          </div>`).join('')}</div>`
-      : '<div class="empty" style="padding:20px"><p>Belum ada transaksi</p></div>';
-  } catch(e) {
-    document.getElementById('saldo-log-list').innerHTML = `<div class="empty"><p>${e.message}</p></div>`;
-  }
-}
-
-// ══════════════════════════════════════════════════════
-// PROFILE SCREEN
-// ══════════════════════════════════════════════════════
-function renderProfile() {
-  const r = STATE.reseller;
-  if (!r) return;
-  document.getElementById('pf-name').textContent   = r.name;
-  document.getElementById('pf-tid').textContent    = 'ID: ' + r.telegramId;
-  document.getElementById('pf-saldo').textContent  = fmtRp(r.saldo);
-  document.getElementById('pf-vcr').textContent    = r.totalVoucher + ' voucher';
-  document.getElementById('pf-disc').textContent   = r.discount + '%';
-  document.getElementById('pf-server').textContent = STATE.serverUrl;
-  document.getElementById('pf-avatar').textContent = r.name[0].toUpperCase();
-  document.getElementById('pf-avatar').style.background = strColor(r.name);
-}
-
-// ══════════════════════════════════════════════════════
-// BOTTOM SHEET
-// ══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════
+   BOTTOM SHEET
+═══════════════════════════════════════════════════ */
 function openSheet(html) {
   document.getElementById('sheet-content').innerHTML = html;
   document.getElementById('overlay').classList.add('show');
 }
-function closeSheet() {
-  document.getElementById('overlay').classList.remove('show');
+function closeSheet() { document.getElementById('overlay').classList.remove('show'); }
+
+function showChangeServer() {
+  openSheet(`
+    <div class="sheet-title">Ganti Server</div>
+    <div class="form-group">
+      <label class="form-label">URL Server</label>
+      <input class="form-input" id="cs-url" value="${STATE.serverUrl}" placeholder="http://...">
+    </div>
+    <button class="btn btn-primary" onclick="applyChangeServer()"><i class="fa fa-save"></i> Simpan & Login Ulang</button>`);
 }
 
-// ══════════════════════════════════════════════════════
-// TOAST
-// ══════════════════════════════════════════════════════
-function toast(msg, isErr = false) {
+function applyChangeServer() {
+  const url = document.getElementById('cs-url').value.trim().replace(/\/$/,'');
+  if (!url) return;
+  STATE.serverUrl = url;
+  localStorage.setItem('mhm_url', url);
+  closeSheet();
+  toast('Server diubah. Silakan login ulang.');
+  setTimeout(doLogout, 1500);
+}
+
+/* ═══════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════ */
+function toast(msg, isErr=false) {
   const el = document.createElement('div');
-  el.className = 'toast-msg' + (isErr ? ' err' : '');
+  el.className = 'toast-msg' + (isErr?' err':'');
   el.textContent = msg;
   document.getElementById('toast-el').appendChild(el);
   setTimeout(() => el.remove(), 3500);
 }
 
-// ══════════════════════════════════════════════════════
-// HELPERS
-// ══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════ */
 function fmtRp(n) {
   if (n === null || n === undefined) return '—';
   return 'Rp ' + Math.round(n).toLocaleString('id-ID');
 }
-
 function fmtDate(iso) {
   if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleString('id-ID', { dateStyle:'short', timeStyle:'short' });
-  } catch { return iso; }
+  try { return new Date(iso).toLocaleString('id-ID',{dateStyle:'short',timeStyle:'short'}); }
+  catch { return iso; }
 }
-
 function profileColor(name) {
-  const colors = ['#1f6feb','#3fb950','#d29922','#f85149','#8957e5','#db6d28','#39c5cf','#e94560'];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return colors[Math.abs(hash) % colors.length];
+  const c = ['#3b82f6','#22c55e','#f59e0b','#ef4444','#8b5cf6','#f97316','#06b6d4','#ec4899'];
+  let h = 0;
+  for (let i=0;i<name.length;i++) h = name.charCodeAt(i)+((h<<5)-h);
+  return c[Math.abs(h)%c.length];
 }
+function strColor(name) { return profileColor(name||'A'); }
 
-function strColor(name) { return profileColor(name || 'A'); }
-
-function showErr(el, msg) {
-  el.textContent = msg;
-  el.style.display = 'block';
-}
-
-// ══════════════════════════════════════════════════════
-// BOOT
-// ══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════
+   BOOT
+═══════════════════════════════════════════════════ */
 window.addEventListener('DOMContentLoaded', () => {
-  // Restore server URL in login form
   if (STATE.serverUrl) document.getElementById('l-url').value = STATE.serverUrl;
-
-  // Auto-login if token exists
-  if (STATE.token && STATE.reseller) {
+  if (STATE.token && STATE.user) {
     initApp();
-    // Verify token silently
+    // silently verify token
     api('/auth/me').then(d => {
       if (d.success) {
-        STATE.reseller = { ...STATE.reseller, ...d.reseller };
-        localStorage.setItem('mh_reseller', JSON.stringify(STATE.reseller));
+        STATE.user = { ...STATE.user, ...d.reseller };
+        STATE.role = d.role || STATE.role;
+        localStorage.setItem('mhm_user', JSON.stringify(STATE.user));
       }
-    }).catch(() => {});
+    }).catch(()=>{});
   }
 });
 
-// Handle back button on Android
 window.addEventListener('popstate', e => {
   if (screenStack.length > 0) { e.preventDefault(); goBack(); }
 });
