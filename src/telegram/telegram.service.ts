@@ -1088,7 +1088,7 @@ export class TelegramService implements OnModuleInit {
       text += `/status — Info router\n/aktif — User aktif\n/rekap — Rekap hari ini\n/bulan — Rekap bulan ini\n/pppoe — PPPoE aktif\n/hapus [user] — Hapus user\n`;
       text += `\n💼 <b>Reseller Admin:</b>\n`;
       text += `/resellers — Daftar semua reseller\n`;
-      text += `/topup [id] [jumlah] [catatan] — Topup saldo reseller\n`;
+      text += `/topup — Topup saldo \n`;
     }
     await this.sendMessage(chatId, text);
   }
