@@ -474,7 +474,7 @@ export class MikrotikController {
     } finally { client.close(); }
   }
   @Get(':session/interface/traffic/:name') 
-  async interfaceTraffic(@Param('session') session: string, @Query('name') name: string) { 
+  async interfaceTraffic(@Param('session') session: string, @Param('name') name: string) { 
     const { ip, user, password, port } = this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
     try {
