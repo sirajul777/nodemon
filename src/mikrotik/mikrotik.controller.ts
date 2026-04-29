@@ -473,4 +473,31 @@ export class MikrotikController {
       return { resource: resource[0], health, rosVersion: resource[0]?.version?.charAt(0) || '7' };
     } finally { client.close(); }
   }
+  @Get(':session/interface/:id/traffic') 
+  async interfaceTraffic(@Param('session') session: string, @Param('name') name: string) { 
+    const { ip, user, password, port } = this.getConn(session);
+    const client = await this.mikrotikService.createClient(ip, user, password, port);
+    try {
+      
+       // Option A: monitor-traffic (gives bits/s directly)
+      const data = await client.run('/interface/monitor-traffic', {
+         '?interface' : name,});
+      return {
+         'tx-bits-per-second': parseInt(data['tx-bits-per-second']) || 0,
+         'rx-bits-per-second': parseInt(data['rx-bits-per-second']) || 0,
+      };
+      
+    } finally { client.close(); } 
+  };
+
+  @Get(':session/interfaces') 
+  async interface(@Param('session') session: string) {
+    const { ip, user, password, port } = this.getConn(session);
+    const client = await this.mikrotikService.createClient(ip, user, password, port);
+    try {
+      const data  = await client.run('/interface/print', {
+         '?proplist':'name,comment,running,disabled,type'});
+      return {data};
+    } finally { client.close(); }
+  };
 }

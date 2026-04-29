@@ -1565,7 +1565,7 @@ function go(pg) {
   }
 
   // Stop live refresh when leaving dashboard
-  if (pg !== 'dashboard') stopLive();
+  if (pg !== 'dashboard') {stopLive(); stopTrafficLoop(); }
   else if (CS) startLive();
   loadPage(pg);
 }
@@ -1621,6 +1621,7 @@ function updateCountdown() {
 function stopLive() {
   if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
   document.getElementById('refresh-indicator').style.display = 'none';
+  stopTrafficLoop() 
 }
 
 // ════════════════════════════════════════════════
@@ -1809,6 +1810,7 @@ async function loadDashboard() {
     });
 
     autoSyncBatchUsed();
+    initTrafficPanel();
     renderLog();
   } catch(e) {
     console.error('Dashboard error:', e);
