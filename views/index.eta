@@ -1,5 +1,8 @@
 <% layout("./layout") %>
 
+<!-- Include the modular login -->
+<%~ include("./login") %>
+
 <!-- Include the modular sidebar -->
 <%~ include("./partials/sidebar") %>
 

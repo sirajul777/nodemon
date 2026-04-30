@@ -1,107 +1,107 @@
 <!-- Sidebar -->
-    <div id="sb">
-      <div class="sb-brand">
-        <div class="sb-brand-left">
-          <div class="logo"><i class="fa fa-wifi"></i></div>
-          <div>
-            <div class="bname">NODEMON</div>
-            <div class="bsub">Hotspot Monitor</div>
-          </div>
-        </div>
-        <div class="sb-close" onclick="toggleSidebar()">
-          <i class="fa fa-times"></i>
-        </div>
+<div id="sb">
+  <div class="sb-brand">
+    <div class="sb-brand-left">
+      <div class="logo"><i class="fa fa-wifi"></i></div>
+      <div>
+        <div class="bname">NODEMON</div>
+        <div class="bsub">Hotspot Monitor</div>
       </div>
-      <!-- Router selector -->
-      <div class="sb-router">
-        <div class="label">Router Aktif</div>
-        <select id="rtr-sel" onchange="switchRouter(this.value)">
-          <option value="">— Pilih Router —</option>
-        </select>
-      </div>
-      <nav>
-        <div class="sb-section">Utama</div>
-        <a href="#" onclick="go('dashboard')" id="nav-dashboard"
-          ><i class="fa fa-dashboard"></i> Dashboard</a
-        >
-
-        <div class="sb-section">Hotspot</div>
-        <a href="#" onclick="go('hs-active')" id="nav-hs-active"
-          ><i class="fa fa-laptop"></i> Active Users</a
-        >
-        <a href="#" onclick="go('hs-users')" id="nav-hs-users"
-          ><i class="fa fa-users"></i> User List</a
-        >
-        <a href="#" onclick="go('hs-profiles')" id="nav-hs-profiles"
-          ><i class="fa fa-id-card"></i> User Profiles</a
-        >
-
-        <div class="sb-section">PPPoE</div>
-        <a href="#" onclick="go('ppp-active')" id="nav-ppp-active"
-          ><i class="fa fa-plug"></i> PPPoE Active</a
-        >
-        <a href="#" onclick="go('ppp-users')" id="nav-ppp-users"
-          ><i class="fa fa-users"></i> PPPoE Users</a
-        >
-        <a href="#" onclick="go('ppp-profiles')" id="nav-ppp-profiles"
-          ><i class="fa fa-id-card-o"></i> PPPoE Profiles</a
-        >
-
-        <div class="sb-section">Voucher</div>
-        <a href="#" onclick="go('reseller')" id="nav-reseller"
-          ><i class="fa fa-handshake-o"></i> Reseller</a
-        >
-        <a href="#" onclick="go('batch')" id="nav-batch"
-          ><i class="fa fa-ticket"></i> Generate Voucher</a
-        >
-        <a href="#" onclick="go('batch-list')" id="nav-batch-list"
-          ><i class="fa fa-archive"></i> Daftar Batch</a
-        >
-        <a href="#" onclick="go('voucher-settings')" id="nav-voucher-settings"
-          ><i class="fa fa-cog"></i> Settings Voucher</a
-        >
-
-        <div class="sb-section">Report</div>
-        <a href="#" onclick="go('selling')" id="nav-selling"
-          ><i class="fa fa-money"></i> Selling Report</a
-        >
-        <a href="#" onclick="go('resume')" id="nav-resume"
-          ><i class="fa fa-area-chart"></i> Resume Report</a
-        >
-        <a href="#" onclick="go('live')" id="nav-live"
-          ><i class="fa fa-line-chart"></i> Live Report</a
-        >
-
-        <div class="sb-section">Telegram Bot</div>
-        <a href="#" onclick="go('tg-reseller')" id="nav-tg-reseller"
-          ><i class="fa fa-users"></i> Reseller Bot</a
-        >
-        <a href="#" onclick="go('tg-tools')" id="nav-tg-tools"
-          ><i class="fa fa-cog"></i> Tools &amp; Settings</a
-        >
-
-        <div class="sb-section">Billing</div>
-        <a href="#" onclick="go('billing')" id="nav-billing"
-          ><i class="fa fa-file-text"></i> Pelanggan Billing</a
-        >
-        <a href="#" onclick="go('invoices')" id="nav-invoices"
-          ><i class="fa fa-list-alt"></i> Tagihan / Invoice</a
-        >
-        <div class="sb-section">System</div>
-        <a href="#" onclick="go('user-management')" id="nav-user-management"
-          ><i class="fa fa-users-cog fa-users"></i> User Management</a
-        >
-        <a href="#" onclick="go('change-password')" id="nav-change-password"
-          ><i class="fa fa-key"></i> Ganti Password</a
-        >
-        <a href="#" onclick="go('mobile-api')" id="nav-mobile-api"
-          ><i class="fa fa-mobile"></i> Mobile API</a
-        >
-        <a href="#" onclick="go('sessions')" id="nav-sessions"
-          ><i class="fa fa-server"></i> Sessions</a
-        >
-        <a href="#" onclick="doLogout()"
-          ><i class="fa fa-sign-out"></i> Logout</a
-        >
-      </nav>
     </div>
+    <div class="sb-close" onclick="toggleSidebar()">
+      <i class="fa fa-times"></i>
+    </div>
+  </div>
+  <!-- Router selector -->
+  <div class="sb-router">
+    <div class="label">Router Aktif</div>
+    <select id="rtr-sel" onchange="switchRouter(this.value)">
+      <option value="">— Pilih Router —</option>
+    </select>
+  </div>
+  <nav>
+    <div class="sb-section">Utama</div>
+    <a href="#" onclick="go('dashboard')" id="nav-dashboard"
+      ><i class="fa fa-dashboard"></i> Dashboard</a
+    >
+
+    <div class="sb-section">Hotspot</div>
+    <a href="#" onclick="go('hs-active')" id="nav-hs-active"
+      ><i class="fa fa-laptop"></i> Active Users</a
+    >
+    <a href="#" onclick="go('hs-users')" id="nav-hs-users"
+      ><i class="fa fa-users"></i> User List</a
+    >
+    <a href="#" onclick="go('hs-profiles')" id="nav-hs-profiles"
+      ><i class="fa fa-id-card"></i> User Profiles</a
+    >
+
+    <div class="sb-section">PPPoE</div>
+    <a href="#" onclick="go('ppp-active')" id="nav-ppp-active"
+      ><i class="fa fa-plug"></i> PPPoE Active</a
+    >
+    <a href="#" onclick="go('ppp-users')" id="nav-ppp-users"
+      ><i class="fa fa-users"></i> PPPoE Users</a
+    >
+    <a href="#" onclick="go('ppp-profiles')" id="nav-ppp-profiles"
+      ><i class="fa fa-id-card-o"></i> PPPoE Profiles</a
+    >
+
+    <div class="sb-section">Voucher</div>
+    <a href="#" onclick="go('reseller')" id="nav-reseller"
+      ><i class="fa fa-handshake-o"></i> Reseller</a
+    >
+    <a href="#" onclick="go('batch')" id="nav-batch"
+      ><i class="fa fa-ticket"></i> Generate Voucher</a
+    >
+    <a href="#" onclick="go('batch-list')" id="nav-batch-list"
+      ><i class="fa fa-archive"></i> Daftar Batch</a
+    >
+    <a href="#" onclick="go('voucher-settings')" id="nav-voucher-settings"
+      ><i class="fa fa-cog"></i> Settings Voucher</a
+    >
+
+    <div class="sb-section">Report</div>
+    <a href="#" onclick="go('selling')" id="nav-selling"
+      ><i class="fa fa-money"></i> Selling Report</a
+    >
+    <a href="#" onclick="go('resume')" id="nav-resume"
+      ><i class="fa fa-area-chart"></i> Resume Report</a
+    >
+    <a href="#" onclick="go('live')" id="nav-live"
+      ><i class="fa fa-line-chart"></i> Live Report</a
+    >
+
+    <div class="sb-section">Telegram Bot</div>
+    <a href="#" onclick="go('tg-reseller')" id="nav-tg-reseller"
+      ><i class="fa fa-users"></i> Reseller Bot</a
+    >
+    <a href="#" onclick="go('tg-tools')" id="nav-tg-tools"
+      ><i class="fa fa-cog"></i> Tools &amp; Settings</a
+    >
+
+    <div class="sb-section">Billing</div>
+    <a href="#" onclick="go('billing')" id="nav-billing"
+      ><i class="fa fa-file-text"></i> Pelanggan Billing</a
+    >
+    <a href="#" onclick="go('invoices')" id="nav-invoices"
+      ><i class="fa fa-list-alt"></i> Tagihan / Invoice</a
+    >
+    <div class="sb-section">System</div>
+    <a href="#" onclick="go('user-management')" id="nav-user-management"
+      ><i class="fa fa-users-cog fa-users"></i> User Management</a
+    >
+    <a href="#" onclick="go('change-password')" id="nav-change-password"
+      ><i class="fa fa-key"></i> Ganti Password</a
+    >
+    <a href="#" onclick="go('mobile-api')" id="nav-mobile-api"
+      ><i class="fa fa-mobile"></i> Mobile API</a
+    >
+    <a href="#" onclick="go('sessions')" id="nav-sessions"
+      ><i class="fa fa-server"></i> Sessions</a
+    >
+    <a href="#" onclick="doLogout()"
+      ><i class="fa fa-sign-out"></i> Logout</a
+    >
+  </nav>
+</div>

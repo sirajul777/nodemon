@@ -1,0 +1,28 @@
+<!-- Login -->
+<div id="ls">
+    <div class="lbox">
+    <div class="logo-big"><i class="fa fa-wifi"></i></div>
+    <h2>NODEMON</h2>
+    <p>MikroTik Hotspot Monitor</p>
+    <div class="fg">
+        <label>Username</label
+        ><input id="lu" placeholder="Username" autocomplete="username" />
+    </div>
+    <div class="fg">
+        <label>Password</label
+        ><input
+        type="password"
+        id="lp"
+        placeholder="Password"
+        autocomplete="current-password"
+        />
+    </div>
+    <div class="err" id="le"></div>
+    <br />
+    <button class="btn b-p" style="width: 100%" onclick="doLogin()">
+        <i class="fa fa-sign-in"></i> Login
+    </button>
+    </div>
+</div>
+<div id="ld"><div class="spin"></div></div>
+<div id="toast"></div>

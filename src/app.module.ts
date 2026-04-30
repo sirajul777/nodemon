@@ -24,7 +24,7 @@ import { AppController } from "./app.controller";
   imports: [
     // ServeStaticModule.forRoot({
     //   rootPath: join(__dirname, "..", "public"),
-    //   exclude: ["/api*"]
+    //   exclude: ["/api/(.*)"] // Add this to ignore all routes starting with /api/
     // }),
     ConfigModule,
     AuthModule,
