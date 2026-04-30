@@ -5,35 +5,43 @@
 
 :root {
   /* Background */
-  --bg:      #050608;
-  --sb:      rgba(13, 17, 23, 0.85);
-  --card:    #0d1117;
-  --card2:   #161b22;
-  --border:  rgba(255, 255, 255, 0.08);
+  --bg: #3d4e6f;
+  --sb: rgba(41, 52, 67, 0.85);
+  --card: #2e3a4c;
+  --card2: #323e4d;
+  --border: rgba(255, 255, 255, 0.08);
 
   /* Accent */
-  --acc:     linear-gradient(135deg, #316ce8, #4f95ff);
-  --acc-glow: 0 0 15px rgba(56, 139, 253, 0.35);
+  --acc: linear-gradient(135deg, #467ef6, #4f95ff);
+  --acc-glow: 0 0 15px rgba(77, 150, 253, 0.35);
 
   /* Text */
-  --text:    #f0f6fc;
-  --muted:   #8b949e;
+  --text: #f0f6fc;
+  --muted: #8b949e;
 
   /* Status colors */
-  --green:   #3fb950;
-  --yellow:  #d29922;
-  --red:     #f85149;
-  --purple:  #bc8cff;
-  --cyan:    #39c5cf;
-  --orange:  #db6d28;
+  --green: #57da68;
+  --yellow: #f2c053;
+  --red: #f66961;
+  --purple: #bc8cff;
+  --cyan: #67eee5;
+  --orange: #e97c38;
 
-  --radius:  12px;
+  --radius: 12px;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 body {
-  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    system-ui,
+    sans-serif;
   background: var(--bg);
   background-image: radial-gradient(circle at 50% -20%, #1f6feb22, transparent);
   color: var(--text);
@@ -45,11 +53,47 @@ body {
 }
 
 /* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
 
 /* Animations */
-@keyframes spin    { to { transform: rotate(360deg); } }
-@keyframes fadeIn  { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:none; } }
-@keyframes slideIn { from { transform:translateX(50px); opacity:0; } to { transform:none; opacity:1; } }
-@keyframes pulse   { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes slideIn {
+  from {
+    transform: translateX(50px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
