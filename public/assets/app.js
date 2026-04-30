@@ -1,0 +1,5127 @@
+// ════════════════════════════════════════════════
+// GLOBALS
+// ════════════════════════════════════════════════
+const API = window.location.origin + "/api";
+let CS = ""; // current session
+let rChart = null;
+let selData = [],
+  rslGrps = [],
+  genVcr = [];
+let editSess = null,
+  editHsProf = null,
+  editPppUser = null,
+  editPppProf = null,
+  editRs = null,
+  editVtId = null;
+let liveInterval = null; // dashboard auto-refresh
+let logFilter = "all";
+
+// Pagination States
+let PG = {
+  "t-hu": { page: 1, limit: 25, data: [] },
+  "t-ha": { page: 1, limit: 25, data: [] },
+  "t-ps": { page: 1, limit: 25, data: [] },
+  "t-pa": { page: 1, limit: 25, data: [] },
+  "t-sel": { page: 1, limit: 50, data: [] },
+  "t-sess": { page: 1, limit: 10, data: [] },
+  "t-rs": { page: 1, limit: 25, data: [] },
+  "t-users": { page: 1, limit: 25, data: [] }
+};
+
+function renderPagination(tid, onRender) {
+  const s = PG[tid];
+  if (!s || !s.data) return "";
+  const total = s.data.length;
+  const maxPage = Math.ceil(total / s.limit) || 1;
+  if (s.page > maxPage) s.page = maxPage;
+
+  const start = (s.page - 1) * s.limit;
+  const end = Math.min(start + s.limit, total);
+
+  // Render subset data ke tabel
+  const subset = s.data.slice(start, end);
+  onRender(subset);
+
+  // Get function name for the button onclick
+  const fnName = onRender.name;
+
+  // Return HTML navigasi
+  return `
+    <div class="pg-box">
+      <div class="pg-info">Showing <b>${total > 0 ? start + 1 : 0}</b> to <b>${end}</b> of <b>${total}</b> entries</div>
+      <div class="pg-ctrl">
+        <button class="btn b-s pg-btn" ${s.page <= 1 ? "disabled" : ""} onclick="changePage('${tid}', ${s.page - 1}, ${fnName})"><i class="fa fa-chevron-left"></i></button>
+        <span style="font-size:.75rem;font-weight:600;padding:0 8px">Page ${s.page} of ${maxPage}</span>
+        <button class="btn b-s pg-btn" ${s.page >= maxPage ? "disabled" : ""} onclick="changePage('${tid}', ${s.page + 1}, ${fnName})"><i class="fa fa-chevron-right"></i></button>
+      </div>
+    </div>
+  `;
+}
+
+function changePage(tid, newPage, renderFn) {
+  if (PG[tid]) {
+    PG[tid].page = newPage;
+    // renderFn akan memanggil load... yang kemudian memanggil renderPagination lagi
+    renderFn(true); // pass true to indicate it's a pagination change, not a fresh fetch if possible
+  }
+}
+
+const MS = [
+  "jan",
+  "feb",
+  "mar",
+  "apr",
+  "may",
+  "jun",
+  "jul",
+  "aug",
+  "sep",
+  "oct",
+  "nov",
+  "dec"
+];
+const MF = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December"
+];
+const EM = {
+  remc: "Remove & Record",
+  rem: "Remove",
+  ntfc: "Notice & Record",
+  ntf: "Notice",
+  "": "—"
+};
+const CFMT = {
+  "upper+digit": "Huruf Kapital + Angka",
+  "lower+digit": "Huruf Kecil + Angka",
+  "mixed+digit": "Huruf Besar+Kecil + Angka",
+  digit: "Angka saja"
+};
+
+// ════════════════════════════════════════════════
+// CLOCK
+// ════════════════════════════════════════════════
+function startClock() {
+  const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "Mei",
+    "Jun",
+    "Jul",
+    "Agu",
+    "Sep",
+    "Okt",
+    "Nov",
+    "Des"
+  ];
+  function tick() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    const ss = String(now.getSeconds()).padStart(2, "0");
+    document.getElementById("tb-time").textContent = `${hh}:${mm}:${ss}`;
+    document.getElementById("tb-date").textContent =
+      `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+// ════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════
+async function checkAuth() {
+  try {
+    const d = await req("/auth/me");
+    if (d?.authenticated) {
+      document.getElementById("ls").classList.add("hide");
+      const dispName = d.username || "Admin";
+      document.getElementById("tb-un").textContent = dispName;
+      document.getElementById("tb-av").textContent = dispName[0].toUpperCase();
+
+      // Terapkan isolasi menu berdasarkan role/permission
+      if (d.role && d.role !== "admin") {
+        applyRoleNav(d.role, d.permissions);
+      }
+
+      // Restore last session and page
+      CS = localStorage.getItem("mikhmon_cs") || "";
+      const lastPg = localStorage.getItem("mikhmon_last_pg") || "dashboard";
+
+      await loadSessions();
+      if (CS) {
+        document.getElementById("rtr-sel").value = CS;
+        // Re-validate session with backend
+        await fetch(`${API}/session/router`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: CS })
+        });
+      }
+
+      go(lastPg);
+    }
+  } catch (e) {
+    console.error("Auth check error:", e);
+  }
+}
+
+function applyRoleNav(role, perms) {
+  if (!perms) return;
+  // Mapping permission key ke ID element nav
+  const map = {
+    viewDashboard: "nav-dashboard",
+    manageVoucher: [
+      "nav-reseller",
+      "nav-batch",
+      "nav-batch-list",
+      "nav-voucher-settings"
+    ],
+    manageBilling: ["nav-billing", "nav-invoices"],
+    managePppoe: ["nav-ppp-active", "nav-ppp-users", "nav-ppp-profiles"],
+    manageHotspot: ["nav-hs-active", "nav-hs-users", "nav-hs-profiles"],
+    viewReport: ["nav-selling", "nav-resume", "nav-live"],
+    manageSystem: ["nav-user-management", "nav-sessions", "nav-mobile-api"]
+  };
+
+  Object.keys(map).forEach((k) => {
+    const ids = Array.isArray(map[k]) ? map[k] : [map[k]];
+    const show = perms[k] === true;
+    ids.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.style.display = show ? "flex" : "none";
+        // Sembunyikan sb-section jika semua item di bawahnya sembunyi
+        const prev = el.previousElementSibling;
+        if (prev && prev.classList.contains("sb-section") && !show) {
+          // Logika sederhana: cek sibling selanjutnya, jika semuanya tersembunyi, sembunyikan section
+        }
+      }
+    });
+  });
+
+  // Sembunyikan section header yang kosong
+  document.querySelectorAll(".sb-section").forEach((sec) => {
+    let next = sec.nextElementSibling;
+    let hasVisible = false;
+    while (next && !next.classList.contains("sb-section")) {
+      if (next.tagName === "A" && next.style.display !== "none") {
+        hasVisible = true;
+        break;
+      }
+      next = next.nextElementSibling;
+    }
+    sec.style.display = hasVisible ? "block" : "none";
+  });
+}
+
+async function doLogin() {
+  const u = document.getElementById("lu").value.trim();
+  const p = document.getElementById("lp").value;
+  const d = await fetch(`${API}/auth/login`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: u, password: p })
+  }).then((r) => r.json());
+
+  if (d.success) {
+    document.getElementById("ls").classList.add("hide");
+    document.getElementById("le").textContent = "";
+    const dispName = d.username || "Admin";
+    document.getElementById("tb-un").textContent = dispName;
+    document.getElementById("tb-av").textContent = dispName[0].toUpperCase();
+    if (d.role && d.role !== "admin") applyRoleNav(d.role, d.permissions);
+
+    await loadSessions();
+    const lastPg =
+      d.role === "collector"
+        ? "billing"
+        : d.role === "reseller"
+          ? "batch"
+          : "dashboard";
+    go(lastPg);
+  } else {
+    document.getElementById("le").textContent = d.message || "Login gagal";
+  }
+}
+async function doLogout() {
+  localStorage.removeItem("mikhmon_cs");
+  localStorage.removeItem("mikhmon_last_pg");
+  await fetch(`${API}/auth/logout`, {
+    method: "POST",
+    credentials: "include"
+  });
+  location.reload();
+}
+
+document.addEventListener("keydown", (e) => {
+  if (
+    e.key === "Enter" &&
+    !document.getElementById("ls").classList.contains("hide")
+  )
+    doLogin();
+});
+
+// ════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════
+const PN = {
+  dashboard: "Dashboard",
+  "hs-active": "Active Users",
+  "hs-users": "User List",
+  "hs-profiles": "User Profiles",
+  "ppp-active": "PPPoE Active",
+  "ppp-users": "PPPoE Users",
+  "ppp-profiles": "PPPoE Profiles",
+  reseller: "Reseller",
+  batch: "Batch Voucher",
+  "batch-list": "Daftar Batch",
+  "voucher-settings": "Settings Voucher",
+  selling: "Selling Report",
+  resume: "Resume Report",
+  live: "Live Report",
+  "tg-tools": "Telegram Bot Tools",
+  "tg-reseller": "Reseller Bot",
+  billing: "Pelanggan Billing",
+  invoices: "Tagihan / Invoice",
+  "user-management": "User Management",
+  "change-password": "Ganti Password",
+  "mobile-api": "Mobile API Docs",
+  sessions: "Sessions"
+};
+
+function toggleSidebar() {
+  document.getElementById("sb").classList.toggle("open");
+}
+
+function go(pg) {
+  if (!pg) pg = "dashboard";
+  localStorage.setItem("mikhmon_last_pg", pg);
+  document
+    .querySelectorAll(".page")
+    .forEach((p) => p.classList.remove("active"));
+  document
+    .querySelectorAll("nav a")
+    .forEach((a) => a.classList.remove("active"));
+  document.getElementById("page-" + pg)?.classList.add("active");
+  document.getElementById("nav-" + pg)?.classList.add("active");
+  document.getElementById("pg-title").textContent = PN[pg] || pg;
+
+  // Tutup sidebar di mobile setelah pilih menu
+  if (window.innerWidth <= 768) {
+    document.getElementById("sb").classList.remove("open");
+  }
+
+  // Stop live refresh when leaving dashboard
+  if (pg !== "dashboard") {
+    stopLive();
+    stopTrafficLoop();
+  } else if (CS) {
+    initTrafficPanel();
+    startLive();
+  }
+  loadPage(pg);
+}
+
+function loadPage(pg) {
+  if (!pg)
+    pg = [...document.querySelectorAll(".page.active")]
+      .map((p) => p.id.replace("page-", ""))
+      .pop();
+  if (pg === "sessions") {
+    loadSessions();
+    return;
+  }
+  if (pg === "reseller") {
+    loadResellers();
+    return;
+  }
+  if (pg === "voucher-settings") {
+    loadVoucherSettings();
+    return;
+  }
+  if (pg === "tg-tools") {
+    loadTgInfo();
+    return;
+  }
+  if (pg === "user-management") {
+    loadUserManagement();
+    return;
+  }
+  if (pg === "tg-reseller") {
+    loadBotResellers();
+    return;
+  }
+  if (pg === "billing") {
+    loadBilling();
+    return;
+  }
+  if (!CS) return;
+  const map = {
+    dashboard: loadDashboard,
+    "hs-active": loadHsActive,
+    "hs-users": loadHsUsers,
+    "hs-profiles": loadHsProfiles,
+    "ppp-active": loadPppActive,
+    "ppp-users": loadPppUsers,
+    "ppp-profiles": loadPppProfiles,
+    batch: initBatch,
+    "batch-list": loadBatchList,
+    selling: initSelling,
+    resume: initResume,
+    live: loadLive
+  };
+  (map[pg] || function () {})();
+}
+
+// ════════════════════════════════════════════════
+// LIVE REFRESH (dashboard auto-refresh every 20s)
+// ════════════════════════════════════════════════
+const REFRESH_INTERVAL = 30; // seconds
+let countdownTimer = null;
+let countdownVal = REFRESH_INTERVAL;
+
+function startLive() {
+  stopLive();
+  if (!CS) return;
+  document.getElementById("refresh-indicator").style.display = "flex";
+  countdownVal = REFRESH_INTERVAL;
+  updateCountdown();
+  countdownTimer = setInterval(() => {
+    countdownVal--;
+    updateCountdown();
+    if (countdownVal <= 0) {
+      countdownVal = REFRESH_INTERVAL;
+      const pg = [...document.querySelectorAll(".page.active")]
+        .map((p) => p.id.replace("page-", ""))
+        .pop();
+      if (pg === "dashboard") loadDashboard();
+    }
+  }, 1000);
+}
+
+function updateCountdown() {
+  const el = document.getElementById("countdown-val");
+  if (el) el.textContent = countdownVal + "s";
+}
+
+function stopLive() {
+  if (countdownTimer) {
+    clearInterval(countdownTimer);
+    countdownTimer = null;
+  }
+  document.getElementById("refresh-indicator").style.display = "none";
+  stopTrafficLoop();
+}
+
+// ════════════════════════════════════════════════
+// ROUTER SWITCH
+// ════════════════════════════════════════════════
+async function switchRouter(id) {
+  CS = id;
+  if (!id) {
+    localStorage.removeItem("mikhmon_cs");
+    return;
+  }
+  localStorage.setItem("mikhmon_cs", id);
+  await fetch(`${API}/session/router`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sessionId: id })
+  });
+  go("dashboard");
+}
+
+// ════════════════════════════════════════════════
+// SESSIONS
+// ════════════════════════════════════════════════
+async function loadSessions(isPg = false) {
+  if (!isPg) {
+    showL();
+    const sess = (await req("/sessions")) || [];
+    const sel = document.getElementById("rtr-sel");
+    const tgSel = document.getElementById("tg-session");
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">— Pilih Router —</option>';
+    if (tgSel) {
+      tgSel.innerHTML = '<option value="">Pilih router...</option>';
+    }
+    sess.forEach((s) => {
+      sel.innerHTML += `<option value="${s.id}" ${s.id === prev ? "selected" : ""}>${s.name} (${s.ip})</option>`;
+      if (tgSel)
+        tgSel.innerHTML += `<option value="${s.id}">${s.name} (${s.ip})</option>`;
+    });
+    PG["t-sess"].data = sess;
+    PG["t-sess"].page = 1;
+    hideL();
+  }
+
+  const tb = document.getElementById("t-sess");
+  if (!tb) return;
+  document.getElementById("pg-t-sess").innerHTML = renderPagination(
+    "t-sess",
+    renderSessions
+  );
+}
+
+function renderSessions(subset) {
+  se(
+    "t-sess",
+    subset.length
+      ? subset
+          .map(
+            (s) => `<tr>
+        <td><b>${s.name}</b><br><small style="color:var(--muted)">${s.id}</small></td>
+        <td>${s.ip}</td><td>${s.port || 8728}</td><td>${s.currency}</td>
+        <td><span class="badge ${s.livereport === "enable" ? "b-gr" : "b-rd"}\">${s.livereport}</span></td>
+        <td><div style="display:flex;gap:5px">
+          <button class="btn b-g b-sm" onclick="testConn('${s.id}')"><i class="fa fa-plug"></i> Test</button>
+          <button class="btn b-w b-sm" onclick="editSessionFn('${s.id}')"><i class="fa fa-pencil"></i></button>
+          <button class="btn b-d b-sm" onclick="delSession('${s.id}')"><i class="fa fa-trash"></i></button>
+        </div></td></tr>`
+          )
+          .join("")
+      : '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:18px">Belum ada router</td></tr>',
+    "innerHTML"
+  );
+}
+let editSessData = null;
+function openSessionModal(data = null) {
+  editSessData = data;
+  document.getElementById("ms-ttl").textContent = data
+    ? "Edit Router"
+    : "Add Router";
+  document.getElementById("ms-err").textContent = "";
+  document.getElementById("ms-id").value = data?.id || "";
+  document.getElementById("ms-id").disabled = !!data;
+  document.getElementById("ms-nm").value = data?.name || "";
+  document.getElementById("ms-ip").value = data?.ip || "";
+  document.getElementById("ms-pt").value = data?.port || 8728;
+  document.getElementById("ms-us").value = data?.user || "admin";
+  document.getElementById("ms-pw").value = "";
+  document.getElementById("ms-pw").placeholder = data
+    ? "Kosongkan = tidak ganti"
+    : "password";
+  document.getElementById("ms-ph").textContent = data ? "(opsional)" : "";
+  document.getElementById("ms-cr").value = data?.currency || "Rp";
+  document.getElementById("ms-lv").value = data?.livereport || "enable";
+  document.getElementById("m-sess").classList.add("show");
+}
+async function editSessionFn(id) {
+  const s = await req(`/sessions/${id}`);
+  if (s && !s.error) openSessionModal(s);
+}
+async function saveSession() {
+  const id = v("ms-id"),
+    nm = v("ms-nm"),
+    ip = v("ms-ip"),
+    pw = v("ms-pw");
+  if (!id || !nm || !ip) {
+    se("ms-err", "ID, Name, IP wajib diisi");
+    return;
+  }
+  if (!editSessData && !pw) {
+    se("ms-err", "Password wajib diisi");
+    return;
+  }
+  const body = {
+    id,
+    name: nm,
+    ip,
+    port: parseInt(v("ms-pt")) || 8728,
+    user: v("ms-us"),
+    password: editSessData && pw === "" ? "***" : pw,
+    currency: v("ms-cr") || "Rp",
+    livereport: v("ms-lv")
+  };
+  const d = await post("/sessions", body);
+  if (d?.success) {
+    closeM("m-sess");
+    loadSessions();
+    toast(editSessData ? "Router diupdate!" : "Router ditambahkan!");
+  } else se("ms-err", "Gagal menyimpan");
+}
+async function delSession(id) {
+  if (!confirm(`Hapus "${id}"?`)) return;
+  await del(`/sessions/${id}`);
+  loadSessions();
+  toast("Router dihapus");
+}
+async function testConn(id) {
+  showL();
+  const d = await req(`/mikrotik/${id}/connect/test`);
+  hideL();
+  d?.success
+    ? toast(`✓ Connected — ${d.identity} | ROS ${d.rosVersion}`)
+    : toast(`✗ ${d?.error || "Gagal"}`, true);
+}
+
+// Auto sync voucher used dari MikroTik — dipanggil silent di background
+async function autoSyncBatchUsed() {
+  if (!CS) return;
+  try {
+    const d = await fetch(`${API}/batches/${CS}/auto-sync-used`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({})
+    }).then((r) => r.json());
+
+    // Hanya tampil notif jika ada yang berubah
+    if (d?.success && d.updated > 0) {
+      toast(`🔄 ${d.updated} voucher batch ditandai terpakai`);
+      // ── AUTO-REMOVE: silent scan setelah auto-sync ──
+      // Jalankan di background, jangan ganggu dashboard
+      checkAndAutoRemoveAll().catch(() => {});
+      // ── END AUTO-REMOVE ──
+    }
+  } catch {
+    // Silent — jangan ganggu dashboard
+  }
+}
+// ════════════════════════════════════════════════
+// DASHBOARD (realtime)
+// ════════════════════════════════════════════════
+let dashLogs = []; // cache all logs
+
+async function loadDashboard() {
+  if (!CS) return;
+  // Reset countdown when manually triggered
+  countdownVal = REFRESH_INTERVAL;
+  updateCountdown();
+  try {
+    // Parallel fetch
+    const [dash, live, pppActive, pppSecrets, hsLogs] = await Promise.all([
+      req(`/mikrotik/${CS}/dashboard`).catch(() => []),
+      req(`/report/${CS}/live`).catch(() => []),
+      req(`/pppoe/${CS}/active`).catch(() => []),
+      req(`/pppoe/${CS}/secrets`).catch(() => []),
+      req(`/mikrotik/${CS}/hotspot/log`).catch(() => [])
+    ]);
+
+    if (!dash) return;
+
+    // Stat bar
+    const isIndo = live?.isIndo;
+    const fmt = (n) =>
+      isIndo
+        ? live?.currency + " " + Math.round(n).toLocaleString("id-ID")
+        : live?.currency + " " + Number(n).toFixed(2);
+    document.getElementById("db-today-inc").textContent = fmt(
+      live?.today?.income || 0
+    );
+    document.getElementById("db-month-inc").textContent = fmt(
+      live?.month?.income || 0
+    );
+    document.getElementById("db-today-vcr").textContent =
+      live?.today?.vouchers ?? "—";
+    document.getElementById("db-month-vcr").textContent =
+      live?.month?.vouchers ?? "—";
+    // document.getElementById('db-hs-online').textContent = dash.hotspot?.active ?? '—';
+    // document.getElementById('db-ppp-online').textContent = (pppActive||[]).length;
+
+    // HS + PPPoE panels
+    document.getElementById("db-hs-total").textContent =
+      dash.hotspot?.total ?? "—";
+    document.getElementById("db-hs-active2").textContent =
+      dash.hotspot?.active ?? "—";
+    document.getElementById("db-ppp-total").textContent = (
+      pppSecrets || []
+    ).length;
+    document.getElementById("db-ppp-active2").textContent = (
+      pppActive || []
+    ).length;
+
+    // Status NAS
+    const r = dash.resource || {};
+    const cpu = parseInt(r["cpu-load"]) || 0;
+    const memFree = parseInt(r["free-memory"]) || 0;
+    const memTotal = parseInt(r["total-memory"]) || 1;
+    const memPct = Math.round((1 - memFree / memTotal) * 100);
+    const hddFree = parseInt(r["free-hdd-space"]) || 0;
+    const hddTotal = parseInt(r["total-hdd-space"]) || 1;
+    const hddPct = Math.round((1 - hddFree / hddTotal) * 100);
+
+    document.getElementById("nas-list").innerHTML = `
+      <div class="nas-card">
+        <div class="nas-header">
+          <div><div class="nas-name">${dash.identity || "—"}</div><div class="nas-ip">${r["board-name"] || ""} · ${r["architecture-name"] || ""}</div></div>
+          <div class="nas-status"><div class="dot dot-on"></div> Online</div>
+        </div>
+        <div class="nas-info">
+          ROS: <b>${r.version || "—"}</b> &nbsp;|&nbsp; Uptime: <b>${r.uptime || "—"}</b> &nbsp;|&nbsp; 
+          🕐 ${dash.clock?.date || ""} ${dash.clock?.time || ""}
+        </div>
+        <div class="nas-bar-row">
+          <div class="nas-bar-label"><span>CPU Load</span><span>${cpu}%</span></div>
+          <div class="nas-bar"><div class="nas-bar-fill ${cpu > 80 ? "fill-red" : cpu > 60 ? "fill-yellow" : "fill-green"}" style="width:${cpu}%"></div></div>
+        </div>
+        <div class="nas-bar-row">
+          <div class="nas-bar-label"><span>Memory</span><span>${fmtB(r["free-memory"])} free / ${fmtB(r["total-memory"])}</span></div>
+          <div class="nas-bar"><div class="nas-bar-fill ${memPct > 80 ? "fill-red" : memPct > 60 ? "fill-yellow" : "fill-green"}" style="width:${memPct}%"></div></div>
+        </div>
+        <div class="nas-bar-row">
+          <div class="nas-bar-label"><span>HDD</span><span>${fmtB(r["free-hdd-space"])} free</span></div>
+          <div class="nas-bar"><div class="nas-bar-fill ${hddPct > 80 ? "fill-red" : "fill-green"}" style="width:${Math.max(hddPct, 2)}%"></div></div>
+        </div>
+      </div>`;
+
+    // Process Logs
+    dashLogs = (hsLogs || []).slice(0, 100).map((l) => {
+      const m = l.message || "";
+      let type = "hs";
+      if (m.includes("ppp") || m.includes("pppoe")) type = "ppp";
+      return { time: l.time, msg: m, type };
+    });
+
+    autoSyncBatchUsed();
+    renderLog();
+  } catch (e) {
+    console.error("Dashboard error:", e);
+  } finally {
+    hideL(); // Tutup loader apapun yang terjadi
+  }
+}
+
+function renderLog() {
+  const filtered =
+    logFilter === "all"
+      ? dashLogs
+      : dashLogs.filter((l) => l.type === logFilter);
+  const el = document.getElementById("log-list");
+  const hsCt = dashLogs.filter((l) => l.type === "hs").length;
+  const pppCt = dashLogs.filter((l) => l.type === "ppp").length;
+
+  document.getElementById("lc-all").textContent = dashLogs.length;
+  document.getElementById("lc-hs").textContent = hsCt;
+  document.getElementById("lc-ppp").textContent = pppCt;
+
+  el.innerHTML = filtered.length
+    ? filtered
+        .map((l) => {
+          const msg = l.msg.toLowerCase();
+          const isAuth = msg.includes("login") || msg.includes("authorized");
+          const isLogout = msg.includes("logout");
+          const isErr =
+            msg.includes("error") ||
+            msg.includes("failed") ||
+            msg.includes("critical");
+          const isWarn = msg.includes("warning") || msg.includes("timeout");
+
+          const color = isErr
+            ? "red"
+            : isWarn
+              ? "yellow"
+              : isLogout
+                ? "orange"
+                : isAuth
+                  ? "green"
+                  : "blue";
+          const icon = l.type === "hs" ? "fa-wifi" : "fa-plug";
+
+          return `<div class="log-item">
+          <div class="log-dot" style="background:var(--${color});box-shadow:0 0 8px var(--${color})"></div>
+          <div class="log-body">
+            <div class="log-title">
+              <span class="log-tag ${l.type === "hs" ? "lt-hs" : "lt-ppp"}"><i class="fa ${icon}"></i> ${l.type.toUpperCase()}</span>
+              ${l.msg}
+            </div>
+          </div>
+          <div class="log-time">${l.time}</div>
+        </div>`;
+        })
+        .join("")
+    : '<div style="text-align:center;color:var(--muted);padding:40px"><i class="fa fa-inbox" style="font-size:2rem;opacity:.2"></i><br>Tidak ada log</div>';
+}
+
+function filterLog(type, btn) {
+  logFilter = type;
+  document
+    .querySelectorAll(".lf-btn")
+    .forEach((b) => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderLog();
+}
+
+// ════════════════════════════════════════════════
+// HOTSPOT
+// ════════════════════════════════════════════════
+async function loadHsActive(isPg = false) {
+  if (!CS) return;
+  if (!isPg) {
+    showL();
+    const d = (await req(`/mikrotik/${CS}/hotspot/active`)) || [];
+    document.getElementById("ha-ct").textContent = `(${d.length})`;
+    PG["t-ha"].data = d;
+    PG["t-ha"].page = 1;
+    hideL();
+  }
+  document.getElementById("pg-t-ha").innerHTML = renderPagination(
+    "t-ha",
+    renderHsActive
+  );
+}
+
+function renderHsActive(subset) {
+  se(
+    "t-ha",
+    subset.length
+      ? subset
+          .map(
+            (u) =>
+              `<tr><td>${u.user || "—"}</td><td>${u.address || "—"}</td><td>${u["mac-address"] || "—"}</td><td>${u.uptime || "—"}</td><td>${u["session-time-left"] || "—"}</td></tr>`
+          )
+          .join("")
+      : '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>',
+    "innerHTML"
+  );
+}
+async function loadHsUsers(isPg = false) {
+  if (!CS) return;
+  if (!isPg) {
+    showL();
+    const prof = document.getElementById("uprof")?.value || "all";
+    const [users, profs] = await Promise.all([
+      req(`/mikrotik/${CS}/hotspot/users?profile=${prof}`),
+      req(`/mikrotik/${CS}/hotspot/profiles`)
+    ]);
+    const psel = document.getElementById("uprof");
+    const cur = psel.value;
+    psel.innerHTML = '<option value="all">All Profiles</option>';
+    (profs || []).forEach(
+      (p) =>
+        (psel.innerHTML += `<option value="${p.name}" ${p.name === cur ? "selected" : ""}>${p.name}</option>`)
+    );
+
+    PG["t-hu"].data = users || [];
+    PG["t-hu"].page = 1;
+    hideL();
+  }
+
+  const allChk = document.getElementById("hu-all");
+  if (allChk) allChk.checked = false;
+  updateHsSel();
+
+  document.getElementById("pg-t-hu").innerHTML = renderPagination(
+    "t-hu",
+    renderHsUsers
+  );
+}
+
+function renderHsUsers(subset) {
+  se(
+    "t-hu",
+    subset.length
+      ? subset
+          .map(
+            (u) => `<tr>
+    <td><input type="checkbox" class="hu-chk" data-name="${u.name}" onclick="updateHsSel()"></td>
+    <td>${u.name || "—"}</td>
+    <td><span class="badge b-bl">${u.profile || "—"}</span></td>
+    <td style="color:var(--muted)">${u.comment || ""}</td>
+    <td>${u["limit-uptime"] || "—"}</td>
+    <td><button class="btn b-d b-sm" onclick="removeHsUser('${u.name}')"><i class="fa fa-trash"></i></button></td>
+  </tr>`
+          )
+          .join("")
+      : '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>',
+    "innerHTML"
+  );
+}
+async function removeHsUser(name) {
+  if (!confirm(`Hapus user "${name}"?`)) return;
+  showL();
+  await del(`/mikrotik/${CS}/hotspot/users/${name}`);
+  hideL();
+  toast("User dihapus");
+  loadHsUsers();
+}
+
+function toggleAllHs(checked) {
+  document.querySelectorAll(".hu-chk").forEach((c) => (c.checked = checked));
+  updateHsSel();
+}
+
+function updateHsSel() {
+  const chks = document.querySelectorAll(".hu-chk:checked");
+  const bar = document.getElementById("hu-bulk");
+  const countEl = document.getElementById("hu-sel-count");
+  if (bar) {
+    bar.style.display = chks.length > 0 ? "flex" : "none";
+  }
+  if (countEl) countEl.textContent = chks.length;
+}
+
+async function bulkDelHs() {
+  const chks = document.querySelectorAll(".hu-chk:checked");
+  const names = Array.from(chks).map((c) => c.dataset.name);
+  if (!confirm(`Hapus ${names.length} user terpilih?`)) return;
+
+  showL();
+  try {
+    const d = await fetch(`${API}/mikrotik/${CS}/hotspot/users/bulk-delete`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ names })
+    }).then((r) => r.json());
+
+    if (d.success) {
+      toast(`✓ Berhasil menghapus ${d.count} user`);
+      loadHsUsers();
+    } else {
+      toast("✗ Gagal menghapus: " + (d.error || "error"), true);
+    }
+  } catch (e) {
+    toast("✗ Error: " + e.message, true);
+  } finally {
+    hideL();
+  }
+}
+
+// HS Profiles
+async function loadHsProfiles() {
+  if (!CS) return;
+  showL();
+  const d = await req(`/mikrotik/${CS}/hotspot/profiles`);
+  hideL();
+  if (!d || d.error) {
+    toast("Gagal load: " + (d?.error || "error"), true);
+    return;
+  }
+  se(
+    "t-hsp",
+    d.length
+      ? d
+          .map(
+            (p) => `<tr>
+    <td><div style="display:flex;align-items:center;gap:7px">
+      <div style="width:12px;height:12px;border-radius:3px;background:${p.profileColor || p.color || "#1f6feb"};flex-shrink:0;border:1px solid #fff2"></div>
+      <b>${p.name}</b>
+    </div></td>
+    <td><span class="badge b-bl">${p["rate-limit"] || "—"}</span></td>
+    <td>${p["shared-users"] || "1"}</td>
+    <td><span class="badge ${p.expmode ? "b-yl" : "b-mu"}">${EM[p.expmode || ""] || "—"}</span></td>
+    <td><span class="badge ${p.validity ? "b-gr" : "b-mu"}">${p.validity || "—"}</span></td>
+    <td style="color:var(--green)">${p.price ? "Rp " + Number(p.price).toLocaleString("id-ID") : "—"}</td>
+    <td style="color:var(--acc2)">${p.sprice ? "Rp " + Number(p.sprice).toLocaleString("id-ID") : "—"}</td>
+    <td><div style="display:flex;gap:4px">
+      <button class="btn b-w b-sm" onclick="editHsProfileFn('${p.name}')"><i class="fa fa-pencil"></i></button>
+      <button class="btn b-d b-sm" onclick="delHsProfile('${p.name}')"><i class="fa fa-trash"></i></button>
+    </div></td></tr>`
+          )
+          .join("")
+      : '<tr><td colspan="8" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>',
+    "innerHTML"
+  );
+}
+function openHsProfileModal(data = null) {
+  editHsProf = data ? data.name : null;
+  document.getElementById("mhp-ttl").textContent = data
+    ? "Edit HS Profile"
+    : "Add HS Profile";
+  document.getElementById("mhp-err").textContent = "";
+  document.getElementById("mhp-nm").value = data?.name || "";
+  document.getElementById("mhp-nm").disabled = !!data;
+  document.getElementById("mhp-rl").value = data?.["rate-limit"] || "";
+  document.getElementById("mhp-su").value = data?.["shared-users"] || "1";
+  document.getElementById("mhp-st").value = data?.["session-timeout"] || "";
+  document.getElementById("mhp-it").value = data?.["idle-timeout"] || "";
+  document.getElementById("mhp-ap").value = data?.["address-pool"] || "";
+  document.getElementById("mhp-em").value = data?.expmode || "remc";
+  document.getElementById("mhp-vl").value = data?.validity || "";
+  document.getElementById("mhp-pr").value = data?.price || 0;
+  document.getElementById("mhp-sp").value = data?.sprice || 0;
+  document.getElementById("mhp-lu").value = data?.lockUser || "";
+  const col = data?.profileColor || data?.color || "#1f6feb";
+  document.getElementById("mhp-color").value = col;
+  document.getElementById("mhp-color-hex").value = col;
+  document.getElementById("mhp-caption").value = data?.caption || "";
+  document.getElementById("m-hsp").classList.add("show");
+}
+async function editHsProfileFn(name) {
+  showL();
+  const p = await req(`/mikrotik/${CS}/hotspot/profiles/${name}`);
+  hideL();
+  if (p) openHsProfileModal(p);
+}
+async function saveHsProfile() {
+  const nm = v("mhp-nm");
+  if (!nm) {
+    se("mhp-err", "Nama wajib diisi");
+    return;
+  }
+  const body = {
+    "rate-limit": v("mhp-rl"),
+    "shared-users": v("mhp-su") || "1",
+    "session-timeout": v("mhp-st"),
+    "idle-timeout": v("mhp-it"),
+    "address-pool": v("mhp-ap"),
+    expmode: v("mhp-em"),
+    validity: v("mhp-vl"),
+    price: parseFloat(v("mhp-pr")) || 0,
+    sprice: parseFloat(v("mhp-sp")) || 0,
+    lockUser: v("mhp-lu"),
+    name: nm,
+    profileColor: v("mhp-color-hex") || v("mhp-color"),
+    caption: v("mhp-caption")
+  };
+  showL();
+  const d = editHsProf
+    ? await fetch(`${API}/mikrotik/${CS}/hotspot/profiles/${editHsProf}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }).then((r) => r.json())
+    : await post(`/mikrotik/${CS}/hotspot/profiles`, body);
+  hideL();
+  if (d?.success) {
+    closeM("m-hsp");
+    loadHsProfiles();
+    toast(editHsProf ? "Profile diupdate!" : "Profile ditambahkan!");
+  } else se("mhp-err", d?.error || "Gagal");
+}
+async function delHsProfile(name) {
+  if (!confirm(`Hapus profile "${name}"?`)) return;
+  showL();
+  const d = await fetch(`${API}/mikrotik/${CS}/hotspot/profiles/${name}`, {
+    method: "DELETE",
+    credentials: "include"
+  }).then((r) => r.json());
+  hideL();
+  d.success
+    ? (loadHsProfiles(), toast("Profile dihapus"))
+    : toast("Gagal: " + d.error, true);
+}
+
+// ════════════════════════════════════════════════
+// PPPoE
+// ════════════════════════════════════════════════
+async function loadPppActive(isPg = false) {
+  if (!CS) return;
+  if (!isPg) {
+    showL();
+    const d = (await req(`/pppoe/${CS}/active`)) || [];
+    document.getElementById("pa-ct").textContent = `(${d.length})`;
+    PG["t-pa"].data = d;
+    PG["t-pa"].page = 1;
+    hideL();
+  }
+  document.getElementById("pg-t-pa").innerHTML = renderPagination(
+    "t-pa",
+    renderPppActive
+  );
+}
+
+function renderPppActive(subset) {
+  se(
+    "t-pa",
+    subset.length
+      ? subset
+          .map(
+            (u) =>
+              `<tr><td><b>${u.name || "—"}</b></td><td>${u.service || "—"}</td><td>${u["caller-id"] || "—"}</td><td>${u.address || "—"}</td><td>${u.uptime || "—"}</td><td><button class="btn b-d b-sm" onclick="disconnectPpp('${u[".id"]}')"><i class="fa fa-times"></i> DC</button></td></tr>`
+          )
+          .join("")
+      : '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>',
+    "innerHTML"
+  );
+}
+async function disconnectPpp(id) {
+  if (!confirm("Disconnect?")) return;
+  showL();
+  await del(`/pppoe/${CS}/active/${id}`);
+  hideL();
+  toast("Disconnected");
+  loadPppActive();
+}
+
+async function loadPppUsers(isPg = false) {
+  if (!CS) return;
+  if (!isPg) {
+    showL();
+    const prof = document.getElementById("ppp-prof-filter")?.value || "all";
+    const [users, profs] = await Promise.all([
+      req(`/pppoe/${CS}/secrets${prof !== "all" ? "?profile=" + prof : ""}`),
+      req(`/pppoe/${CS}/profiles`)
+    ]);
+    const psel = document.getElementById("ppp-prof-filter");
+    const cur = psel.value;
+    psel.innerHTML = '<option value="all">All Profiles</option>';
+    (profs || []).forEach(
+      (p) =>
+        (psel.innerHTML += `<option value="${p.name}" ${p.name === cur ? "selected" : ""}>${p.name}</option>`)
+    );
+
+    PG["t-ps"].data = users || [];
+    PG["t-ps"].page = 1;
+    hideL();
+  }
+  document.getElementById("pg-t-ps").innerHTML = renderPagination(
+    "t-ps",
+    renderPppUsers
+  );
+}
+
+function renderPppUsers(subset) {
+  se(
+    "t-ps",
+    subset.length
+      ? subset
+          .map(
+            (u) =>
+              `<tr><td><b>${u.name || "—"}</b></td><td><span class="badge b-bl">${u.profile || "—"}</span></td><td>${u.service || "—"}</td><td>${u["local-address"] || "—"}</td><td>${u["remote-address"] || "—"}</td><td style="color:var(--muted)">${u.comment || ""}</td><td><span class="badge ${u.disabled === "true" ? "b-rd" : "b-gr"}">${u.disabled === "true" ? "Disabled" : "Active"}</span></td><td><div style="display:flex;gap:4px"><button class="btn b-w b-sm" onclick="editPppUserFn('${u.name}')"><i class="fa fa-pencil"></i></button>${u.disabled === "true" ? `<button class="btn b-g b-sm" onclick="togglePppUser('${u.name}',false)"><i class="fa fa-check"></i></button>` : `<button class="btn b-s b-sm" onclick="togglePppUser('${u.name}',true)"><i class="fa fa-ban"></i></button>`}<button class="btn b-d b-sm" onclick="delPppUser('${u.name}')"><i class="fa fa-trash"></i></button></div></td></tr>`
+          )
+          .join("")
+      : '<tr><td colspan="8" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>',
+    "innerHTML"
+  );
+}
+async function openPppUserModal(data = null) {
+  editPppUser = data ? data.name : null;
+  document.getElementById("mpu-ttl").textContent = data
+    ? "Edit PPPoE User"
+    : "Add PPPoE User";
+  document.getElementById("mpu-err").textContent = "";
+  document.getElementById("mpu-nm").value = data?.name || "";
+  document.getElementById("mpu-nm").disabled = !!data;
+  document.getElementById("mpu-pw").value = "";
+  document.getElementById("mpu-sv").value = data?.service || "pppoe";
+  document.getElementById("mpu-la").value = data?.["local-address"] || "";
+  document.getElementById("mpu-ra").value = data?.["remote-address"] || "";
+  document.getElementById("mpu-cm").value = data?.comment || "";
+
+  const profs = (await req(`/pppoe/${CS}/profiles`)) || [];
+  const psel = document.getElementById("mpu-pr");
+  psel.innerHTML = "";
+
+  // Tampilkan hanya profile yang AKTIF, kecuali jika data lama memang menggunakan profile itu
+  profs.forEach((p) => {
+    if (p.active !== false || p.name === data?.profile) {
+      psel.innerHTML += `<option value="${p.name}" ${p.name === (data?.profile || "default") ? "selected" : ""}>${p.name}${p.active === false ? " (Nonaktif)" : ""}</option>`;
+    }
+  });
+
+  document.getElementById("m-pu").classList.add("show");
+}
+async function editPppUserFn(name) {
+  showL();
+  const u = await req(`/pppoe/${CS}/secrets/${name}`);
+  hideL();
+  if (u) openPppUserModal(u);
+}
+async function savePppUser() {
+  const nm = v("mpu-nm");
+  const pw = v("mpu-pw");
+  if (!nm) {
+    se("mpu-err", "Username wajib");
+    return;
+  }
+  if (!editPppUser && !pw) {
+    se("mpu-err", "Password wajib");
+    return;
+  }
+  const body = {
+    name: nm,
+    profile: v("mpu-pr"),
+    service: v("mpu-sv"),
+    "local-address": v("mpu-la"),
+    "remote-address": v("mpu-ra"),
+    comment: v("mpu-cm")
+  };
+  if (pw) body.password = pw;
+  showL();
+  const d = editPppUser
+    ? await fetch(`${API}/pppoe/${CS}/secrets/${editPppUser}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }).then((r) => r.json())
+    : await post(`/pppoe/${CS}/secrets`, body);
+  hideL();
+  if (d?.success) {
+    closeM("m-pu");
+    loadPppUsers();
+    toast(editPppUser ? "User diupdate!" : "User ditambahkan!");
+  } else se("mpu-err", d?.error || "Gagal");
+}
+async function togglePppUser(name, disable) {
+  showL();
+  await fetch(
+    `${API}/pppoe/${CS}/secrets/${name}/${disable ? "disable" : "enable"}`,
+    { method: "POST", credentials: "include" }
+  );
+  hideL();
+  loadPppUsers();
+}
+async function delPppUser(name) {
+  if (!confirm(`Hapus "${name}"?`)) return;
+  showL();
+  await del(`/pppoe/${CS}/secrets/${name}`);
+  hideL();
+  toast("User dihapus");
+  loadPppUsers();
+}
+
+async function loadPppProfiles() {
+  if (!CS) return;
+  showL();
+  const d = (await req(`/pppoe/${CS}/profiles`)) || [];
+  se(
+    "t-pp",
+    d.length
+      ? d
+          .map(
+            (p) =>
+              `<tr><td><b>${p.name}</b></td><td><span class="badge b-bl">${p["rate-limit"] || "—"}</span></td><td>${p["address-pool"] || "—"}</td><td>${p["session-timeout"] || "—"}</td><td>${p["only-one"] || "—"}</td><td><span class="badge ${p.active !== false ? "b-gr" : "b-rd"}">${p.active !== false ? "Aktif" : "Nonaktif"}</span></td><td><div style="display:flex;gap:4px"><button class="btn b-w b-sm" onclick="editPppProfileFn('${p.name}')"><i class="fa fa-pencil"></i></button><button class="btn b-d b-sm" onclick="delPppProfile('${p.name}')"><i class="fa fa-trash"></i></button></div></td></tr>`
+          )
+          .join("")
+      : '<tr><td colspan="7" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>',
+    "innerHTML"
+  );
+  hideL();
+}
+function openPppProfileModal(data = null) {
+  editPppProf = data ? data.name : null;
+  document.getElementById("mpp-ttl").textContent = data
+    ? "Edit PPPoE Profile"
+    : "Add PPPoE Profile";
+  document.getElementById("mpp-err").textContent = "";
+  document.getElementById("mpp-nm").value = data?.name || "";
+  document.getElementById("mpp-nm").disabled = !!data;
+  document.getElementById("mpp-rl").value = data?.["rate-limit"] || "";
+  document.getElementById("mpp-ap").value = data?.["address-pool"] || "";
+  document.getElementById("mpp-la").value = data?.["local-address"] || "";
+  document.getElementById("mpp-st").value = data?.["session-timeout"] || "";
+  document.getElementById("mpp-it").value = data?.["idle-timeout"] || "";
+  document.getElementById("mpp-oo").value = data?.["only-one"] || "default";
+  document.getElementById("mpp-cm").value = data?.comment || "";
+  const statusEl = document.getElementById("mpp-act");
+  if (statusEl) statusEl.value = String(data?.active !== false);
+  document.getElementById("m-pp").classList.add("show");
+}
+async function editPppProfileFn(name) {
+  showL();
+  const p = await req(`/pppoe/${CS}/profiles/${name}`);
+  hideL();
+  if (p) openPppProfileModal(p);
+}
+async function savePppProfile() {
+  const nm = v("mpp-nm");
+  if (!nm) {
+    se("mpp-err", "Nama wajib");
+    return;
+  }
+  const body = {
+    name: nm,
+    "rate-limit": v("mhp-rl"),
+    "address-pool": v("mpp-ap"),
+    "local-address": v("mpp-la"),
+    "session-timeout": v("mpp-st"),
+    "idle-timeout": v("mpp-it"),
+    "only-one": v("mpp-oo"),
+    comment: v("mpp-cm"),
+    active: v("mpp-act") === "true"
+  };
+  showL();
+  const d = editPppProf
+    ? await fetch(`${API}/pppoe/${CS}/profiles/${editPppProf}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }).then((r) => r.json())
+    : await post(`/pppoe/${CS}/profiles`, body);
+  hideL();
+  if (d?.success) {
+    closeM("m-pp");
+    loadPppProfiles();
+    toast(editPppProf ? "Profile diupdate!" : "Profile ditambahkan!");
+  } else se("mpp-err", d?.error || "Gagal");
+}
+async function delPppProfile(name) {
+  if (!confirm(`Hapus "${name}"?`)) return;
+  showL();
+  await del(`/pppoe/${CS}/profiles/${name}`);
+  hideL();
+  toast("Profile dihapus");
+  loadPppProfiles();
+}
+
+// ════════════════════════════════════════════════
+// RESELLER
+// ════════════════════════════════════════════════
+async function loadResellers(isPg = false) {
+  if (!isPg) {
+    showL();
+    const d = (await req("/resellers")) || [];
+    PG["t-rs"].data = d;
+    PG["t-rs"].page = 1;
+    hideL();
+  }
+  document.getElementById("pg-t-rs").innerHTML = renderPagination(
+    "t-rs",
+    renderResellers
+  );
+}
+
+function renderResellers(subset) {
+  se(
+    "t-rs",
+    subset.length
+      ? subset
+          .map(
+            (r) =>
+              `<tr><td><b>${r.name}</b></td><td><span class="badge b-pu">${r.id}</span></td><td>${r.phone || "—"}</td><td>${r.discount || 0}%</td><td><div style="display:flex;gap:4px"><button class="btn b-w b-sm" onclick="editRsFn('${r.id}')"><i class="fa fa-pencil"></i></button><button class="btn b-d b-sm" onclick="delRs('${r.id}')"><i class="fa fa-trash"></i></button></div></td></tr>`
+          )
+          .join("")
+      : '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:18px">Belum ada reseller</td></tr>',
+    "innerHTML"
+  );
+}
+function openResellerModal(data = null) {
+  editRs = data?.id || null;
+  document.getElementById("mrs-ttl").textContent = data
+    ? "Edit Reseller"
+    : "Add Reseller";
+  document.getElementById("mrs-err").textContent = "";
+  document.getElementById("mrs-id").value = data?.id || "";
+  document.getElementById("mrs-id").disabled = !!data;
+  document.getElementById("mrs-nm").value = data?.name || "";
+  document.getElementById("mrs-ph").value = data?.phone || "";
+  document.getElementById("mrs-dc").value = data?.discount || 0;
+  document.getElementById("mrs-ad").value = data?.address || "";
+  document.getElementById("m-rs").classList.add("show");
+}
+async function editRsFn(id) {
+  const r = await req(`/resellers/${id}`);
+  if (r && !r.error) openResellerModal(r);
+}
+async function saveReseller() {
+  const id = v("mrs-id"),
+    nm = v("mrs-nm");
+  if (!id || !nm) {
+    se("mrs-err", "ID dan Nama wajib");
+    return;
+  }
+  const body = {
+    id,
+    name: nm,
+    phone: v("mrs-ph"),
+    discount: parseInt(v("mrs-dc")) || 0,
+    address: v("mrs-ad")
+  };
+  const d = await post("/resellers", body);
+  if (d?.id) {
+    closeM("m-rs");
+    loadResellers();
+    toast(editRs ? "Reseller diupdate!" : "Reseller ditambahkan!");
+  } else se("mrs-err", "Gagal");
+}
+async function delRs(id) {
+  if (!confirm(`Hapus "${id}"?`)) return;
+  await del(`/resellers/${id}`);
+  loadResellers();
+  toast("Reseller dihapus");
+}
+
+// ════════════════════════════════════════════════
+// BATCH VOUCHER
+// ════════════════════════════════════════════════
+async function initBatch() {
+  if (!CS) return;
+  const [profs, rs] = await Promise.all([
+    req(`/voucher/${CS}/profiles`),
+    req("/resellers")
+  ]);
+  const psel = document.getElementById("bv-prof");
+  psel.innerHTML =
+    (profs || [])
+      .map(
+        (p) =>
+          `<option value="${p.name}" data-val="${p.validity || ""}">${p.name}${p.validity ? " (" + p.validity + ")" : ""}${p.price ? " Rp" + Number(p.price).toLocaleString("id-ID") : ""}</option>`
+      )
+      .join("") || "<option>Tidak ada</option>";
+  psel.onchange = () => {
+    const o = psel.options[psel.selectedIndex];
+    document.getElementById("bv-val").value = o?.dataset.val || "";
+  };
+  psel.dispatchEvent(new Event("change"));
+  const rsel = document.getElementById("bv-rs");
+  rsel.innerHTML = '<option value="">— Tanpa Reseller —</option>';
+  (rs || []).forEach(
+    (r) =>
+      (rsel.innerHTML += `<option value="${r.id}">${r.name} (${r.id})</option>`)
+  );
+}
+
+async function saveBatchToServer(
+  rawVouchers,
+  genBody,
+  pmeta = {},
+  reseller = null
+) {
+  if (!CS) return;
+  if (!rawVouchers || !rawVouchers.length) {
+    console.warn("saveBatchToServer: no vouchers");
+    return;
+  }
+
+  const profileName = genBody.profile;
+  const color = pmeta.color || "#1f6feb";
+  const price = pmeta.sprice || pmeta.price || 0;
+  const validity = genBody.limitUptime || pmeta.validity || "";
+  const caption = pmeta.caption || profileName;
+  const batchId = `BATCH-${Date.now()}`;
+  const createdBy = document.getElementById("tb-un")?.textContent || "Admin";
+
+  const batch = {
+    id: batchId,
+    profileName,
+    profileColor: color,
+    price,
+    totalPrice: price * rawVouchers.length,
+    validity,
+    caption,
+    sessionId: CS,
+    nasName: CS,
+    createdBy,
+    createdAt: new Date().toISOString(),
+    resellerId: genBody.resellerId || "",
+    resellerName: reseller?.name || genBody.resellerName || "",
+    vouchers: rawVouchers.map((vcr) => ({
+      username: vcr.username,
+      password: vcr.password,
+      profile: profileName,
+      comment: vcr.comment || "",
+      limitUptime: vcr.limitUptime || validity,
+      color,
+      price,
+      caption,
+      status: "available",
+      usedBy: "",
+      usedAt: ""
+    }))
+  };
+
+  try {
+    const res = await fetch(`${API}/batches/${CS}`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(batch)
+    });
+    const saved = await res.json();
+    if (saved?.id) {
+      toast(`💾 Batch tersimpan: ${saved.id} (${rawVouchers.length} voucher)`);
+      await checkAndAutoRemoveByProfile(profileName);
+    } else {
+      console.error("saveBatchToServer response:", saved);
+      toast("⚠️ Batch gagal disimpan", true);
+    }
+  } catch (e) {
+    console.error("saveBatchToServer error:", e);
+    toast("⚠️ Batch gagal disimpan: " + e.message, true);
+  }
+}
+
+function copyVouchers() {
+  if (!genVcr.length) return;
+  navigator.clipboard
+    .writeText(
+      genVcr.map((v) => `${v.username}\t${v.password}\t${v.profile}`).join("\n")
+    )
+    .then(() => toast("Copied!"));
+}
+
+async function generateVouchers(asCsv = false) {
+  if (!CS) return;
+  const qty = parseInt(v("bv-qty")) || 10;
+  if (qty < 1 || qty > 500) {
+    se("bv-err", "Qty 1–500");
+    return;
+  }
+
+  const rsId = v("bv-rs");
+  const rsList = (await req("/resellers")) || [];
+  const reseller = rsList.find((r) => r.id === rsId) || null;
+  const profileName = v("bv-prof");
+  const limitUptime = v("bv-val") || undefined;
+  const userType = v("bv-type");
+  const charType = v("bv-char");
+
+  const body = {
+    sessionId: CS,
+    profile: profileName,
+    quantity: qty,
+    usernameLength: parseInt(v("bv-ulen")) || 5,
+    prefix: v("bv-pfx") || undefined,
+    userType,
+    charType,
+    limitUptime,
+    resellerId: rsId || undefined,
+    resellerName: reseller?.name || undefined
+  };
+
+  se("bv-err", "");
+  const btnGen = document.getElementById("btn-gen");
+  btnGen.disabled = true;
+  btnGen.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Generating...';
+  showL();
+
+  try {
+    if (asCsv) {
+      const r = await fetch(`${API}/voucher/generate/csv`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const blob = await r.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `vouchers-${profileName}-${Date.now()}.csv`;
+      a.click();
+      toast("CSV didownload!");
+      return;
+    }
+
+    const d = await post("/voucher/generate", body);
+    if (!d?.success) {
+      se("bv-err", d?.message || "Gagal generate");
+      return;
+    }
+
+    // rawVcr = original from server (username + password intact)
+    const rawVcr = d.vouchers || [];
+
+    // Fetch profile metadata for color/price/validity
+    const pmeta = await fetchProfileMeta(profileName).catch(() => ({}));
+    const color = pmeta.color || "#1f6feb";
+    const price = pmeta.sprice || pmeta.price || 0;
+    const validity = limitUptime || pmeta.validity || "";
+    const caption = pmeta.caption || profileName;
+
+    // Enrich genVcr for display & print
+    genVcr = rawVcr.map((vcr) => ({
+      ...vcr,
+      color,
+      price,
+      caption,
+      validity,
+      limitUptime: vcr.limitUptime || validity
+    }));
+
+    // Update UI
+    document.getElementById("gen-ct").textContent = `(${genVcr.length})`;
+    document.getElementById("btn-cp").style.display = "";
+    document.getElementById("btn-print").style.display = "";
+    se(
+      "vr",
+      `<div class="vcr-grid">${genVcr
+        .map(
+          (vcr) =>
+            `<div class="vcr-card" style="border-top:3px solid ${color}">
+        <div class="vu">${vcr.username}</div>
+        <div class="vp"><i class="fa fa-key"></i> ${vcr.password}</div>
+        <div class="vpr">${profileName}${validity ? " · " + validity : ""}</div>
+      </div>`
+        )
+        .join("")}</div>`,
+      "innerHTML"
+    );
+
+    toast(`${genVcr.length} voucher digenerate!`);
+
+    // Save batch (use rawVcr — has original username + password)
+    await saveBatchToServer(rawVcr, body, pmeta, reseller);
+  } catch (e) {
+    se("bv-err", "Error: " + e.message);
+    console.error("generateVouchers error:", e);
+  } finally {
+    hideL();
+    btnGen.disabled = false;
+    btnGen.innerHTML = '<i class="fa fa-bolt"></i> Generate & Simpan';
+  }
+}
+
+function copyVouchers() {
+  if (!genVcr.length) return;
+  navigator.clipboard
+    .writeText(
+      genVcr.map((v) => `${v.username}\t${v.password}\t${v.profile}`).join("\n")
+    )
+    .then(() => toast("Copied!"));
+}
+
+// ════════════════════════════════════════════════
+// VOUCHER SETTINGS
+// ════════════════════════════════════════════════
+async function loadVoucherSettings() {
+  const d = (await req("/voucher-types")) || [];
+  se(
+    "t-vt",
+    d.length
+      ? d
+          .map(
+            (vt) =>
+              `<tr><td class="vt-name">${vt.name}</td><td style="color:var(--green);font-weight:600">Rp ${Number(vt.price).toLocaleString("id-ID")}</td><td><span class="badge b-bl">${vt.profile}</span></td><td>${vt.duration || "—"}</td><td style="color:var(--muted);font-size:.76rem">${vt.codeLength}char · ${CFMT[vt.codeFormat] || vt.codeFormat}</td><td>${vt.maxPerOrder}</td><td><span class="badge ${vt.active ? "b-gr" : "b-rd"}" style="cursor:pointer" onclick="toggleVt('${vt.id}')">${vt.active ? "Aktif" : "Nonaktif"}</span></td><td><div style="display:flex;gap:4px"><button class="btn b-w b-sm" onclick="editVtFn('${vt.id}')"><i class="fa fa-pencil"></i></button><button class="btn b-d b-sm" onclick="deleteVt('${vt.id}')"><i class="fa fa-trash"></i></button></div></td></tr>`
+          )
+          .join("")
+      : '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">Belum ada tipe voucher</td></tr>',
+    "innerHTML"
+  );
+}
+async function openVtModal(data = null) {
+  editVtId = data?.id || null;
+  document.getElementById("mvt-ttl").textContent = data
+    ? "Edit Tipe Voucher"
+    : "Tambah Tipe Voucher";
+  document.getElementById("mvt-err").textContent = "";
+  document.getElementById("mvt-nm").value = data?.name || "";
+  document.getElementById("mvt-pr").value = data?.price || 1000;
+  document.getElementById("mvt-dur").value = data?.duration || "";
+  document.getElementById("mvt-len").value = data?.codeLength || 6;
+  document.getElementById("mvt-fmt").value = data?.codeFormat || "upper+digit";
+  document.getElementById("mvt-max").value = data?.maxPerOrder || 10;
+  document.getElementById("mvt-act").value =
+    data?.active !== false ? "true" : "false";
+  document.getElementById("mvt-type").value = data?.userType || "";
+  const psel = document.getElementById("mvt-prof");
+  psel.innerHTML = '<option value="">Loading...</option>';
+
+  if (CS) {
+    // Selalu ambil data terbaru dari MikroTik agar sinkron
+    const profs = (await req(`/mikrotik/${CS}/hotspot/profiles`)) || [];
+    psel.innerHTML = '<option value="">Pilih profile...</option>';
+    profs.forEach((p) => {
+      const isSel = p.name === data?.profile;
+      psel.innerHTML += `<option value="${p.name}" ${isSel ? "selected" : ""}>${p.name}${p.validity ? " (" + p.validity + ")" : ""}${p.price ? " Rp" + Number(p.price).toLocaleString("id-ID") : ""}</option>`;
+    });
+    // Jika profile yang tersimpan di database tidak ada di MikroTik (mungkin dihapus manual di Winbox)
+    if (data?.profile && !profs.find((p) => p.name === data.profile)) {
+      psel.innerHTML += `<option value="${data.profile}" selected>${data.profile} (Tidak ada di MikroTik!)</option>`;
+    }
+  } else {
+    psel.innerHTML = `<option value="${data?.profile || ""}" ${data?.profile ? "selected" : ""}>${data?.profile || "Pilih router dulu"}</option>`;
+  }
+  document.getElementById("m-vt").classList.add("show");
+}
+async function editVtFn(id) {
+  const vt = await req(`/voucher-types/${id}`);
+  if (vt && !vt.error) openVtModal(vt);
+}
+async function saveVt() {
+  const nm = v("mvt-nm"),
+    prof = v("mvt-prof"),
+    userType = v("mvt-type");
+  if (!nm) {
+    se("mvt-err", "Nama wajib");
+    return;
+  }
+  if (!prof) {
+    se("mvt-err", "Profile wajib dipilih");
+    return;
+  }
+  const body = {
+    id: editVtId || undefined,
+    name: nm,
+    profile: prof,
+    price: parseFloat(v("mvt-pr")) || 0,
+    duration: v("mvt-dur"),
+    codeLength: parseInt(v("mvt-len")) || 6,
+    codeFormat: v("mvt-fmt"),
+    maxPerOrder: parseInt(v("mvt-max")) || 10,
+    userType: userType || "up",
+    active: v("mvt-act") === "true"
+  };
+  showL();
+  const d = editVtId
+    ? await fetch(`${API}/voucher-types/${editVtId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }).then((r) => r.json())
+    : await post("/voucher-types", body);
+  hideL();
+  if (d?.id || d?.name) {
+    closeM("m-vt");
+    loadVoucherSettings();
+    toast(editVtId ? "Tipe diupdate!" : "Tipe ditambahkan!");
+  } else se("mvt-err", d?.error || "Gagal");
+}
+async function deleteVt(id) {
+  if (!confirm("Hapus?")) return;
+  showL();
+  await del(`/voucher-types/${id}`);
+  hideL();
+  loadVoucherSettings();
+  toast("Dihapus");
+}
+async function toggleVt(id) {
+  const d = await fetch(`${API}/voucher-types/${id}/toggle`, {
+    method: "PATCH",
+    credentials: "include"
+  }).then((r) => r.json());
+  if (d?.success) {
+    loadVoucherSettings();
+    toast(d.active ? "Diaktifkan" : "Dinonaktifkan");
+  }
+}
+
+// ════════════════════════════════════════════════
+// SELLING REPORT
+// ════════════════════════════════════════════════
+let slInited = false;
+async function initSelling() {
+  if (!slInited) {
+    const now = new Date();
+    const dEl = document.getElementById("sr-d"),
+      mEl = document.getElementById("sr-m"),
+      yEl = document.getElementById("sr-y");
+    for (let d = 1; d <= 31; d++)
+      dEl.innerHTML += `<option value="${String(d).padStart(2, "0")}">${String(d).padStart(2, "0")}</option>`;
+    MS.forEach(
+      (m, i) =>
+        (mEl.innerHTML += `<option value="${m}" ${i === now.getMonth() ? "selected" : ""}>${MF[i]}</option>`)
+    );
+    for (let y = 2018; y <= now.getFullYear(); y++)
+      yEl.innerHTML += `<option value="${y}" ${y === now.getFullYear() ? "selected" : ""}>${y}</option>`;
+    slInited = true;
+  }
+  const rs = (await req("/resellers")) || [];
+  const rsel = document.getElementById("sr-rs");
+  rsel.innerHTML = '<option value="">All Reseller</option>';
+  rs.forEach(
+    (r) =>
+      (rsel.innerHTML += `<option value="${r.id}">${r.name} (${r.id})</option>`)
+  );
+  loadSelling();
+}
+async function loadSelling(isPg = false) {
+  if (!CS) return;
+  let s = { currency: "Rp", isIndo: true };
+  if (!isPg) {
+    showL();
+    const day = v("sr-d"),
+      mon = v("sr-m"),
+      yr = v("sr-y"),
+      rs = v("sr-rs");
+    let p = day ? `idhr=${mon}/${day}/${yr}` : `idbl=${mon}${yr}`;
+    if (rs) p += `&reseller=${rs}`;
+    const data = (await req(`/report/${CS}/selling?${p}`)) || {};
+    selData = data.records || [];
+    rslGrps = data.resellerGroups || [];
+    s = data.summary || {};
+    document.getElementById("sr-vcr").textContent = s.totalVouchers || 0;
+    document.getElementById("sr-inc").textContent = fmtC(
+      s.totalIncome || 0,
+      s.currency,
+      s.isIndo
+    );
+    document.getElementById("sr-rct").textContent = rslGrps.length;
+
+    PG["t-sel"].data = selData;
+    PG["t-sel"].page = 1;
+    PG["t-sel"].extra = s; // store summary for render
+    hideL();
+  } else {
+    s = PG["t-sel"].extra;
+  }
+
+  document.getElementById("pg-t-sel").innerHTML = renderPagination(
+    "t-sel",
+    renderSelling
+  );
+
+  const mx = Math.max(...rslGrps.map((r) => r.total), 1);
+  se(
+    "rsl-grp",
+    rslGrps.length
+      ? `<table><thead><tr><th>Reseller</th><th>Vouchers</th><th style="text-align:right">Total Income</th><th style="min-width:130px">Progress</th></tr></thead><tbody>${rslGrps.map((r) => `<tr><td><span class="badge b-pu">${r.tag}</span></td><td>${r.vouchers}</td><td style="text-align:right;color:var(--green);font-weight:600">${fmtC(r.total, s.currency, s.isIndo)}</td><td><div style="background:var(--border);border-radius:3px;height:6px;overflow:hidden"><div style="height:100%;width:${Math.round((r.total / mx) * 100)}%;background:var(--acc2);border-radius:3px"></div></div></td></tr>`).join("")}</tbody></table>`
+      : '<p style="color:var(--muted);padding:16px 0">Tidak ada data</p>',
+    "innerHTML"
+  );
+}
+
+function renderSelling(subset) {
+  const s = PG["t-sel"].extra;
+  se(
+    "t-sel",
+    subset.length
+      ? subset
+          .map(
+            (r, i) =>
+              `<tr><td>${(PG["t-sel"].page - 1) * PG["t-sel"].limit + i + 1}</td><td>${r.date}</td><td>${r.time}</td><td>${r.username}</td><td><span class="badge b-bl">${r.profile}</span></td><td><span class="badge b-pu">${r.resellerTag}</span></td><td style="text-align:right">${s.isIndo ? r.price.toLocaleString("id-ID") : r.price.toFixed(2)}</td></tr>`
+          )
+          .join("")
+      : '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:18px">Tidak ada data</td></tr>',
+    "innerHTML"
+  );
+}
+function switchTab(t) {
+  document
+    .querySelectorAll(".tab")
+    .forEach((x) => x.classList.remove("active"));
+  document.getElementById("tab-" + t).classList.add("active");
+  document.getElementById("pnl-det").style.display = t === "det" ? "" : "none";
+  document.getElementById("pnl-rsl").style.display = t === "rsl" ? "" : "none";
+}
+function exportCSV() {
+  if (!selData.length) {
+    toast("Tidak ada data", true);
+    return;
+  }
+  const rows = [
+    ["#", "Date", "Time", "Username", "Profile", "Reseller", "Price"]
+  ];
+  selData.forEach((r, i) =>
+    rows.push([
+      i + 1,
+      r.date,
+      r.time,
+      r.username,
+      r.profile,
+      r.resellerTag,
+      r.price
+    ])
+  );
+  const csv = rows.map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+  a.download = `selling-${CS}-${Date.now()}.csv`;
+  a.click();
+}
+
+// ════════════════════════════════════════════════
+// RESUME REPORT
+// ════════════════════════════════════════════════
+let rrInited = false;
+function initResume() {
+  if (!rrInited) {
+    const now = new Date();
+    MS.forEach(
+      (m, i) =>
+        (document.getElementById("rr-m").innerHTML +=
+          `<option value="${m}" ${i === now.getMonth() ? "selected" : ""}>${MF[i]}</option>`)
+    );
+    for (let y = 2018; y <= now.getFullYear(); y++)
+      document.getElementById("rr-y").innerHTML +=
+        `<option value="${y}" ${y === now.getFullYear() ? "selected" : ""}>${y}</option>`;
+    rrInited = true;
+  }
+  loadResume();
+}
+async function loadResume() {
+  if (!CS) return;
+  showL();
+  const data =
+    (await req(`/report/${CS}/resume?idbl=${v("rr-m")}${v("rr-y")}`)) || {};
+  const daily = data.daily || [],
+    s = data.summary || {};
+  document.getElementById("rr-v").textContent = s.totalVouchers || 0;
+  document.getElementById("rr-i").textContent = fmtC(
+    s.totalIncome || 0,
+    s.currency,
+    s.isIndo
+  );
+  if (rChart) rChart.destroy();
+  rChart = new Chart(document.getElementById("rc").getContext("2d"), {
+    type: "line",
+    data: {
+      labels: daily.map((d) => d.date + " " + (s.month || "")),
+      datasets: [
+        {
+          label: "Income",
+          data: daily.map((d) => d.total),
+          borderColor: "#388bfd",
+          backgroundColor: "#388bfd18",
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: "#388bfd",
+          pointRadius: 3
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: "#8b949e" } } },
+      scales: {
+        x: { ticks: { color: "#8b949e" }, grid: { color: "#21262d" } },
+        y: { ticks: { color: "#8b949e" }, grid: { color: "#21262d" } }
+      }
+    }
+  });
+  hideL();
+}
+
+// ════════════════════════════════════════════════
+// LIVE REPORT
+// ════════════════════════════════════════════════
+async function loadLive() {
+  if (!CS) return;
+  showL();
+  const d = (await req(`/report/${CS}/live`)) || {};
+  document.getElementById("lr-tv").textContent = d.today?.vouchers ?? "—";
+  document.getElementById("lr-ti").textContent = fmtC(
+    d.today?.income || 0,
+    d.currency,
+    d.isIndo
+  );
+  document.getElementById("lr-mv").textContent = d.month?.vouchers ?? "—";
+  document.getElementById("lr-mi").textContent = fmtC(
+    d.month?.income || 0,
+    d.currency,
+    d.isIndo
+  );
+  hideL();
+}
+
+// ════════════════════════════════════════════════
+// TELEGRAM TOOLS
+// ════════════════════════════════════════════════
+let botRunning = false;
+
+async function loadTgInfo() {
+  const [cfg, logs] = await Promise.all([
+    req("/telegram/config"),
+    req("/telegram/logs")
+  ]);
+  if (!cfg) return;
+
+  // Restore token from config (masked on GET, so just show placeholder)
+  document.getElementById("tg-token").value = "";
+  document.getElementById("tg-chatid").value = cfg.chatId || "";
+  const tgSel = document.getElementById("tg-session");
+  if (tgSel && cfg.sessionId) tgSel.value = cfg.sessionId;
+
+  document.getElementById("tg-allowed").value = (cfg.allowedUsers || []).join(
+    ","
+  );
+  document.getElementById("tg-notif-daily").value =
+    cfg.notifDaily !== false ? "true" : "false";
+  document.getElementById("tg-daily-time").value = cfg.dailyTime || "23:59";
+  document.getElementById("tg-notif-sale").value = cfg.notifSale
+    ? "true"
+    : "false";
+  document.getElementById("tg-enabled").value =
+    cfg.botEnabled !== false ? "true" : "false";
+
+  // Bot info
+  botRunning = cfg.botEnabled !== false && !!cfg.token;
+  document.getElementById("tg-bot-router").textContent = cfg.sessionId || "—";
+  document.getElementById("tg-admin-id").textContent = cfg.chatId || "—";
+  // Fetch real bot info from Telegram
+  if (cfg.token && !cfg.token.includes("...")) {
+    fetchBotInfo(cfg.token);
+  } else if (cfg.token) {
+    document.getElementById("tg-bot-name").textContent = "Terkonfigurasi";
+    document.getElementById("tg-bot-username").textContent =
+      "(token tersimpan)";
+  } else {
+    document.getElementById("tg-bot-name").textContent = "—";
+    document.getElementById("tg-bot-username").textContent = "—";
+  }
+
+  const statusBadge = document.getElementById("tg-status-badge");
+  const toggleBtn = document.getElementById("tg-toggle-btn");
+  if (botRunning) {
+    statusBadge.innerHTML =
+      '<span class="tg-badge running"><i class="fa fa-circle"></i> Running</span>';
+    toggleBtn.style.background = "#f8514918";
+    toggleBtn.style.color = "var(--red)";
+    toggleBtn.style.border = "1px solid #f8514940";
+    toggleBtn.innerHTML = '<i class="fa fa-stop-circle"></i> Stop Bot';
+  } else {
+    statusBadge.innerHTML = '<span class="tg-badge stopped">● Stopped</span>';
+    toggleBtn.style.background = "#3fb95018";
+    toggleBtn.style.color = "var(--green)";
+    toggleBtn.style.border = "1px solid #3fb95040";
+    toggleBtn.innerHTML = '<i class="fa fa-play-circle"></i> Start Bot';
+  }
+
+  // Logs
+  const logEl = document.getElementById("tg-log");
+  logEl.innerHTML = (logs || []).length
+    ? [...(logs || [])]
+        .reverse()
+        .slice(0, 30)
+        .map(
+          (l) =>
+            `<div style="padding:3px 0;border-bottom:1px solid var(--border)">
+          <span style="color:var(--muted);font-size:.7rem">${l.time}</span>
+          <b style="margin:0 5px">${l.from}</b>${l.message}
+        </div>`
+        )
+        .join("")
+    : '<p style="padding:8px 0">Belum ada aktivitas.</p>';
+}
+
+async function saveTelegramConfig() {
+  const token = v("tg-token").trim();
+  const chatId = v("tg-chatid").trim();
+  const sessionId = v("tg-session");
+  if (!chatId) {
+    se("tg-err", "Chat ID wajib diisi");
+    return;
+  }
+  if (!sessionId) {
+    se("tg-err", "Pilih router session");
+    return;
+  }
+  se("tg-err", "");
+  const allowedRaw = v("tg-allowed").trim();
+  const body = {
+    ...(token ? { token } : {}),
+    chatId,
+    sessionId,
+
+    allowedUsers: allowedRaw
+      ? allowedRaw
+          .split(",")
+          .map((x) => x.trim())
+          .filter(Boolean)
+      : [],
+    notifSale: v("tg-notif-sale") === "true",
+    notifDaily: v("tg-notif-daily") === "true",
+    dailyTime: v("tg-daily-time"),
+    botEnabled: v("tg-enabled") === "true"
+  };
+  const d = await post("/telegram/config", body);
+  d?.success
+    ? (toast("✓ Config Telegram disimpan! Bot aktif."), loadTgInfo())
+    : se("tg-err", "Gagal menyimpan");
+}
+
+async function testTelegram() {
+  const cfg = await req("/telegram/config");
+  if (!cfg) return;
+  const token = cfg.token;
+  const chatId = v("tg-chatid").trim();
+  const sessionId = v("tg-session");
+  if (!chatId) {
+    se("tg-test-err", "Chat ID wajib");
+    return;
+  }
+  se("tg-test-err", "");
+  showL();
+  const d = await post("/telegram/test", { token, chatId, sessionId });
+  hideL();
+  d?.success
+    ? toast("✓ Test berhasil dikirim!")
+    : se("tg-test-err", "Gagal: " + (d?.error || "error"));
+}
+
+async function toggleBot() {
+  // Toggle bot enabled in config
+  const cfg = await req("/telegram/config");
+  if (!cfg) return;
+  const newEnabled = !botRunning;
+  // Save with toggled enabled
+  await post("/telegram/config", {
+    ...cfg,
+    token: cfg.token,
+    botEnabled: newEnabled
+  });
+  toast(newEnabled ? "✓ Bot diaktifkan" : "Bot dihentikan");
+  await loadTgInfo();
+}
+
+async function broadcastMsg() {
+  const msg = document.getElementById("tg-broadcast").value.trim();
+  if (!msg) {
+    toast("Pesan kosong", true);
+    return;
+  }
+  // For now just show info — broadcast requires iterating known user IDs
+  toast(
+    "Fitur broadcast memerlukan daftar user ID aktif. Simpan user ID saat mereka /start bot.",
+    true
+  );
+}
+
+// ════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════
+async function req(path) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 25000); // 15s timeout
+  try {
+    const r = await fetch(API + path, {
+      credentials: "include",
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (r.status === 401) {
+      if (path !== "/auth/me")
+        document.getElementById("ls").classList.remove("hide");
+      return null;
+    }
+    return await r.json();
+  } catch (e) {
+    clearTimeout(timeoutId);
+    console.error("Request failed:", path, e);
+    return null;
+  }
+}
+
+async function post(path, body) {
+  try {
+    return await fetch(API + path, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    }).then((r) => r.json());
+  } catch (e) {
+    toast("Error: " + e.message, true);
+    return null;
+  }
+}
+async function del(path) {
+  try {
+    return await fetch(API + path, {
+      method: "DELETE",
+      credentials: "include"
+    }).then((r) => r.json());
+  } catch (e) {
+    toast("Error: " + e.message, true);
+    return null;
+  }
+}
+function v(id) {
+  return document.getElementById(id)?.value || "";
+}
+function se(id, val, prop = "innerHTML") {
+  const el = document.getElementById(id);
+  if (el) el[prop] = val;
+}
+function fmtC(n, cur, isIndo) {
+  if (!cur) return String(Math.round(n));
+  return isIndo
+    ? cur + " " + Math.round(n).toLocaleString("id-ID")
+    : cur + " " + Number(n).toFixed(2);
+}
+function fmtB(b) {
+  const n = parseInt(b);
+  if (!n) return "—";
+  if (n > 1e9) return (n / 1e9).toFixed(1) + " GB";
+  if (n > 1e6) return (n / 1e6).toFixed(1) + " MB";
+  return (n / 1e3).toFixed(0) + " KB";
+}
+function filterTbl(tbId, inId) {
+  const q = v(inId).toLowerCase();
+  document
+    .querySelectorAll(`#${tbId} tr`)
+    .forEach(
+      (r) =>
+        (r.style.display = r.textContent.toLowerCase().includes(q)
+          ? ""
+          : "none")
+    );
+}
+function closeM(id) {
+  document.getElementById(id).classList.remove("show");
+}
+function showL() {
+  document.getElementById("ld").classList.add("show");
+}
+function hideL() {
+  document.getElementById("ld").classList.remove("show");
+}
+function toast(msg, isErr = false) {
+  const el = document.createElement("div");
+  el.className = "ti";
+  el.style.borderLeftColor = isErr ? "var(--red)" : "var(--green)";
+  el.textContent = msg;
+  document.getElementById("toast").appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// ════════════════════════════════════════════════
+// BATCH VOUCHER LIST
+// ════════════════════════════════════════════════
+let allBatches = [];
+let currentBatch = null;
+let batchDetailFilter = "all";
+
+// ── IMPORT VOUCHER ──────────────────────────────────────────────
+
+let impProfiles = []; // profile list from server
+let impSelected = new Set();
+
+async function importFromMikrotik() {
+  if (!CS) {
+    toast("Pilih router dulu", true);
+    return;
+  }
+  impProfiles = [];
+  impSelected = new Set();
+
+  // Reset modal to step 1
+  document.getElementById("imp-step1").style.display = "block";
+  document.getElementById("imp-step2").style.display = "none";
+  document.getElementById("imp-profiles-list").innerHTML =
+    '<div style="text-align:center;padding:20px;color:var(--muted)"><i class="fa fa-spinner fa-spin"></i> Memuat daftar profile...</div>';
+  document.getElementById("m-import").classList.add("show");
+
+  // Fetch profiles
+  try {
+    const d = await req(`/batches/${CS}/import/profiles`);
+    if (!d?.success || !d.profiles?.length) {
+      document.getElementById("imp-profiles-list").innerHTML =
+        '<div style="color:var(--muted);padding:16px">Tidak ada profile dengan harga yang dikonfigurasi.<br>Atur harga di menu <b>User Profiles</b> terlebih dahulu.</div>';
+      return;
+    }
+    impProfiles = d.profiles;
+    // Select all by default
+    impProfiles.forEach((p) => impSelected.add(p.name));
+    renderImportProfiles();
+  } catch (e) {
+    document.getElementById("imp-profiles-list").innerHTML =
+      `<div style="color:var(--red);padding:16px">Error: ${e.message}</div>`;
+  }
+}
+
+function renderImportProfiles() {
+  const el = document.getElementById("imp-profiles-list");
+  el.innerHTML = impProfiles
+    .map((p) => {
+      const checked = impSelected.has(p.name);
+      const priceStr = p.sprice
+        ? "Rp " + Number(p.sprice).toLocaleString("id-ID")
+        : p.price
+          ? "Rp " + Number(p.price).toLocaleString("id-ID")
+          : "—";
+      return `<label style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:7px;cursor:pointer;border:1px solid ${checked ? "var(--acc2)" : "var(--border)"};margin-bottom:6px;background:${checked ? "var(--acc2)10" : "transparent"};transition:.12s">
+      <input type="checkbox" ${checked ? "checked" : ""} onchange="toggleImpProfile('${p.name}',this.checked)" style="width:auto;accent-color:var(--acc2)">
+      <div style="width:10px;height:10px;border-radius:50%;background:${p.profileColor || "#1f6feb"};flex-shrink:0"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:.85rem">${p.name}</div>
+        <div style="font-size:.75rem;color:var(--muted)">${p.rateLimit || "—"} · ${p.validity || "—"} · ${priceStr}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:.85rem;font-weight:600;color:var(--acc2)">${p.userCount}</div>
+        <div style="font-size:.7rem;color:var(--muted)">user</div>
+      </div>
+    </label>`;
+    })
+    .join("");
+}
+
+function toggleImpProfile(name, checked) {
+  if (checked) impSelected.add(name);
+  else impSelected.delete(name);
+  renderImportProfiles();
+}
+
+function selectAllProfiles() {
+  if (impSelected.size === impProfiles.length) {
+    impSelected.clear();
+  } else {
+    impProfiles.forEach((p) => impSelected.add(p.name));
+  }
+  renderImportProfiles();
+}
+
+async function startImport() {
+  if (!impSelected.size) {
+    toast("Pilih minimal 1 profile", true);
+    return;
+  }
+  const months = parseInt(document.getElementById("imp-months").value) || 3;
+  const toImport = impProfiles.filter((p) => impSelected.has(p.name));
+
+  // Switch to step 2
+  document.getElementById("imp-step1").style.display = "none";
+  document.getElementById("imp-step2").style.display = "block";
+  document.getElementById("imp-done-btn").style.display = "none";
+  document.getElementById("imp-summary").textContent = "";
+
+  const list = document.getElementById("imp-progress-list");
+  list.innerHTML = toImport
+    .map(
+      (p) =>
+        `<div id="imp-row-${p.name.replace(/[^a-zA-Z0-9]/g, "_")}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;margin-bottom:4px;background:var(--card2);font-size:.82rem">
+      <div style="width:10px;height:10px;border-radius:50%;background:${p.profileColor || "#1f6feb"};flex-shrink:0"></div>
+      <div style="flex:1"><b>${p.name}</b> <span style="color:var(--muted)">(${p.userCount} user)</span></div>
+      <div id="imp-status-${p.name.replace(/[^a-zA-Z0-9]/g, "_")}" style="color:var(--muted)"><i class="fa fa-clock-o"></i> Menunggu</div>
+    </div>`
+    )
+    .join("");
+
+  let done = 0,
+    totalVcr = 0,
+    totalAvail = 0,
+    errors = 0;
+  const total = toImport.length;
+  const createdBy = document.getElementById("tb-un")?.textContent || "Admin";
+
+  for (const p of toImport) {
+    const safeId = p.name.replace(/[^a-zA-Z0-9]/g, "_");
+    const statusEl = document.getElementById(`imp-status-${safeId}`);
+    const rowEl = document.getElementById(`imp-row-${safeId}`);
+    if (statusEl)
+      statusEl.innerHTML =
+        '<i class="fa fa-spinner fa-spin" style="color:var(--acc2)"></i> Importing...';
+
+    try {
+      const d = await fetch(`${API}/batches/${CS}/import/profile`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profileName: p.name,
+          createdBy,
+          monthsBack: months
+        })
+      }).then((r) => r.json());
+
+      if (d?.success) {
+        totalVcr += d.imported || 0;
+        totalAvail += d.available || 0;
+        if (statusEl)
+          statusEl.innerHTML = `<span style="color:var(--green)"><i class="fa fa-check"></i> ${d.imported} vcr · ${d.available} tersedia</span>`;
+        if (rowEl) rowEl.style.borderLeft = "3px solid var(--green)";
+      } else {
+        errors++;
+        if (statusEl)
+          statusEl.innerHTML = `<span style="color:var(--red)" title="${d?.error || ""}"><i class="fa fa-times"></i> Error</span>`;
+        if (rowEl) rowEl.style.borderLeft = "3px solid var(--red)";
+      }
+    } catch (e) {
+      errors++;
+      if (statusEl)
+        statusEl.innerHTML = `<span style="color:var(--red)"><i class="fa fa-times"></i> Timeout</span>`;
+      if (rowEl) rowEl.style.borderLeft = "3px solid var(--red)";
+    }
+
+    done++;
+    const pct = Math.round((done / total) * 100);
+    document.getElementById("imp-progress-bar").style.width = pct + "%";
+    document.getElementById("imp-progress-label").textContent =
+      `${done} / ${total} selesai`;
+    document.getElementById("imp-progress-pct").textContent = pct + "%";
+    // Scroll to current row
+    if (rowEl) rowEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  const sumEl = document.getElementById("imp-summary");
+  if (sumEl)
+    sumEl.innerHTML =
+      `<span style="color:var(--green)"><i class="fa fa-check-circle"></i> Selesai: <b>${totalVcr}</b> voucher diimport, <b>${totalAvail}</b> tersedia</span>` +
+      (errors
+        ? ` · <span style="color:var(--red)">${errors} error</span>`
+        : "");
+  document.getElementById("imp-done-btn").style.display = "";
+}
+
+async function loadBatchList() {
+  initAutoRemoveSetting();
+  if (!CS) {
+    const grid = document.getElementById("batch-grid");
+    if (grid)
+      grid.innerHTML = `<div style="color:var(--muted);padding:30px;text-align:center;grid-column:1/-1">
+      <i class="fa fa-server" style="font-size:2rem;display:block;margin-bottom:10px;opacity:.4"></i>
+      Pilih router terlebih dahulu dari sidebar</div>`;
+    return;
+  }
+  const grid = document.getElementById("batch-grid");
+  if (grid)
+    grid.innerHTML = `<div style="color:var(--muted);padding:20px;grid-column:1/-1"><i class="fa fa-spinner fa-spin"></i> Memuat data...</div>`;
+
+  const profileFilter =
+    document.getElementById("batch-filter-profile")?.value || "";
+  const batches = (await req(`/batches/${CS}`)) || [];
+  allBatches = batches;
+
+  // Populate profile filter dropdown
+  const psel = document.getElementById("batch-filter-profile");
+  if (psel) {
+    const profiles = [...new Set(batches.map((b) => b.profileName))];
+    const cur = psel.value;
+    psel.innerHTML = '<option value="">Semua Package</option>';
+    profiles.forEach(
+      (p) =>
+        (psel.innerHTML += `<option value="${p}" ${p === cur ? "selected" : ""}>${p}</option>`)
+    );
+  }
+
+  const filtered = profileFilter
+    ? batches.filter((b) => b.profileName === profileFilter)
+    : batches;
+  const countLbl = document.getElementById("batch-count-label");
+  if (countLbl) countLbl.textContent = `${filtered.length} batch tersedia`;
+
+  if (!grid) return;
+  if (!filtered.length) {
+    grid.innerHTML = `<div style="color:var(--muted);padding:40px;text-align:center;grid-column:1/-1">
+      <i class="fa fa-archive" style="font-size:2.5rem;display:block;margin-bottom:12px;opacity:.35"></i>
+      <div style="font-size:.95rem;margin-bottom:8px">Belum ada batch voucher</div>
+      <div style="font-size:.82rem;margin-bottom:16px">Generate voucher baru atau import dari MikroTik</div>
+      <div id="STEP2_HTML_INSERT_BEFORE_IMPORT_BUTTON">
+      <div class="ar-toggle-wrap" id="ar-toggle" onclick="toggleAutoRemoveSetting()" title="Otomatis hapus batch yang sudah habis terjual">
+          <div class="ar-pill" id="ar-pill"></div>
+          <span id="ar-label">Auto Hapus Batch Habis</span>
+        </div>
+      </div>
+      <button class="btn b-p" onclick="importFromMikrotik()"><i class="fa fa-download"></i> Import dari MikroTik</button>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map((b) => buildBatchCard(b)).join("");
+}
+
+function buildBatchCard(b) {
+  const s = b.stats || {};
+  const pct = s.total ? Math.round((s.used / s.total) * 100) : 0;
+  const color = b.profileColor || "#1f6feb";
+  const priceStr = b.price
+    ? "Rp " + Number(b.price).toLocaleString("id-ID")
+    : "—";
+  const totalStr = b.totalPrice
+    ? "Rp " + Number(b.totalPrice).toLocaleString("id-ID")
+    : "—";
+  const date = b.createdAt
+    ? new Date(b.createdAt).toLocaleString("id-ID", {
+        dateStyle: "medium",
+        timeStyle: "short"
+      })
+    : "—";
+
+  return `<div class="batch-card" onclick="openBatchDetail('${b.id}')">
+    <div class="batch-card-top" style="border-left:4px solid ${color}">
+      <div class="batch-card-id">${b.id}</div>
+      <div class="batch-card-profile">${b.profileName}</div>
+      <div class="batch-card-meta">
+        <span><i class="fa fa-server" style="width:12px"></i> NAS: <b style="color:var(--acc2)">${b.nasName || b.sessionId}</b></span>
+        <span><i class="fa fa-user" style="width:12px"></i> By: ${b.createdBy || "Admin"}</span>
+        ${b.resellerName ? `<span style="color:var(--purple)"><i class="fa fa-handshake-o" style="width:12px"></i> Reseller: <b>${b.resellerName}</b></span>` : ""}
+      </div>
+      <div class="batch-card-price">
+        <div class="unit" style="color:${color}">${priceStr}</div>
+        <div class="total">Total: ${totalStr}</div>
+        <div class="fmt">user+pass</div>
+      </div>
+    </div>
+    <div class="batch-card-bot">
+      <div class="batch-card-bar">
+        <div class="batch-card-fill" style="width:${pct}%;background:${color}"></div>
+      </div>
+      <div class="batch-card-stats">
+        <span>${s.used || 0}/${s.total || 0} terpakai</span>
+        <span>Dibuat: ${date}</span>
+      </div>
+      <div class="batch-card-stats" style="margin-top:3px">
+        <span style="color:var(--green);font-weight:600">${s.remaining || s.total || 0} tersisa</span>
+      </div>
+    </div>
+    <div style="position:absolute;bottom:9px;right:10px;display:flex;gap:4px;opacity:0;transition:.15s" class="batch-del">
+      <button class="btn b-d b-sm" onclick="event.stopPropagation();syncBatchToReport('${b.id}')" 
+        title="Sync ke Selling Report"
+        style="background:#3fb95018;color:var(--green);border:1px solid #3fb95030;padding:3px 8px">
+        <i class="fa fa-upload"></i>
+      </button>
+      <button class="btn bd b-sm" onclick="syncUsedFromMikrotik()" style="color:var(--cyan);border-color:var(--cyan)">
+        <i class="fa fa-refresh"></i> Sync Status Terpakai
+      </button>
+      <button class="btn b-d b-sm" onclick="event.stopPropagation();deleteBatch('${b.id}')" title="Hapus batch">
+        <i class="fa fa-trash"></i>
+      </button>
+    </div>
+  </div>`;
+}
+
+async function openBatchDetail(batchId) {
+  showL();
+  const b = await req(`/batches/${CS}/${batchId}`);
+  hideL();
+  if (!b || b.error) {
+    toast("Batch tidak ditemukan", true);
+    return;
+  }
+  currentBatch = b;
+  batchDetailFilter = "all";
+
+  // Show detail area, hide grid
+  document.getElementById("batch-cards-area").style.display = "none";
+  document.getElementById("batch-detail-area").style.display = "block";
+
+  const priceStr = b.price
+    ? "Rp " + Number(b.price).toLocaleString("id-ID")
+    : "—";
+  const totalStr = b.totalPrice
+    ? "Rp " + Number(b.totalPrice).toLocaleString("id-ID")
+    : "—";
+  const date = b.createdAt
+    ? new Date(b.createdAt).toLocaleString("id-ID", {
+        dateStyle: "long",
+        timeStyle: "short"
+      })
+    : "—";
+  const s = b.stats || {};
+
+  document.getElementById("bd-title").textContent = b.id;
+  document.getElementById("bd-profile").textContent = b.profileName;
+  document.getElementById("bd-price").textContent = priceStr;
+  document.getElementById("bd-total-price").textContent = totalStr;
+  document.getElementById("bd-validity").textContent = b.validity || "—";
+  document.getElementById("bd-reseller").textContent = b.resellerName || "—";
+  document.getElementById("bd-created").textContent = date;
+  document.getElementById("bd-stat-label").textContent =
+    `${s.used || 0}/${s.total || 0} terpakai`;
+  document.getElementById("bd-stat-remain").textContent =
+    `${s.remaining || 0} tersisa`;
+  document.getElementById("bd-progress").style.width = (s.usedPct || 0) + "%";
+
+  renderBatchDetail();
+}
+
+function closeBatchDetail() {
+  document.getElementById("batch-cards-area").style.display = "block";
+  document.getElementById("batch-detail-area").style.display = "none";
+  currentBatch = null;
+}
+
+function filterBatchVouchers(f) {
+  batchDetailFilter = f;
+  ["all", "avail", "used"].forEach((k) => {
+    const el = document.getElementById("bdf-" + k);
+    if (el)
+      el.className =
+        "btn " +
+        ((k === "all" && f === "all") ||
+        (k === "avail" && f === "available") ||
+        (k === "used" && f === "used")
+          ? "b-p"
+          : "b-s");
+  });
+  renderBatchDetail();
+}
+
+function renderBatchDetail() {
+  if (!currentBatch) return;
+  const vouchers = currentBatch.vouchers || [];
+  const filtered =
+    batchDetailFilter === "all"
+      ? vouchers
+      : vouchers.filter((v) => v.status === batchDetailFilter);
+
+  const tb = document.getElementById("t-batch-detail");
+  const color = currentBatch.profileColor || "#1f6feb";
+
+  tb.innerHTML = filtered.length
+    ? filtered
+        .map(
+          (v, i) => `<tr>
+    <td style="color:var(--muted)">${i + 1}</td>
+    <td><b style="font-family:monospace;font-size:.85rem;letter-spacing:.5px">${v.username}</b></td>
+    <td><span style="font-family:monospace;font-size:.85rem">${v.password}</span></td>
+    <td><span class="badge ${v.status === "used" ? "b-rd" : "b-gr"}">${v.status === "used" ? "Terpakai" : "Tersedia"}</span></td>
+    <td style="color:var(--muted);font-size:.78rem">${v.usedBy || "—"}</td>
+    <td style="color:var(--muted);font-size:.78rem">${v.usedAt || "—"}</td>
+    <td>${
+      v.status === "available"
+        ? `<button class="btn b-d b-sm" onclick="markVoucherUsed('${v.username}')"><i class="fa fa-check"></i> Tandai Terpakai</button>`
+        : ""
+    }</td>
+  </tr>`
+        )
+        .join("")
+    : `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Tidak ada voucher</td></tr>`;
+}
+
+async function markVoucherUsed(username) {
+  if (!currentBatch) return;
+  showL();
+  const d = await fetch(`${API}/batches/${CS}/${currentBatch.id}/mark-used`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, usedBy: "Admin" })
+  }).then((r) => r.json());
+  hideL();
+  if (d?.success) {
+    // Update local state
+    const vcr = currentBatch.vouchers.find((v) => v.username === username);
+    if (vcr) {
+      vcr.status = "used";
+      vcr.usedBy = "Admin";
+      vcr.usedAt = new Date().toLocaleString("id-ID");
+    }
+    // Recompute stats
+    const used = currentBatch.vouchers.filter(
+      (v) => v.status === "used"
+    ).length;
+    const total = currentBatch.vouchers.length;
+    const s = {
+      total,
+      used,
+      remaining: total - used,
+      usedPct: Math.round((used / total) * 100)
+    };
+    currentBatch.stats = s;
+    document.getElementById("bd-stat-label").textContent =
+      `${s.used}/${s.total} terpakai`;
+    document.getElementById("bd-stat-remain").textContent =
+      `${s.remaining} tersisa`;
+    document.getElementById("bd-progress").style.width = s.usedPct + "%";
+    renderBatchDetail();
+    toast("Voucher ditandai terpakai");
+    // ── AUTO-REMOVE: cek jika batch sudah full ──
+    if (s.remaining === 0) {
+      const batchId = currentBatch.id;
+      setTimeout(async () => {
+        const removed = await checkAndAutoRemoveSingle(batchId);
+        if (removed) {
+          toast(
+            `🗑️ Batch "${currentBatch?.profileName || batchId}" habis, otomatis dihapus`
+          );
+          closeBatchDetail();
+          loadBatchList();
+        }
+      }, 600); // small delay agar user sempat lihat "0 tersisa"
+    }
+    // ── END AUTO-REMOVE ──
+  }
+}
+
+// DENGAN INI
+async function deleteBatch(batchId) {
+  // Tampil pilihan — hapus lokal saja atau sekalian di MikroTik
+  openSheet(`
+    <div class="sheet-title">🗑️ Hapus Batch Voucher</div>
+    <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">
+      Pilih cara menghapus batch ini:
+    </p>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="btn b-d" style="justify-content:flex-start;padding:14px;text-align:left" 
+        onclick="confirmDeleteBatch('${batchId}', true)">
+        <div>
+          <div style="font-weight:600"><i class="fa fa-trash"></i> Hapus + Hapus di MikroTik</div>
+          <div style="font-size:.75rem;opacity:.8;margin-top:2px">
+            Hapus batch dari MikHMon dan hapus voucher yang masih available dari MikroTik
+          </div>
+        </div>
+      </button>
+      <button class="btn b-s" style="justify-content:flex-start;padding:14px;text-align:left"
+        onclick="confirmDeleteBatch('${batchId}', false)">
+        <div>
+          <div style="font-weight:600"><i class="fa fa-times"></i> Hapus Lokal Saja</div>
+          <div style="font-size:.75rem;color:var(--muted);margin-top:2px">
+            Hanya hapus data batch dari MikHMon, voucher di MikroTik tetap ada
+          </div>
+        </div>
+      </button>
+      <button class="btn b-ghost" onclick="closeSheet()" 
+        style="background:transparent;color:var(--muted)">
+        Batal
+      </button>
+    </div>
+  `);
+}
+
+async function confirmDeleteBatch(batchId, deleteMikrotik) {
+  closeSheet();
+  showL();
+  try {
+    const url = `${API}/batches/${CS}/${batchId}${deleteMikrotik ? "?deleteMikrotik=true" : ""}`;
+    const d = await fetch(url, {
+      method: "DELETE",
+      credentials: "include"
+    }).then((r) => r.json());
+    hideL();
+
+    if (d?.success) {
+      let msg = "Batch dihapus";
+      if (deleteMikrotik) {
+        msg += ` · ${d.deletedFromMikrotik} user dihapus dari MikroTik`;
+        if (d.failedFromMikrotik > 0) {
+          msg += ` · ${d.failedFromMikrotik} gagal`;
+        }
+      }
+      toast(msg);
+      // Kalau sedang di detail, kembali ke list dulu
+      if (
+        document.getElementById("batch-detail-area").style.display !== "none"
+      ) {
+        closeBatchDetail();
+      }
+      loadBatchList();
+    } else {
+      toast("Gagal hapus: " + (d?.error || "error"), true);
+    }
+  } catch (e) {
+    hideL();
+    toast("Error: " + e.message, true);
+  }
+}
+
+async function syncBatchToReport(batchId = null) {
+  if (!CS) {
+    toast("Pilih router dulu", true);
+    return;
+  }
+
+  const label = batchId ? "batch ini" : "semua batch";
+  if (
+    !confirm(
+      `Sync voucher terpakai dari ${label} ke Selling Report?\n\nVoucher yang sudah dipakai akan dibuatkan script penjualan di MikroTik.`
+    )
+  )
+    return;
+
+  showL();
+  try {
+    const body = batchId ? { batchId } : {};
+    const d = await fetch(`${API}/batches/${CS}/sync-to-report`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    }).then((r) => r.json());
+
+    hideL();
+    if (d?.success) {
+      toast(
+        `✅ Sync selesai: ${d.created} dibuat, ${d.skipped} sudah ada, ${d.errors} error`
+      );
+    } else {
+      toast("Gagal sync: " + (d?.error || "error"), true);
+    }
+  } catch (e) {
+    hideL();
+    toast("Error: " + e.message, true);
+  }
+}
+
+async function syncUsedFromMikrotik() {
+  if (!CS) {
+    toast("Pilih router dulu", true);
+    return;
+  }
+  if (
+    !confirm(
+      "Sync status voucher terpakai dari MikroTik?\n\nVoucher yang sudah digunakan akan ditandai sebagai terpakai."
+    )
+  )
+    return;
+
+  showL();
+  try {
+    const d = await fetch(`${API}/batches/${CS}/sync-used`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({})
+    }).then((r) => r.json());
+
+    hideL();
+    if (d?.success) {
+      toast(`✅ ${d.updated} voucher ditandai terpakai`);
+      // ── AUTO-REMOVE: scan semua batch setelah sync ──
+      const removedCount = await checkAndAutoRemoveAll();
+      // loadBatchList() sudah dipanggil di dalam checkAndAutoRemoveAll jika ada yg dihapus
+      if (removedCount === 0) loadBatchList();
+      // ── END AUTO-REMOVE ──
+    } else {
+      toast("Gagal: " + (d?.error || "error"), true);
+    }
+  } catch (e) {
+    hideL();
+    toast("Error: " + e.message, true);
+  }
+}
+// Print vouchers yang masih tersedia di batch aktif
+function printCurrentBatch() {
+  if (!currentBatch) return;
+  const available = currentBatch.vouchers.filter(
+    (v) => v.status === "available"
+  );
+  if (!available.length) {
+    toast("Tidak ada voucher tersisa untuk diprint", true);
+    return;
+  }
+  pvVouchers = available.map((v) => ({
+    ...v,
+    color: currentBatch.profileColor || "#1f6feb",
+    price: currentBatch.price,
+    caption: currentBatch.caption || currentBatch.profileName,
+    limitUptime: v.limitUptime || currentBatch.validity
+  }));
+  document.getElementById("pv-count").textContent = pvVouchers.length;
+  renderPrintPreview();
+  document.getElementById("m-print").classList.add("show");
+}
+
+// ════════════════════════════════════════════════
+// RESELLER BOT
+// ════════════════════════════════════════════════
+let editRbId = null;
+let rbData = [];
+
+async function loadResellerBot() {
+  const data = (await req("/bot-resellers")) || [];
+  rbData = data;
+
+  // Stats
+  const active = data.filter((r) => r.status === "active").length;
+  const totSaldo = data.reduce((s, r) => s + (r.saldo || 0), 0);
+  const totVcr = data.reduce((s, r) => s + (r.totalVouchers || 0), 0);
+  document.getElementById("rb-count").textContent = data.length;
+  document.getElementById("rb-active").textContent = active;
+  document.getElementById("rb-total-saldo").textContent =
+    "Rp " + totSaldo.toLocaleString("id-ID");
+  document.getElementById("rb-total-vcr").textContent = totVcr;
+
+  // Table
+  const tb = document.getElementById("t-rb");
+  tb.innerHTML = data.length
+    ? data
+        .map((r) => {
+          const saldo = "Rp " + (r.saldo || 0).toLocaleString("id-ID");
+          const pend = "Rp " + (r.totalPendapatan || 0).toLocaleString("id-ID");
+          const regDate = r.registeredAt
+            ? new Date(r.registeredAt).toLocaleString("id-ID", {
+                dateStyle: "short",
+                timeStyle: "short"
+              })
+            : "—";
+          return `<tr>
+      <td>
+        <div style="font-weight:600">${r.name}</div>
+        <div style="color:var(--muted);font-size:.75rem">${r.username ? "@" + r.username : "—"}</div>
+      </td>
+      <td><code style="font-size:.8rem">${r.telegramId}</code></td>
+      <td style="color:var(--green);font-weight:600">${saldo}</td>
+      <td>${r.totalVouchers || 0}</td>
+      <td style="color:var(--acc2)">${pend}</td>
+      <td><span class="badge ${r.status === "active" ? "b-gr" : "b-rd"}" style="cursor:pointer" onclick="toggleRb('${r.id}')">${r.status === "active" ? "Active" : "Inactive"}</span></td>
+      <td style="color:var(--muted);font-size:.76rem">${regDate}</td>
+      <td><div style="display:flex;gap:4px">
+        <button class="btn b-g b-sm" onclick="openTopupModal('${r.id}')" title="Topup Saldo"><i class="fa fa-money"></i></button>
+        <button class="btn b-s b-sm" onclick="showRbDetail('${r.id}')" title="Lihat Detail"><i class="fa fa-eye"></i></button>
+        <button class="btn b-w b-sm" onclick="editRbFn('${r.id}')"><i class="fa fa-pencil"></i></button>
+        <button class="btn b-d b-sm" onclick="deleteRb('${r.id}')"><i class="fa fa-trash"></i></button>
+      </div></td>
+    </tr>`;
+        })
+        .join("")
+    : '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">Belum ada reseller. Reseller bisa daftar via bot dengan /daftar</td></tr>';
+}
+
+async function openRbModal(data = null) {
+  editRbId = data?.id || null;
+  document.getElementById("mrb-ttl").textContent = data
+    ? "Edit Reseller"
+    : "Tambah Reseller";
+  document.getElementById("mrb-err").textContent = "";
+  document.getElementById("mrb-name").value = data?.name || "";
+  document.getElementById("mrb-uname").value = data?.username || "";
+  document.getElementById("mrb-tid").value = data?.telegramId || "";
+  document.getElementById("mrb-markup").value = data?.markup || 0;
+  document.getElementById("mrb-status").value = data?.status || "active";
+
+  // Populate router dropdown
+  const sess = (await req("/sessions")) || [];
+  const ssel = document.getElementById("mrb-sess");
+  ssel.innerHTML = '<option value="">Pilih router...</option>';
+  sess.forEach(
+    (s) =>
+      (ssel.innerHTML += `<option value="${s.id}" ${s.id === data?.sessionId ? "selected" : ""}>${s.name} (${s.ip})</option>`)
+  );
+
+  document.getElementById("m-rb").classList.add("show");
+}
+
+async function editRbFn(id) {
+  const r = rbData.find((x) => x.id === id);
+  if (r) openRbModal(r);
+}
+
+async function saveRb() {
+  const name = document.getElementById("mrb-name").value.trim();
+  const tid = document.getElementById("mrb-tid").value.trim();
+  if (!name) {
+    document.getElementById("mrb-err").textContent = "Nama wajib diisi";
+    return;
+  }
+  if (!tid) {
+    document.getElementById("mrb-err").textContent = "Telegram ID wajib diisi";
+    return;
+  }
+
+  const body = {
+    id: editRbId || undefined,
+    name,
+    username: document.getElementById("mrb-uname").value.trim(),
+    telegramId: tid,
+    sessionId: document.getElementById("mrb-sess").value,
+    markup: parseInt(document.getElementById("mrb-markup").value) || 0,
+    status: document.getElementById("mrb-status").value
+  };
+
+  showL();
+  const d = editRbId
+    ? await fetch(`${API}/bot-resellers/${editRbId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }).then((r) => r.json())
+    : await fetch(`${API}/bot-resellers`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }).then((r) => r.json());
+  hideL();
+
+  if (d?.id || d?.name) {
+    closeM("m-rb");
+    loadResellerBot();
+    toast(editRbId ? "Reseller diupdate!" : "Reseller ditambahkan!");
+  } else {
+    document.getElementById("mrb-err").textContent =
+      d?.error || "Gagal menyimpan";
+  }
+}
+
+async function toggleRb(id) {
+  const d = await fetch(`${API}/bot-resellers/${id}/toggle`, {
+    method: "PATCH",
+    credentials: "include"
+  }).then((r) => r.json());
+  if (d?.success) {
+    loadResellerBot();
+    toast(
+      d.status === "active" ? "Reseller diaktifkan" : "Reseller dinonaktifkan"
+    );
+  }
+}
+
+async function deleteRb(id) {
+  if (!confirm("Hapus reseller ini?")) return;
+  const d = await fetch(`${API}/bot-resellers/${id}`, {
+    method: "DELETE",
+    credentials: "include"
+  }).then((r) => r.json());
+  d?.success
+    ? (loadResellerBot(), toast("Reseller dihapus"))
+    : toast("Gagal", true);
+}
+
+// ── Topup ────────────────────────────────────────
+function openTopupModal(id) {
+  const r = rbData.find((x) => x.id === id);
+  if (!r) return;
+  document.getElementById("tu-id").value = id;
+  document.getElementById("tu-name").textContent =
+    `${r.name}${r.username ? " (@" + r.username + ")" : ""}`;
+  document.getElementById("tu-current-saldo").textContent =
+    "Rp " + (r.saldo || 0).toLocaleString("id-ID");
+  document.getElementById("tu-amount").value = "";
+  document.getElementById("tu-note").value = "";
+  document.getElementById("tu-preview").style.display = "none";
+  document.getElementById("tu-err").textContent = "";
+
+  // Live preview
+  document.getElementById("tu-amount").oninput = function () {
+    const amt = parseInt(this.value) || 0;
+    if (amt > 0) {
+      const after = (r.saldo || 0) + amt;
+      document.getElementById("tu-after").textContent =
+        "Rp " + after.toLocaleString("id-ID");
+      document.getElementById("tu-preview").style.display = "block";
+    } else {
+      document.getElementById("tu-preview").style.display = "none";
+    }
+  };
+  document.getElementById("m-topup").classList.add("show");
+}
+
+async function doTopup() {
+  const id = document.getElementById("tu-id").value;
+  const amount = parseInt(document.getElementById("tu-amount").value);
+  const note =
+    document.getElementById("tu-note").value.trim() || "Manual topup";
+
+  if (!amount || amount < 1) {
+    document.getElementById("tu-err").textContent = "Jumlah harus lebih dari 0";
+    return;
+  }
+
+  showL();
+  const d = await fetch(`${API}/bot-resellers/${id}/topup`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      amount,
+      note,
+      by: document.getElementById("tb-un")?.textContent || "Admin"
+    })
+  }).then((r) => r.json());
+  hideL();
+
+  if (d?.success) {
+    closeM("m-topup");
+    loadResellerBot();
+    toast(
+      `✅ Topup Rp ${amount.toLocaleString("id-ID")} berhasil! Saldo baru: Rp ${d.saldo.toLocaleString("id-ID")}`
+    );
+  } else {
+    document.getElementById("tu-err").textContent = d?.error || "Topup gagal";
+  }
+}
+
+// ── Reseller Detail ───────────────────────────────
+function showRbDetail(id) {
+  const r = rbData.find((x) => x.id === id);
+  if (!r) return;
+  document.getElementById("rb-detail").style.display = "block";
+  document.getElementById("rb-detail-title").textContent =
+    `${r.name} — Rp ${(r.saldo || 0).toLocaleString("id-ID")}`;
+
+  // Topup history
+  const topups = [...(r.topupHistory || [])].reverse().slice(0, 20);
+  document.getElementById("t-rb-topup").innerHTML = topups.length
+    ? topups
+        .map(
+          (t) =>
+            `<tr><td style="color:var(--green);font-weight:600">+Rp ${t.amount.toLocaleString("id-ID")}</td><td>${t.note}</td><td>${t.by}</td><td style="color:var(--muted);font-size:.76rem">${t.at}</td></tr>`
+        )
+        .join("")
+    : '<tr><td colspan="4" style="text-align:center;color:var(--muted)">Belum ada topup</td></tr>';
+
+  // Purchase history
+  const purchases = [...(r.purchaseHistory || [])].reverse().slice(0, 10);
+  document.getElementById("t-rb-purchase").innerHTML = purchases.length
+    ? purchases
+        .map(
+          (p) =>
+            `<tr><td><code>${p.username}</code></td><td><span class="badge b-bl">${p.profileName}</span></td><td style="color:var(--red)">-Rp ${p.paidSaldo.toLocaleString("id-ID")}</td><td style="color:var(--muted);font-size:.76rem">${p.at}</td></tr>`
+        )
+        .join("")
+    : '<tr><td colspan="4" style="text-align:center;color:var(--muted)">Belum ada pembelian</td></tr>';
+
+  document.getElementById("rb-detail").scrollIntoView({ behavior: "smooth" });
+}
+
+// ════════════════════════════════════════════════
+// USER MANAGEMENT
+// ════════════════════════════════════════════════
+let editUmId = null,
+  resetPwId = null;
+let umRoleDefaults = {};
+let umSessions = [];
+
+const PERM_LABELS = {
+  viewDashboard: "Lihat Dashboard",
+  manageVoucher: "Kelola Voucher",
+  manageBilling: "Kelola Billing/Tagihan",
+  manageReseller: "Kelola Reseller",
+  managePppoe: "Kelola PPPoE",
+  manageHotspot: "Kelola Hotspot",
+  viewReport: "Lihat Laporan",
+  manageSystem: "Pengaturan Sistem"
+};
+
+const ROLE_COLOR = {
+  admin: "var(--acc2)",
+  reseller: "var(--purple)",
+  collector: "var(--green)"
+};
+const ROLE_BADGE = { admin: "b-bl", reseller: "b-pu", collector: "b-gr" };
+
+async function loadUserManagement(isPg = false) {
+  if (!isPg) {
+    showL();
+    const [users, defaults, sessions] = await Promise.all([
+      req("/users"),
+      req("/users/roles/defaults"),
+      req("/sessions")
+    ]);
+    umRoleDefaults = defaults || {};
+    umSessions = sessions || [];
+    PG["t-users"].data = users || [];
+    PG["t-users"].page = 1;
+    hideL();
+  }
+
+  const tb = document.getElementById("t-users");
+  if (!tb) return;
+  document.getElementById("pg-t-users").innerHTML = renderPagination(
+    "t-users",
+    renderUserManagement
+  );
+}
+
+function renderUserManagement(subset) {
+  se(
+    "t-users",
+    subset.length
+      ? subset
+          .map((u) => {
+            const lastLogin = u.lastLogin
+              ? new Date(u.lastLogin).toLocaleString("id-ID", {
+                  dateStyle: "short",
+                  timeStyle: "short"
+                })
+              : "Belum pernah";
+            const sessions = u.allowedSessions?.length
+              ? u.allowedSessions.join(", ")
+              : '<span style="color:var(--muted)">Semua router</span>';
+            return `<tr>
+      <td>
+        <div style="font-weight:600;font-family:monospace">${u.username}</div>
+        <div style="font-size:.72rem;color:var(--muted)">${u.id}</div>
+      </td>
+      <td>${u.name}</td>
+      <td><span class="badge ${ROLE_BADGE[u.role] || "b-mu"}">${u.role}</span></td>
+      <td style="font-size:.78rem">${sessions}</td>
+      <td>
+        <span class="badge ${u.active ? "b-gr" : "b-rd"}" style="cursor:pointer" onclick="toggleUm('${u.id}')">
+          ${u.active ? "Aktif" : "Nonaktif"}
+        </span>
+      </td>
+      <td style="font-size:.75rem;color:var(--muted)">${lastLogin}</td>
+      <td>
+        <div style="display:flex;gap:4px">
+          <button class="btn b-w b-sm" onclick="editUmFn('${u.id}')" title="Edit"><i class="fa fa-pencil"></i></button>
+          <button class="btn b-s b-sm" onclick="openResetPw('${u.id}','${u.name}')" title="Reset Password"><i class="fa fa-key"></i></button>
+          <button class="btn b-d b-sm" onclick="deleteUm('${u.id}')" title="Hapus"><i class="fa fa-trash"></i></button>
+        </div>
+      </td>
+    </tr>`;
+          })
+          .join("")
+      : `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">
+      <i class="fa fa-users" style="font-size:1.5rem;display:block;margin-bottom:8px;opacity:.3"></i>
+      Belum ada user tambahan. Klik "+ Tambah User".
+    </td></tr>`,
+    "innerHTML"
+  );
+}
+
+async function openUmModal(data = null) {
+  editUmId = data?.id || null;
+  document.getElementById("mum-ttl").textContent = data
+    ? "Edit User"
+    : "Tambah User";
+  document.getElementById("mum-err").textContent = "";
+
+  // Fetch defaults if not loaded
+  if (!Object.keys(umRoleDefaults).length) {
+    const d = await req("/users/roles/defaults");
+    umRoleDefaults = d || {};
+  }
+  if (!umSessions.length) {
+    const s = await req("/sessions");
+    umSessions = s || [];
+  }
+
+  document.getElementById("mum-un").value = data?.username || "";
+  document.getElementById("mum-un").disabled = !!data;
+  document.getElementById("mum-nm").value = data?.name || "";
+  document.getElementById("mum-pw").value = "";
+  document.getElementById("mum-pw-hint").textContent = data
+    ? "(kosong = tidak berubah)"
+    : "wajib diisi";
+  document.getElementById("mum-role").value = data?.role || "reseller";
+  document.getElementById("mum-note").value = data?.note || "";
+  document.getElementById("mum-active").value = String(data?.active !== false);
+
+  // Sessions checkboxes
+  const sessEl = document.getElementById("mum-sessions-list");
+  sessEl.innerHTML =
+    umSessions
+      .map(
+        (s) =>
+          `<label style="display:flex;align-items:center;gap:5px;background:var(--card2);border-radius:6px;padding:5px 9px;cursor:pointer;font-size:.8rem">
+      <input type="checkbox" value="${s.id}" ${!data?.allowedSessions?.length || data?.allowedSessions?.includes(s.id) ? "checked" : ""}>
+      ${s.name} (${s.ip})
+    </label>`
+      )
+      .join("") ||
+    '<span style="color:var(--muted);font-size:.8rem">Tidak ada router terkonfigurasi</span>';
+
+  renderPermissions(data?.role || "reseller", data?.permissions);
+  document.getElementById("m-um").classList.add("show");
+}
+
+function onRoleChange() {
+  const role = document.getElementById("mum-role").value;
+  renderPermissions(role, null);
+}
+
+function renderPermissions(role, override) {
+  const defaults = umRoleDefaults[role] || {};
+  const perms = override ? { ...defaults, ...override } : defaults;
+  const el = document.getElementById("mum-perms");
+  el.innerHTML = Object.entries(PERM_LABELS)
+    .map(
+      ([key, label]) =>
+        `<label style="display:flex;align-items:center;gap:7px;padding:7px 10px;background:var(--card2);border-radius:7px;cursor:pointer;font-size:.8rem">
+      <input type="checkbox" id="perm-${key}" ${perms[key] ? "checked" : ""}>
+      ${label}
+    </label>`
+    )
+    .join("");
+}
+
+async function editUmFn(id) {
+  const u = await req("/users/" + id);
+  if (u && !u.error) openUmModal(u);
+}
+
+async function saveUm() {
+  const un = v("mum-un").trim();
+  const nm = v("mum-nm").trim();
+  const pw = v("mum-pw").trim();
+  const role = v("mum-role");
+  if (!un || !nm) {
+    se("mum-err", "Username dan Nama wajib diisi");
+    return;
+  }
+  if (!editUmId && !pw) {
+    se("mum-err", "Password wajib diisi untuk user baru");
+    return;
+  }
+  if (pw && pw.length < 4) {
+    se("mum-err", "Password minimal 4 karakter");
+    return;
+  }
+
+  // Collect permissions
+  const permissions = {};
+  Object.keys(PERM_LABELS).forEach((key) => {
+    const el = document.getElementById("perm-" + key);
+    if (el) permissions[key] = el.checked;
+  });
+
+  // Collect sessions
+  const sessionChecks = document.querySelectorAll(
+    "#mum-sessions-list input[type=checkbox]"
+  );
+  const allChecked = [...sessionChecks].every((c) => c.checked);
+  const allowedSessions = allChecked
+    ? []
+    : [...sessionChecks].filter((c) => c.checked).map((c) => c.value);
+
+  const body = {
+    username: un,
+    name: nm,
+    role,
+    allowedSessions,
+    permissions,
+    note: v("mum-note"),
+    active: v("mum-active") === "true",
+    ...(pw ? { password: pw } : {})
+  };
+
+  showL();
+  const d = editUmId
+    ? await fetch(`${API}/users/${editUmId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }).then((r) => r.json())
+    : await post("/users", body);
+  hideL();
+
+  if (d?.id || d?.username) {
+    closeM("m-um");
+    loadUserManagement();
+    toast(editUmId ? "User diupdate!" : "User berhasil ditambahkan!");
+  } else {
+    se("mum-err", d?.error || "Gagal menyimpan");
+  }
+}
+
+async function toggleUm(id) {
+  const d = await fetch(`${API}/users/${id}/toggle`, {
+    method: "PATCH",
+    credentials: "include"
+  }).then((r) => r.json());
+  if (d?.success) {
+    loadUserManagement();
+    toast(d.active ? "User diaktifkan" : "User dinonaktifkan");
+  } else toast(d?.error || "Gagal", true);
+}
+
+async function deleteUm(id) {
+  if (!confirm("Hapus user ini? Tindakan tidak bisa dibatalkan.")) return;
+  showL();
+  const d = await fetch(`${API}/users/${id}`, {
+    method: "DELETE",
+    credentials: "include"
+  }).then((r) => r.json());
+  hideL();
+  d?.success
+    ? (loadUserManagement(), toast("User dihapus"))
+    : toast(d?.error || "Gagal", true);
+}
+
+// ── Reset Password ────────────────────────────────────────────────
+function openResetPw(id, name) {
+  resetPwId = id;
+  document.getElementById("rpw-name").textContent = name;
+  document.getElementById("rpw-new").value = "";
+  document.getElementById("rpw-confirm").value = "";
+  document.getElementById("rpw-err").textContent = "";
+  document.getElementById("m-reset-pw").classList.add("show");
+}
+
+async function doResetPw() {
+  const np = v("rpw-new");
+  const cp = v("rpw-confirm");
+  if (!np) {
+    se("rpw-err", "Password baru wajib diisi");
+    return;
+  }
+  if (np.length < 4) {
+    se("rpw-err", "Password minimal 4 karakter");
+    return;
+  }
+  if (np !== cp) {
+    se("rpw-err", "Konfirmasi password tidak cocok");
+    return;
+  }
+  showL();
+  const d = await post(`/users/${resetPwId}/reset-password`, {
+    newPassword: np
+  });
+  hideL();
+  d?.success
+    ? (closeM("m-reset-pw"), toast("✓ Password berhasil direset!"))
+    : se("rpw-err", d?.error || "Gagal");
+}
+
+// ════════════════════════════════════════════════
+// CHANGE PASSWORD (own account)
+// ════════════════════════════════════════════════
+function initChangePassword() {
+  // Get current username from session
+  req("/auth/me").then((d) => {
+    if (d?.username) {
+      document.getElementById("cp-username-label").textContent = d.username;
+    }
+  });
+  document.getElementById("cp-old").value = "";
+  document.getElementById("cp-new").value = "";
+  document.getElementById("cp-confirm").value = "";
+  document.getElementById("cp-err").textContent = "";
+}
+
+async function doChangePassword() {
+  const old = v("cp-old");
+  const np = v("cp-new");
+  const cp = v("cp-confirm");
+  const errEl = document.getElementById("cp-err");
+
+  if (!old) {
+    se("cp-err", "Password lama wajib diisi");
+    return;
+  }
+  if (!np) {
+    se("cp-err", "Password baru wajib diisi");
+    return;
+  }
+  if (np.length < 4) {
+    se("cp-err", "Password baru minimal 4 karakter");
+    return;
+  }
+  if (np !== cp) {
+    se("cp-err", "Konfirmasi password tidak cocok");
+    return;
+  }
+
+  showL();
+  const d = await fetch(`${API}/auth/change-password`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ oldPassword: old, newPassword: np })
+  }).then((r) => r.json());
+  hideL();
+
+  if (d?.success) {
+    document.getElementById("cp-old").value = "";
+    document.getElementById("cp-new").value = "";
+    document.getElementById("cp-confirm").value = "";
+    toast("✓ Password berhasil diubah! Silakan login ulang.");
+    setTimeout(() => doLogout(), 2500);
+  } else {
+    se("cp-err", d?.error || "Gagal mengubah password");
+  }
+}
+
+// ════════════════════════════════════════════════
+// MOBILE API DOCS
+// ════════════════════════════════════════════════
+const MOBILE_ENDPOINTS = [
+  {
+    group: "Auth",
+    icon: "fa-key",
+    color: "var(--acc2)",
+    endpoints: [
+      {
+        method: "POST",
+        path: "/mobile/v1/auth/login",
+        auth: false,
+        desc: "Login reseller dengan Telegram ID",
+        body: '{ "telegramId": "1234567890" }',
+        response: "{ success, token, expiresAt, reseller }"
+      },
+      {
+        method: "GET",
+        path: "/mobile/v1/auth/me",
+        auth: true,
+        desc: "Info reseller yang sedang login",
+        response: "{ success, reseller, session, expiresAt }"
+      },
+      {
+        method: "POST",
+        path: "/mobile/v1/auth/logout",
+        auth: true,
+        desc: "Logout & revoke token",
+        response: "{ success, message }"
+      }
+    ]
+  },
+  {
+    group: "Dashboard",
+    icon: "fa-dashboard",
+    color: "var(--green)",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/mobile/v1/dashboard",
+        auth: true,
+        desc: "Ringkasan saldo, billing & aktivitas terbaru",
+        response: "{ success, reseller, billing, recentActivity }"
+      }
+    ]
+  },
+  {
+    group: "Saldo",
+    icon: "fa-money",
+    color: "var(--yellow)",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/mobile/v1/saldo",
+        auth: true,
+        desc: "Info saldo & riwayat 50 transaksi terakhir",
+        response: "{ success, saldo, totalVoucher, totalIncome, logs[] }"
+      }
+    ]
+  },
+  {
+    group: "Voucher",
+    icon: "fa-ticket",
+    color: "var(--purple)",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/mobile/v1/voucher/profiles",
+        auth: true,
+        desc: "Daftar profile hotspot dengan harga reseller",
+        response: "{ success, profiles[] }"
+      },
+      {
+        method: "POST",
+        path: "/mobile/v1/voucher/buy",
+        auth: true,
+        desc: "Beli 1 voucher — saldo otomatis dipotong",
+        body: '{ "profileName": "VOCER-1K" }',
+        response: "{ success, voucher, saldoSebelum, saldoSesudah }"
+      },
+      {
+        method: "POST",
+        path: "/mobile/v1/voucher/generate",
+        auth: true,
+        desc: "Generate batch voucher — saldo dipotong total",
+        body: '{ "profileName": "VOCER-1K", "quantity": 10 }',
+        response:
+          "{ success, vouchers[], generated, priceEach, totalCost, saldoSesudah }"
+      }
+    ]
+  },
+  {
+    group: "Billing",
+    icon: "fa-file-text",
+    color: "var(--cyan)",
+    endpoints: [
+      {
+        method: "GET",
+        path: "/mobile/v1/billing/customers",
+        auth: true,
+        desc: "Daftar pelanggan billing",
+        response: "{ success, customers[] }"
+      },
+      {
+        method: "GET",
+        path: "/mobile/v1/billing/invoices",
+        auth: true,
+        desc: "Daftar tagihan (query: ?customerId=, ?status=)",
+        response: "{ success, invoices[] }"
+      },
+      {
+        method: "POST",
+        path: "/mobile/v1/billing/invoices/:id/pay",
+        auth: true,
+        desc: "Tandai tagihan sebagai lunas",
+        body: '{ "note": "Transfer BRI" }',
+        response: "{ success, invoice }"
+      },
+      {
+        method: "GET",
+        path: "/mobile/v1/billing/summary",
+        auth: true,
+        desc: "Ringkasan statistik billing bulan ini",
+        response: "{ success, stats }"
+      }
+    ]
+  }
+];
+
+const METHOD_COLOR = {
+  GET: "var(--green)",
+  POST: "var(--acc2)",
+  PUT: "var(--yellow)",
+  DELETE: "var(--red)",
+  PATCH: "var(--purple)"
+};
+
+function loadMobileApiDocs() {
+  // Set base URL
+  const baseUrl = window.location.origin;
+  const baseEl = document.getElementById("api-base-url");
+  if (baseEl) baseEl.textContent = baseUrl;
+
+  // Render endpoint list
+  const el = document.getElementById("api-endpoint-list");
+  if (el) {
+    el.innerHTML = MOBILE_ENDPOINTS.map(
+      (group) => `
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-hd" style="color:${group.color}"><i class="fa ${group.icon}"></i> ${group.group}</div>
+        ${group.endpoints
+          .map(
+            (ep) => `
+          <div style="background:var(--card2);border-radius:8px;padding:11px 14px;margin-bottom:7px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap">
+              <span style="background:${METHOD_COLOR[ep.method]}22;color:${METHOD_COLOR[ep.method]};border:1px solid ${METHOD_COLOR[ep.method]}44;border-radius:4px;padding:1px 8px;font-size:.72rem;font-weight:700;font-family:monospace">${ep.method}</span>
+              <code style="color:var(--text);font-size:.82rem">${ep.path}</code>
+              ${ep.auth ? '<span class="badge b-yl" style="font-size:.68rem"><i class="fa fa-lock"></i> Auth</span>' : '<span class="badge b-gr" style="font-size:.68rem">Public</span>'}
+            </div>
+            <div style="color:var(--muted);font-size:.79rem;margin-bottom:${ep.body || ep.response ? "7px" : "0"}">${ep.desc}</div>
+            ${ep.body ? `<div style="margin-bottom:4px"><span style="font-size:.7rem;color:var(--muted)">Body: </span><code style="font-size:.75rem;color:var(--yellow)">${ep.body}</code></div>` : ""}
+            ${ep.response ? `<div><span style="font-size:.7rem;color:var(--muted)">Response: </span><code style="font-size:.75rem;color:var(--green)">${ep.response}</code></div>` : ""}
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+    `
+    ).join("");
+  }
+
+  // Load active tokens
+  loadApiTokens();
+}
+
+async function loadApiTokens() {
+  const tb = document.getElementById("t-api-tokens");
+  if (!tb) return;
+  // Read token file via API (we need an admin endpoint)
+  const tokens = await req("/mobile/v1/admin/tokens").catch(() => null);
+  if (!tokens?.success) {
+    tb.innerHTML =
+      '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:12px">Gunakan endpoint admin untuk melihat token aktif</td></tr>';
+    return;
+  }
+  tb.innerHTML = (tokens.tokens || []).length
+    ? (tokens.tokens || [])
+        .map(
+          (t) => `<tr>
+        <td><b>${t.resellerName}</b></td>
+        <td><code style="font-size:.78rem">${t.telegramId}</code></td>
+        <td><span class="badge b-bl">${t.sessionId}</span></td>
+        <td style="font-size:.75rem;color:var(--muted)">${new Date(t.createdAt).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}</td>
+        <td style="font-size:.75rem;color:var(--muted)">${new Date(t.expiresAt).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}</td>
+        <td style="font-size:.75rem;color:var(--muted)">${new Date(t.lastUsed).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}</td>
+        <td><button class="btn b-d b-sm" onclick="revokeToken('${t.token.slice(0, 8)}...')"><i class="fa fa-times"></i></button></td>
+      </tr>`
+        )
+        .join("")
+    : '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:12px">Belum ada token aktif</td></tr>';
+}
+
+async function testMobileLogin() {
+  const tid = document.getElementById("api-test-tid").value.trim();
+  if (!tid) {
+    toast("Masukkan Telegram ID", true);
+    return;
+  }
+  const resultEl = document.getElementById("api-test-result");
+  const jsonEl = document.getElementById("api-test-json");
+  resultEl.style.display = "block";
+  jsonEl.textContent = "Loading...";
+  try {
+    const d = await fetch(`/mobile/v1/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ telegramId: tid })
+    }).then((r) => r.json());
+    jsonEl.textContent = JSON.stringify(d, null, 2);
+    jsonEl.style.color = d.success ? "var(--green)" : "var(--red)";
+    if (d.success) toast(`✓ Login berhasil: ${d.reseller?.name}`);
+    else toast("Login gagal: " + d.error, true);
+  } catch (e) {
+    jsonEl.textContent = "Error: " + e.message;
+    jsonEl.style.color = "var(--red)";
+  }
+}
+
+async function revokeToken(tokenPreview) {
+  toast("Revoke token hanya bisa dilakukan via API admin endpoint", true);
+}
+
+// ════════════════════════════════════════════════
+// BILLING
+// ════════════════════════════════════════════════
+let editBillId = null,
+  payInvId = null,
+  reminderInvId = null;
+const MONTHS_ID = [
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember"
+];
+
+async function loadBilling() {
+  if (!CS) return;
+  // Load stats
+  const stats = (await req(`/billing/${CS}/stats`)) || {};
+  document.getElementById("bill-total").textContent = stats.total || 0;
+  document.getElementById("bill-active").textContent = stats.active || 0;
+  document.getElementById("bill-unpaid").textContent = stats.unpaidCount || 0;
+  document.getElementById("bill-suspended").textContent = stats.suspended || 0;
+
+  const typeF = document.getElementById("bill-type-filter")?.value || "";
+  const statusF = document.getElementById("bill-status-filter")?.value || "";
+  let customers = (await req(`/billing/${CS}/customers`)) || [];
+  if (typeF) customers = customers.filter((c) => c.type === typeF);
+  if (statusF) customers = customers.filter((c) => c.status === statusF);
+
+  const tb = document.getElementById("t-billing");
+  tb.innerHTML = customers.length
+    ? customers
+        .map((c) => {
+          const typeLabel =
+            c.type === "pppoe"
+              ? '<span class="badge b-pu">PPPoE</span>'
+              : '<span class="badge b-bl">Hotspot</span>';
+          const statusLabel =
+            {
+              active: '<span class="badge b-gr">Aktif</span>',
+              suspended: '<span class="badge b-rd">Diblokir</span>',
+              expired: '<span class="badge b-yl">Expired</span>'
+            }[c.status] || '<span class="badge b-mu">—</span>';
+          const tgBadge = c.telegramId
+            ? `<span class="badge b-bl" title="${c.telegramId}"><i class="fa fa-telegram"></i> Terhubung</span>`
+            : '<span class="badge b-mu">—</span>';
+          return `<tr>
+      <td>
+        <div style="font-weight:600">${c.name}</div>
+        <div style="font-size:.73rem;color:var(--muted)">${c.phone || ""}</div>
+      </td>
+      <td><code style="font-size:.82rem">${c.mikrotikUser}</code></td>
+      <td>${typeLabel}</td>
+      <td>${c.profile || "—"}</td>
+      <td style="font-weight:600;color:var(--green)">Rp ${Math.round(c.price || 0).toLocaleString("id-ID")}</td>
+      <td style="text-align:center">Tgl ${c.billDate}</td>
+      <td>${statusLabel}</td>
+      <td>${tgBadge}</td>
+      <td>
+        <div style="display:flex;gap:3px;flex-wrap:wrap">
+          ${
+            c.status === "suspended"
+              ? `<button class="btn b-g b-sm" onclick="reEnable('${c.id}')" title="Aktifkan"><i class="fa fa-play"></i></button>`
+              : `<button class="btn b-d b-sm" onclick="suspendCustomer('${c.id}')" title="Blokir"><i class="fa fa-ban"></i></button>`
+          }
+          <button class="btn b-s b-sm" onclick="viewCustomerInvoices('${c.id}')" title="Tagihan"><i class="fa fa-list-alt"></i></button>
+          <button class="btn b-s b-sm" onclick="sendReminderManual('${c.id}')" title="Kirim reminder"><i class="fa fa-paper-plane"></i></button>
+          <button class="btn b-w b-sm" onclick="editBillFn('${c.id}')"><i class="fa fa-pencil"></i></button>
+          <button class="btn b-d b-sm" onclick="deleteBillCustomer('${c.id}')"><i class="fa fa-trash"></i></button>
+        </div>
+      </td>
+    </tr>`;
+        })
+        .join("")
+    : `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">
+      <i class="fa fa-users" style="font-size:1.5rem;display:block;margin-bottom:8px;opacity:.3"></i>
+      Belum ada pelanggan billing. Klik <b>Tambah Pelanggan</b>.
+    </td></tr>`;
+}
+
+async function openBillCustomerModal(data = null) {
+  editBillId = data?.id || null;
+  document.getElementById("mbill-ttl").textContent = data
+    ? "Edit Pelanggan"
+    : "Tambah Pelanggan";
+  document.getElementById("mb-err").textContent = "";
+  document.getElementById("mb-nm").value = data?.name || "";
+  document.getElementById("mb-ph").value = data?.phone || "";
+  document.getElementById("mb-tp").value = data?.type || "pppoe";
+  document.getElementById("mb-prof").value = data?.profile || "";
+  document.getElementById("mb-price").value = data?.price || "";
+  document.getElementById("mb-date").value = data?.billDate || 1;
+  document.getElementById("mb-grace").value = data?.graceDays ?? 3;
+  document.getElementById("mb-tg").value = data?.telegramId || "";
+  document.getElementById("mb-st").value = data?.status || "active";
+  document.getElementById("mb-auto").value = String(
+    data?.autoDisable !== false
+  );
+  document.getElementById("mb-note").value = data?.note || "";
+  const rd = data?.reminderDays || [7, 3, 1];
+  document.getElementById("mb-rem7").checked = rd.includes(7);
+  document.getElementById("mb-rem3").checked = rd.includes(3);
+  document.getElementById("mb-rem1").checked = rd.includes(1);
+  document.getElementById("mb-rem0").checked = rd.includes(0);
+  await loadBillUsers(data?.mikrotikUser);
+  document.getElementById("m-bill").classList.add("show");
+}
+
+async function loadBillUsers(selectedUser = "") {
+  const type = document.getElementById("mb-tp").value;
+  const psel = document.getElementById("mb-user");
+  psel.innerHTML = '<option value="">Loading...</option>';
+  if (!CS) return;
+  const users = (await req(`/billing/${CS}/import-users/${type}`)) || [];
+  psel.innerHTML = '<option value="">Pilih user...</option>';
+  users.forEach(
+    (u) =>
+      (psel.innerHTML += `<option value="${u.username}" data-profile="${u.profile}" ${u.username === selectedUser ? "selected" : ""}>${u.username} (${u.profile || "—"})</option>`)
+  );
+  if (selectedUser) psel.value = selectedUser;
+  psel.onchange = () => {
+    const opt = psel.options[psel.selectedIndex];
+    document.getElementById("mb-prof").value = opt?.dataset.profile || "";
+  };
+  psel.dispatchEvent(new Event("change"));
+}
+
+async function saveBillCustomer() {
+  const nm = v("mb-nm").trim();
+  const user = v("mb-user");
+  const price = parseFloat(v("mb-price"));
+  if (!nm || !user || !price) {
+    se("mb-err", "Nama, Username, dan Harga wajib diisi");
+    return;
+  }
+  const rd = [];
+  if (document.getElementById("mb-rem7").checked) rd.push(7);
+  if (document.getElementById("mb-rem3").checked) rd.push(3);
+  if (document.getElementById("mb-rem1").checked) rd.push(1);
+  if (document.getElementById("mb-rem0").checked) rd.push(0);
+  const body = {
+    id: editBillId || undefined,
+    name: nm,
+    phone: v("mb-ph"),
+    type: v("mb-tp"),
+    mikrotikUser: user,
+    profile: v("mb-prof"),
+    price,
+    billDate: parseInt(v("mb-date")) || 1,
+    graceDays: parseInt(v("mb-grace")) ?? 3,
+    telegramId: v("mb-tg"),
+    status: v("mb-st"),
+    autoDisable: v("mb-auto") === "true",
+    reminderDays: rd,
+    note: v("mb-note")
+  };
+  showL();
+  const d = editBillId
+    ? await fetch(`${API}/billing/${CS}/customers/${editBillId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }).then((r) => r.json())
+    : await post(`/billing/${CS}/customers`, body);
+  hideL();
+  if (d?.id) {
+    closeM("m-bill");
+    loadBilling();
+    toast(editBillId ? "Pelanggan diupdate!" : "Pelanggan ditambahkan!");
+  } else se("mb-err", d?.error || "Gagal menyimpan");
+}
+
+async function editBillFn(id) {
+  const c = await req(`/billing/${CS}/customers/${id}`);
+  if (c && !c.error) openBillCustomerModal(c);
+}
+
+async function deleteBillCustomer(id) {
+  if (!confirm("Hapus pelanggan ini?")) return;
+  showL();
+  await fetch(`${API}/billing/${CS}/customers/${id}`, {
+    method: "DELETE",
+    credentials: "include"
+  });
+  hideL();
+  loadBilling();
+  toast("Pelanggan dihapus");
+}
+
+async function reEnable(id) {
+  if (!confirm("Aktifkan kembali pelanggan ini?")) return;
+  showL();
+  const d = await fetch(`${API}/billing/${CS}/customers/${id}/re-enable`, {
+    method: "POST",
+    credentials: "include"
+  }).then((r) => r.json());
+  hideL();
+  d?.success
+    ? (loadBilling(), toast("Pelanggan diaktifkan kembali"))
+    : toast("Gagal: " + d?.error, true);
+}
+
+async function suspendCustomer(id) {
+  if (!confirm("Blokir akses pelanggan ini di MikroTik?")) return;
+  const d = await req(`/billing/${CS}/run-overdue`);
+  loadBilling();
+}
+
+async function runOverdue() {
+  if (
+    !confirm(
+      "Proses semua pelanggan overdue? Akun yang belum bayar lewat grace period akan diblokir."
+    )
+  )
+    return;
+  showL();
+  const d = await fetch(`${API}/billing/${CS}/run-overdue`, {
+    method: "POST",
+    credentials: "include"
+  }).then((r) => r.json());
+  hideL();
+  toast(
+    `✓ Selesai: ${d.disabled || 0} akun diblokir dari ${d.total || 0} overdue`
+  );
+  loadBilling();
+}
+
+function viewCustomerInvoices(id) {
+  go("invoices");
+  setTimeout(() => loadInvoices(id), 300);
+}
+
+// ── Send Reminder ───────────────────────────────────────────────
+async function sendReminderManual(customerId) {
+  const c = await req(`/billing/${CS}/customers/${customerId}`);
+  if (!c?.telegramId) {
+    toast("Pelanggan tidak memiliki Telegram ID", true);
+    return;
+  }
+  const invs =
+    (await req(`/billing/${CS}/invoices?customerId=${customerId}`)) || [];
+  const unpaid = invs.find(
+    (i) => i.status === "unpaid" || i.status === "overdue"
+  );
+  if (!unpaid) {
+    toast("Tidak ada tagihan yang belum dibayar", true);
+    return;
+  }
+
+  reminderInvId = unpaid.id;
+  const daysLeft = Math.round(
+    (new Date(unpaid.dueDate) - new Date()) / 86400000
+  );
+  const urgency = daysLeft <= 1 ? "🔴" : daysLeft <= 3 ? "🟡" : "🔵";
+  const dateStr = new Date(unpaid.dueDate).toLocaleDateString("id-ID", {
+    dateStyle: "long"
+  });
+  let msg = `${urgency} Pengingat Tagihan\n\n`;
+  msg += `Halo ${c.name},\n\n`;
+  msg += `Tagihan internet Anda periode ${unpaid.period} `;
+  if (daysLeft === 0) msg += `jatuh tempo HARI INI!\n\n`;
+  else if (daysLeft < 0)
+    msg += `sudah melewati jatuh tempo ${Math.abs(daysLeft)} hari!\n\n`;
+  else msg += `akan jatuh tempo dalam ${daysLeft} hari (${dateStr}).\n\n`;
+  msg += `💰 Tagihan: Rp ${Math.round(unpaid.amount).toLocaleString("id-ID")}\n`;
+  msg += `📦 Paket: ${c.profile}\n\n`;
+  msg += `Segera lakukan pembayaran. Terima kasih 🙏`;
+  document.getElementById("rem-preview").textContent = msg;
+  document.getElementById("rem-err").textContent = "";
+  document.getElementById("m-reminder").classList.add("show");
+}
+
+async function sendReminder() {
+  if (!reminderInvId) return;
+  showL();
+  const d = await post(
+    `/billing/${CS}/invoices/${reminderInvId}/send-reminder`,
+    {}
+  );
+  hideL();
+  d?.success
+    ? (closeM("m-reminder"), toast("✓ Reminder terkirim!"))
+    : se("rem-err", d?.error || "Gagal kirim");
+}
+
+// ── INVOICES ────────────────────────────────────────────────────
+async function loadInvoices(filterCustomerId = "") {
+  if (!CS) return;
+  const statusF = document.getElementById("inv-status-filter")?.value || "";
+  let invs =
+    (await req(
+      `/billing/${CS}/invoices${filterCustomerId ? "?customerId=" + filterCustomerId : ""}`
+    )) || [];
+  if (statusF) invs = invs.filter((i) => i.status === statusF);
+
+  // Stats
+  const now = new Date();
+  const mon = MONTHS_ID[now.getMonth()] + " " + now.getFullYear();
+  const unpd = invs.filter(
+    (i) => i.status === "unpaid" || i.status === "overdue"
+  );
+  const paid = invs.filter((i) => i.status === "paid" && i.period === mon);
+  document.getElementById("inv-unpaid-ct").textContent = unpd.length;
+  document.getElementById("inv-paid-ct").textContent = paid.length;
+  document.getElementById("inv-income").textContent =
+    "Rp " + paid.reduce((s, i) => s + i.amount, 0).toLocaleString("id-ID");
+
+  const STATUS = {
+    unpaid: '<span class="badge b-yl">Belum Bayar</span>',
+    paid: '<span class="badge b-gr">Lunas</span>',
+    overdue: '<span class="badge b-rd">Overdue</span>',
+    cancelled: '<span class="badge b-mu">Batal</span>'
+  };
+  const TYPE = {
+    pppoe: '<span class="badge b-pu">PPPoE</span>',
+    hotspot: '<span class="badge b-bl">Hotspot</span>'
+  };
+
+  const tb = document.getElementById("t-invoices");
+  tb.innerHTML = invs.length
+    ? invs
+        .map((inv) => {
+          const due = new Date(inv.dueDate);
+          const daysLeft = Math.round((due - new Date()) / 86400000);
+          const dueStr = due.toLocaleDateString("id-ID", {
+            dateStyle: "medium"
+          });
+          const dueColor =
+            daysLeft < 0
+              ? "var(--red)"
+              : daysLeft <= 3
+                ? "var(--yellow)"
+                : "var(--muted)";
+          return `<tr>
+      <td><code style="font-size:.73rem">${inv.id}</code></td>
+      <td>
+        <div style="font-weight:600">${inv.customerName}</div>
+        <div style="font-size:.73rem;color:var(--muted)">${inv.mikrotikUser}</div>
+      </td>
+      <td>${TYPE[inv.type] || "—"}</td>
+      <td>${inv.period}</td>
+      <td style="text-align:right;font-weight:600;color:var(--green)">Rp ${Math.round(inv.amount || 0).toLocaleString("id-ID")}</td>
+      <td style="color:${dueColor};white-space:nowrap">
+        ${dueStr}
+        ${daysLeft < 0 ? `<br><small style="color:var(--red)">${Math.abs(daysLeft)}h overdue</small>` : daysLeft === 0 ? '<br><small style="color:var(--yellow)">Hari ini!</small>' : `<small> (${daysLeft}h lagi)</small>`}
+      </td>
+      <td>${STATUS[inv.status] || inv.status}</td>
+      <td>
+        <div style="display:flex;gap:4px">
+          ${inv.status !== "paid" ? `<button class="btn b-g b-sm" onclick="openPayModal('${inv.id}')"><i class="fa fa-check"></i> Bayar</button>` : `<span style="font-size:.73rem;color:var(--muted)">${inv.paidAt ? new Date(inv.paidAt).toLocaleDateString("id-ID") : ""}</span>`}
+        </div>
+      </td>
+    </tr>`;
+        })
+        .join("")
+    : `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Tidak ada tagihan</td></tr>`;
+}
+
+async function generateInvoices() {
+  if (!CS) return;
+  if (!confirm("Generate tagihan bulan ini untuk semua pelanggan aktif?"))
+    return;
+  showL();
+  const d = await fetch(`${API}/billing/${CS}/invoices/generate`, {
+    method: "POST",
+    credentials: "include"
+  }).then((r) => r.json());
+  hideL();
+  toast(`✓ ${d.created} tagihan dibuat, ${d.skipped} sudah ada`);
+  loadInvoices();
+}
+
+function openPayModal(invId) {
+  payInvId = invId;
+  const rows = document.querySelectorAll("#t-invoices tr");
+  // Get data from table row
+  req(`/billing/${CS}/invoices?customerId=`).then(async () => {
+    const all = (await req(`/billing/${CS}/invoices`)) || [];
+    const inv = all.find((i) => i.id === invId);
+    if (!inv) return;
+    document.getElementById("pay-name").textContent = inv.customerName;
+    document.getElementById("pay-period").textContent = inv.period;
+    document.getElementById("pay-amount").textContent =
+      "Rp " + Math.round(inv.amount).toLocaleString("id-ID");
+    document.getElementById("pay-due").textContent = new Date(
+      inv.dueDate
+    ).toLocaleDateString("id-ID", { dateStyle: "long" });
+    document.getElementById("pay-by").value =
+      document.getElementById("tb-un")?.textContent || "Admin";
+    document.getElementById("pay-note").value = "";
+    document.getElementById("pay-err").textContent = "";
+    document.getElementById("m-pay").classList.add("show");
+  });
+}
+
+async function confirmPay() {
+  const paidBy = v("pay-by") || "Admin";
+  const note = v("pay-note");
+  showL();
+  const d = await fetch(`${API}/billing/${CS}/invoices/${payInvId}/pay`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ paidBy, note })
+  }).then((r) => r.json());
+  hideL();
+  if (d?.success) {
+    closeM("m-pay");
+    loadInvoices();
+    loadBilling(); // refresh stats
+    toast("✓ Tagihan ditandai LUNAS!");
+  } else se("pay-err", d?.error || "Gagal");
+}
+
+// ════════════════════════════════════════════════
+// BOT RESELLER
+// ════════════════════════════════════════════════
+let editBrsId = null,
+  topupBrsId = null;
+
+async function loadBotResellers() {
+  const list = (await req("/bot-resellers")) || [];
+
+  // Stats
+  const active = list.filter((r) => r.status === "active").length;
+  const vcr = list.reduce((s, r) => s + (r.totalVoucher || 0), 0);
+  const income = list.reduce((s, r) => s + (r.totalIncome || 0), 0);
+  document.getElementById("brs-total").textContent = list.length;
+  document.getElementById("brs-active").textContent = active;
+  document.getElementById("brs-vcr").textContent = vcr;
+  document.getElementById("brs-income").textContent =
+    "Rp " + Math.round(income).toLocaleString("id-ID");
+
+  const tb = document.getElementById("t-brs");
+  tb.innerHTML = list.length
+    ? list
+        .map((r) => {
+          const date = r.createdAt
+            ? new Date(r.createdAt).toLocaleString("id-ID", {
+                dateStyle: "short",
+                timeStyle: "short"
+              })
+            : "—";
+          return `<tr>
+      <td>
+        <div style="font-weight:600">${r.name}</div>
+        <div style="font-size:.75rem;color:var(--muted)">${r.username ? "@" + r.username.replace("@", "") : "—"}</div>
+      </td>
+      <td><code style="font-size:.8rem">${r.telegramId}</code></td>
+      <td style="text-align:right;font-weight:600;color:var(--green)">Rp ${Math.round(r.saldo || 0).toLocaleString("id-ID")}</td>
+      <td style="text-align:center">${r.totalVoucher || 0}</td>
+      <td style="text-align:right;color:var(--acc2)">Rp ${Math.round(r.totalIncome || 0).toLocaleString("id-ID")}</td>
+      <td><span class="badge ${r.status === "active" ? "b-gr" : "b-rd"}" style="cursor:pointer" onclick="toggleBrs('${r.id}')">${r.status === "active" ? "Active" : "Inactive"}</span></td>
+      <td style="font-size:.75rem;color:var(--muted)">${date}</td>
+      <td>
+        <div style="display:flex;gap:4px">
+          <button class="btn b-g b-sm" onclick="openTopupModal('${r.id}')" title="Topup Saldo"><i class="fa fa-plus-circle"></i></button>
+          <button class="btn b-s b-sm" onclick="showBrsLog('${r.id}','${r.name}')" title="Riwayat"><i class="fa fa-history"></i></button>
+          <button class="btn b-w b-sm" onclick="editBrsFn('${r.id}')"><i class="fa fa-pencil"></i></button>
+          <button class="btn b-d b-sm" onclick="deleteBrs('${r.id}')"><i class="fa fa-trash"></i></button>
+        </div>
+      </td>
+    </tr>`;
+        })
+        .join("")
+    : '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px"><i class="fa fa-users" style="font-size:1.5rem;display:block;margin-bottom:8px;opacity:.3"></i>Belum ada agen reseller</td></tr>';
+}
+
+function openBrsModal(data = null) {
+  editBrsId = data?.id || null;
+  document.getElementById("mbrs-ttl").textContent = data
+    ? "Edit Agen"
+    : "Tambah Agen";
+  document.getElementById("mbrs-err").textContent = "";
+  document.getElementById("mbrs-nm").value = data?.name || "";
+  document.getElementById("mbrs-un").value = data?.username || "";
+  document.getElementById("mbrs-tid").value = data?.telegramId || "";
+  document.getElementById("mbrs-st").value = data?.status || "active";
+  document.getElementById("mbrs-dc").value = data?.discount || 0;
+  document.getElementById("mbrs-sl").value = data?.saldo || 0;
+  document.getElementById("mbrs-sl").disabled = !!data; // saldo only on create
+  document.getElementById("mbrs-nt").value = data?.note || "";
+  document.getElementById("m-brs").classList.add("show");
+}
+
+async function editBrsFn(id) {
+  const r = await req("/bot-resellers/" + id);
+  if (r && !r.error) openBrsModal(r);
+}
+
+async function saveBrs() {
+  const nm = v("mbrs-nm").trim();
+  const tid = v("mbrs-tid").trim();
+  if (!nm || !tid) {
+    se("mbrs-err", "Nama dan Telegram ID wajib diisi");
+    return;
+  }
+  const body = {
+    id: editBrsId || undefined,
+    name: nm,
+    username: v("mbrs-un").replace("@", ""),
+    telegramId: tid,
+    status: v("mbrs-st"),
+    discount: parseFloat(v("mbrs-dc")) || 0,
+    saldo: editBrsId ? undefined : parseFloat(v("mbrs-sl")) || 0,
+    note: v("mbrs-nt")
+  };
+  showL();
+  const d = editBrsId
+    ? await fetch(`${API}/bot-resellers/${editBrsId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }).then((r) => r.json())
+    : await post("/bot-resellers", body);
+  hideL();
+  if (d?.id) {
+    closeM("m-brs");
+    loadBotResellers();
+    toast(editBrsId ? "Agen diupdate!" : "Agen ditambahkan!");
+  } else se("mbrs-err", d?.error || "Gagal menyimpan");
+}
+
+async function toggleBrs(id) {
+  const d = await fetch(`${API}/bot-resellers/${id}/toggle`, {
+    method: "PATCH",
+    credentials: "include"
+  }).then((r) => r.json());
+  if (d?.success) {
+    loadBotResellers();
+    toast(d.status === "active" ? "Agen diaktifkan" : "Agen dinonaktifkan");
+  }
+}
+
+async function deleteBrs(id) {
+  if (!confirm("Hapus agen ini?")) return;
+  showL();
+  await fetch(`${API}/bot-resellers/${id}`, {
+    method: "DELETE",
+    credentials: "include"
+  });
+  hideL();
+  loadBotResellers();
+  toast("Agen dihapus");
+}
+
+// ── Topup Saldo ────────────────────────────────────────────────
+
+function openTopupModal(id) {
+  topupBrsId = id;
+  const all = JSON.parse(document.getElementById("t-brs").dataset.raw || "[]");
+  // Fetch fresh
+  req("/bot-resellers/" + id).then((r) => {
+    if (!r || r.error) return;
+    document.getElementById("tp-name").textContent = r.name;
+    document.getElementById("tp-tid").textContent =
+      r.telegramId + (r.username ? " @" + r.username : "");
+    document.getElementById("tp-cur").textContent =
+      "Rp " + Math.round(r.saldo || 0).toLocaleString("id-ID");
+    document.getElementById("tp-amt").value = "";
+    document.getElementById("tp-note").value = "";
+    document.getElementById("tp-err").textContent = "";
+    document.getElementById("m-topup").classList.add("show");
+  });
+}
+
+function quickTopup(amount) {
+  document.getElementById("tp-amt").value = amount;
+}
+
+async function doTopup() {
+  const amt = parseFloat(v("tp-amt"));
+  if (!amt || amt === 0) {
+    se("tp-err", "Masukkan jumlah topup");
+    return;
+  }
+  const note =
+    v("tp-note").trim() || (amt > 0 ? "Topup saldo" : "Potong saldo");
+  const by = document.getElementById("tb-un")?.textContent || "Admin";
+  showL();
+  const d = await fetch(`${API}/bot-resellers/${topupBrsId}/topup`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ amount: amt, note, by })
+  }).then((r) => r.json());
+  hideL();
+  if (d?.success) {
+    closeM("m-topup");
+    loadBotResellers();
+    const sign = amt > 0 ? "+" : "";
+    toast(
+      `✓ Saldo ${d.reseller.name}: ${sign}Rp ${Math.abs(amt).toLocaleString("id-ID")} → Rp ${Math.round(d.reseller.saldo).toLocaleString("id-ID")}`
+    );
+  } else {
+    se("tp-err", d?.error || "Gagal topup");
+  }
+}
+
+// ── Log Riwayat ────────────────────────────────────────────────
+
+async function showBrsLog(id, name) {
+  document.getElementById("brs-log-name").textContent = name;
+  document.getElementById("brs-log-card").style.display = "block";
+  document
+    .getElementById("brs-log-card")
+    .scrollIntoView({ behavior: "smooth" });
+  const logs = (await req("/bot-resellers/logs/" + id)) || [];
+  const TYPE_LABEL = {
+    topup: "Topup",
+    deduct: "Potong",
+    purchase: "Pembelian"
+  };
+  document.getElementById("t-brs-log").innerHTML = logs.length
+    ? logs
+        .map((l) => {
+          const sign = l.amount >= 0 ? "+" : "";
+          const color = l.amount >= 0 ? "var(--green)" : "var(--red)";
+          const dt = l.at
+            ? new Date(l.at).toLocaleString("id-ID", {
+                dateStyle: "short",
+                timeStyle: "short"
+              })
+            : "—";
+          return `<tr>
+          <td style="white-space:nowrap;font-size:.78rem">${dt}</td>
+          <td><span class="badge ${l.type === "purchase" ? "b-yl" : l.amount >= 0 ? "b-gr" : "b-rd"}">${TYPE_LABEL[l.type] || l.type}</span></td>
+          <td style="text-align:right;font-weight:600;color:${color}">${sign}Rp ${Math.abs(l.amount).toLocaleString("id-ID")}</td>
+          <td style="text-align:right;color:var(--muted)">Rp ${Math.round(l.balanceBefore || 0).toLocaleString("id-ID")}</td>
+          <td style="text-align:right;font-weight:500">Rp ${Math.round(l.balanceAfter || 0).toLocaleString("id-ID")}</td>
+          <td style="color:var(--muted);font-size:.78rem">${l.note || "—"}</td>
+          <td style="color:var(--muted);font-size:.78rem">${l.by || "—"}</td>
+        </tr>`;
+        })
+        .join("")
+    : '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:16px">Belum ada riwayat</td></tr>';
+}
+
+// ════════════════════════════════════════════════
+// LIGHT / DARK MODE
+// ════════════════════════════════════════════════
+function toggleTheme() {
+  const isLight = document.body.classList.toggle("light");
+  localStorage.setItem("theme", isLight ? "light" : "dark");
+  document.getElementById("theme-icon").className = isLight
+    ? "fa fa-sun-o"
+    : "fa fa-moon-o";
+}
+function initTheme() {
+  const saved = localStorage.getItem("theme");
+  if (saved === "light") {
+    document.body.classList.add("light");
+    document.getElementById("theme-icon").className = "fa fa-sun-o";
+  }
+}
+
+// ════════════════════════════════════════════════
+// COLOR SYNC (Profile Modal)
+// ════════════════════════════════════════════════
+function syncColorHex() {
+  const hex = document.getElementById("mhp-color-hex").value;
+  if (/^#[0-9a-fA-F]{6}$/.test(hex)) {
+    document.getElementById("mhp-color").value = hex;
+  }
+}
+document.addEventListener("DOMContentLoaded", () => {
+  const cp = document.getElementById("mhp-color");
+  if (cp)
+    cp.addEventListener("input", () => {
+      document.getElementById("mhp-color-hex").value = cp.value;
+    });
+});
+
+// ════════════════════════════════════════════════
+// PRINT VOUCHER
+// ════════════════════════════════════════════════
+let pvVouchers = []; // current vouchers to print
+let pvCols = 5;
+let pvPaper = "A4";
+let pvOrient = "portrait";
+
+// Called after generate vouchers
+function openPrintModal() {
+  if (!genVcr.length) return;
+  pvVouchers = genVcr;
+  document.getElementById("pv-count").textContent = pvVouchers.length;
+  renderPrintPreview();
+  document.getElementById("m-print").classList.add("show");
+}
+
+function setPaper(p, btn) {
+  pvPaper = p;
+  document
+    .querySelectorAll("#paper-btns .pv-btn")
+    .forEach((b) => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderPrintPreview();
+}
+function setOrient(o, btn) {
+  pvOrient = o;
+  document
+    .querySelectorAll("#orient-btns .pv-btn")
+    .forEach((b) => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderPrintPreview();
+}
+function setCols(n, btn) {
+  pvCols = n;
+  document
+    .querySelectorAll("#col-btns .pv-btn")
+    .forEach((b) => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderPrintPreview();
+}
+
+function renderPrintPreview() {
+  const perPage = calcPerPage();
+  const pages = Math.ceil(pvVouchers.length / perPage);
+  document.getElementById("pv-info").textContent =
+    `maks ${perPage}/hal · ${pages} hal · ${pvPaper} ${pvOrient === "portrait" ? "P" : "L"}`;
+
+  const preview = document.getElementById("pv-preview");
+  preview.innerHTML = pvVouchers.map((v, i) => buildPvCard(v, i)).join("");
+  preview.style.display = "grid";
+  preview.style.gridTemplateColumns = `repeat(${pvCols}, 1fr)`;
+  preview.style.gap = "8px";
+  preview.style.padding = "4px";
+}
+
+function calcPerPage() {
+  // Approximate rows that fit per page
+  const rowsPerPage =
+    pvOrient === "portrait"
+      ? pvPaper === "A4"
+        ? 8
+        : 9
+      : pvPaper === "A4"
+        ? 5
+        : 6;
+  return pvCols * rowsPerPage;
+}
+
+function formatMikrotikTime(durasiStr) {
+  // Jika tidak ada data
+
+  if (!durasiStr) return "Unlimited";
+
+  // Cek huruf terakhir
+  if (durasiStr.includes("d")) {
+    let hari = durasiStr.replace("d", "");
+    return hari + " Hari";
+  }
+
+  if (durasiStr.includes("h")) {
+    let jam = durasiStr.replace("h", "");
+    return jam + " Jam";
+  }
+
+  if (durasiStr.includes("s")) {
+    let detik = parseInt(durasiStr.replace("s", ""));
+    let jam = detik / 3600;
+    return jam + " Jam";
+  }
+
+  return durasiStr; // Kembalikan apa adanya jika format lain
+}
+
+function buildPvCard(vcr, idx) {
+  const color = vcr.color || "#1f6feb";
+  const price = vcr.price
+    ? "Rp " + Number(vcr.price).toLocaleString("id-ID")
+    : "";
+  const caption = vcr.caption || vcr.profile || "";
+  const duration = vcr.limitUptime || vcr.validity || "—";
+
+  if (vcr.username === vcr.password) {
+    // Lighten color for gradient
+    return `<div class="pv-card">
+            <div class="pv-card-hd" style="background:${color}">
+              <div class="logo">NODEMON</div>
+              <div class="price">${price}</div>
+            </div>
+            <div class="pv-card-body">
+              <div class="pv-card-row"><span class="label">Username</span></div>
+              <div class="pv-card-row"><span class="val">${vcr.username}</span></div>
+              <hr class="pv-card-divider">
+              <div class="pv-card-extra">
+                <span>Durasi: <b>${formatMikrotikTime(duration)}</b></span>
+                <span>${caption}</span>
+              </div>
+            </div>
+          </div>`;
+  } else {
+    // Lighten color for gradient
+    return `<div class="pv-card">
+              <div class="pv-card-hd" style="background:${color}">
+                <div class="logo">NODEMON</div>
+                <div class="price">${price}</div>
+              </div>
+              <div class="pv-card-body">
+                <div class="pv-card-row"><span class="label">Username</span></div>
+                <div class="pv-card-row"><span class="val">${vcr.username}</span></div>
+                <div class="pv-card-row" style="margin-top:3px"><span class="label">Password</span></div>
+                <div class="pv-card-row"><span class="val">${vcr.password}</span></div>
+                <hr class="pv-card-divider">
+                <div class="pv-card-extra">
+                  <span>Durasi: <b>${formatMikrotikTime(duration)}</b></span>
+                  <span>${caption}</span>
+                </div>
+              </div>
+            </div>`;
+  }
+}
+
+function doPrint() {
+  // Open print-specific window
+  const content = buildPrintHTML();
+  const win = window.open("", "_blank", "width=900,height=700");
+  win.document.write(content);
+  win.document.close();
+  win.focus();
+  setTimeout(() => {
+    win.print();
+  }, 500);
+}
+
+function downloadPDF() {
+  // Same as print but browser will offer Save as PDF
+  const content = buildPrintHTML();
+  const win = window.open("", "_blank", "width=900,height=700");
+  win.document.write(content);
+  win.document.close();
+  win.focus();
+  setTimeout(() => {
+    win.print();
+  }, 500);
+}
+
+function buildPrintHTML() {
+  const colW =
+    pvOrient === "portrait"
+      ? pvPaper === "A4"
+        ? "190mm"
+        : "210mm"
+      : pvPaper === "A4"
+        ? "277mm"
+        : "330mm";
+
+  const cards = pvVouchers.map((v, i) => buildPvCard(v, i)).join("");
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Print Voucher</title>
+  <style>
+    @page { size: ${pvPaper} ${pvOrient}; margin: 8mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: white; }
+    .grid { display: grid; grid-template-columns: repeat(${pvCols}, 1fr); gap: 6px; }
+    .pv-card { border-radius: 7px; overflow: hidden; font-size: 11px;
+               break-inside: avoid; page-break-inside: avoid;
+               border: 1.5px solid #ddd; }
+    .pv-card-hd { display: flex; align-items: center; justify-content: space-between;
+                  padding: 5px 9px 4px; color: white; }
+    .pv-card-hd .logo { font-size: 8px; font-weight: 700; opacity: .85; }
+    .pv-card-hd .price { font-size: 13px; font-weight: 800; }
+    .pv-card-body { background: #fff; padding: 6px 9px 7px; color: #222; }
+    .pv-card-row { display: flex; justify-content: center; margin-bottom: 1px; font-size: 9.5px; }
+    .label { color: #999; }
+    .val { font-weight: 700; color: #111; font-family: monospace; letter-spacing: .5px; font-size: 12.5px; }
+    .pv-card-divider { border: none; border-top: 1px dashed #ddd; margin: 4px 0; }
+    .pv-card-extra { display: flex; justify-content: space-between; font-size: 9px; color: #888; }
+  </style>
+  </head><body>
+  <div class="grid">${cards}</div>
+  </body></html>`;
+}
+
+// ════════════════════════════════════════════════
+// UPDATE generateVouchers to attach color+price
+// ════════════════════════════════════════════════
+// Patch: after voucher generation, fetch profile color
+async function fetchProfileMeta(profileName) {
+  if (!CS) return {};
+  try {
+    const p = await req(`/mikrotik/${CS}/hotspot/profiles/${profileName}`);
+    return {
+      color: p?.color || p?.profileColor || "#1f6feb",
+      price: p?.sprice || p?.price || 0,
+      caption: p?.caption || "",
+      validity: p?.validity || ""
+    };
+  } catch {
+    return {};
+  }
+}
+
+// ════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════
+
+async function fetchBotInfo(token) {
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${token}/getMe`).then(
+      (r) => r.json()
+    );
+    if (r.ok) {
+      document.getElementById("tg-bot-name").textContent =
+        r.result.first_name || "—";
+      document.getElementById("tg-bot-username").textContent =
+        "@" + (r.result.username || "—");
+    }
+  } catch {}
+}
+
+initTheme();
+startClock();
+checkAuth();
+
+/* ═══════════════════════════════════════════════════════════
+   AUTO-REMOVE BATCH — SETTINGS
+═══════════════════════════════════════════════════════════ */
+let AUTO_REMOVE_BATCH = localStorage.getItem("mh_auto_remove") !== "false"; // default ON
+
+function initAutoRemoveSetting() {
+  const pill = document.getElementById("ar-pill");
+  const wrap = document.getElementById("ar-toggle");
+  const label = document.getElementById("ar-label");
+  if (!pill) return;
+  pill.className = "ar-pill" + (AUTO_REMOVE_BATCH ? " on" : "");
+  wrap.className = "ar-toggle-wrap" + (AUTO_REMOVE_BATCH ? " active" : "");
+  label.textContent = AUTO_REMOVE_BATCH ? "Auto Hapus: ON" : "Auto Hapus: OFF";
+}
+
+function toggleAutoRemoveSetting() {
+  AUTO_REMOVE_BATCH = !AUTO_REMOVE_BATCH;
+  localStorage.setItem("mh_auto_remove", AUTO_REMOVE_BATCH);
+  initAutoRemoveSetting();
+  toast(
+    AUTO_REMOVE_BATCH
+      ? "🗑️ Auto hapus batch aktif"
+      : "Auto hapus batch dinonaktifkan"
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   AUTO-REMOVE BATCH — CORE
+═══════════════════════════════════════════════════════════ */
+
+/**
+ * Check a SINGLE batch by ID.
+ * If remaining === 0, animate-remove it from DOM and call DELETE.
+ * Returns true if batch was removed.
+ */
+async function checkAndAutoRemoveSingle(batchId) {
+  if (!AUTO_REMOVE_BATCH || !CS || !batchId) return false;
+  try {
+    const b = await req(`/batches/${CS}/${batchId}`);
+    if (!b || b.error) return false;
+
+    const s = b.stats || {};
+    if (s.total > 0 && s.remaining === 0) {
+      await removeBatchWithAnimation(batchId);
+      return true;
+    }
+  } catch (e) {
+    console.warn("checkAndAutoRemoveSingle:", e.message);
+  }
+  return false;
+}
+
+/**
+ * Scan ALL batches for the current router session.
+ * Remove every batch where remaining === 0.
+ * Returns number of batches removed.
+ */
+async function checkAndAutoRemoveAll() {
+  if (!AUTO_REMOVE_BATCH || !CS) return 0;
+  try {
+    const batches = (await req(`/batches/${CS}`)) || [];
+    const fullBatches = batches.filter((b) => {
+      const s = b.stats || {};
+      return s.total > 0 && s.remaining === 0;
+    });
+    if (!fullBatches.length) return 0;
+
+    let removed = 0;
+    for (const b of fullBatches) {
+      const ok = await removeBatchWithAnimation(b.id);
+      if (ok) removed++;
+    }
+
+    if (removed > 0) {
+      toast(`🗑️ ${removed} batch habis otomatis dihapus`);
+      // Refresh batch count label
+      const remaining = ((await req(`/batches/${CS}`)) || []).length;
+      const lbl = document.getElementById("batch-count-label");
+      if (lbl) lbl.textContent = `${remaining} batch tersedia`;
+    }
+    return removed;
+  } catch (e) {
+    console.warn("checkAndAutoRemoveAll:", e.message);
+    return 0;
+  }
+}
+
+/**
+ * Animate a batch card out of the DOM, then call DELETE on the server.
+ * Works whether we're in grid view or detail view.
+ */
+async function removeBatchWithAnimation(batchId) {
+  // Find and animate the card in the grid (if visible)
+  const card = document.querySelector(`.batch-card[onclick*="${batchId}"]`);
+  if (card) {
+    card.classList.add("removing");
+    // Wait for animation to finish before removing from DOM
+    await new Promise((r) => setTimeout(r, 580));
+    card.remove();
+  }
+
+  // If we're viewing this batch's detail, go back to list
+  if (currentBatch?.id === batchId) {
+    closeBatchDetail();
+  }
+
+  // Call DELETE on server
+  try {
+    const r = await fetch(`${API}/batches/${CS}/${batchId}`, {
+      method: "DELETE",
+      credentials: "include"
+    }).then((res) => res.json());
+    return !!(r?.success || r?.deleted);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check a batch by profile name — scan all batches for that profile.
+ * Used after buying a single voucher.
+ */
+async function checkAndAutoRemoveByProfile(profileName) {
+  if (!AUTO_REMOVE_BATCH || !CS || !profileName) return;
+  try {
+    const batches = (await req(`/batches/${CS}`)) || [];
+    const matching = batches.filter(
+      (b) =>
+        b.profileName === profileName &&
+        b.stats &&
+        b.stats.total > 0 &&
+        b.stats.remaining === 0
+    );
+    let removed = 0;
+    for (const b of matching) {
+      const ok = await removeBatchWithAnimation(b.id);
+      if (ok) removed++;
+    }
+    if (removed > 0)
+      toast(`🗑️ ${removed} batch "${profileName}" habis, otomatis dihapus`);
+  } catch (e) {
+    console.warn("checkAndAutoRemoveByProfile:", e.message);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INIT — call initAutoRemoveSetting when batch-list page loads
+   Add this call inside loadBatchList() at the top:
+     initAutoRemoveSetting();
+═══════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════
+   REALTIME TRAFFIC — STATE
+═══════════════════════════════════════════════════════════ */
+const TRAFFIC = {
+  chart: null,
+  interval: null,
+  cdInterval: null,
+  paused: false,
+  iface: "",
+  maxPoints: 60, // 60 ticks × 5s = 5 menit history
+  cdSec: 5,
+  txHistory: [],
+  rxHistory: [],
+  labels: [],
+  peakTx: 0,
+  peakRx: 0,
+  totalTx: 0, // bytes accumulated in session
+  totalRx: 0,
+  sampleCount: 0,
+  prevTxBytes: null, // raw bytes from last poll
+  prevRxBytes: null,
+  COLOR_TX: "#38bdf8",
+  COLOR_RX: "#a78bfa"
+};
+
+/* ═══════════════════════════════════════════════════════════
+   INIT — called from loadDashboard() after router is set
+═══════════════════════════════════════════════════════════ */
+async function initTrafficPanel() {
+  if (!CS) {
+    setTrafficEmpty("Pilih router terlebih dahulu");
+    return;
+  }
+
+  // Load interface list
+  try {
+    const ifaces = await req(`/mikrotik/${CS}/interfaces`).catch(() => []);
+    const sel = document.getElementById("traffic-iface-sel");
+    sel.innerHTML = '<option value="">— Pilih Interface —</option>';
+
+    // Sort: ether & wlan first, then bridges, then others
+    const sorted = ifaces.sort((a, b) => {
+      const rank = (n) =>
+        n.startsWith("ether") || n.startsWith("wlan")
+          ? 0
+          : n.startsWith("bridge")
+            ? 1
+            : 2;
+      return rank(a.name) - rank(b.name);
+    });
+
+    sorted.forEach((iface) => {
+      if (iface["running"] === "false" && iface["disabled"] === "true") return;
+      sel.innerHTML += `<option value="${iface.name}"
+        data-comment="${iface.comment || ""}"
+        data-running="${iface.running}">
+        ${iface.name}${iface.comment ? " · " + iface.comment : ""}
+        ${iface.running === "false" ? " (down)" : ""}
+      </option>`;
+    });
+
+    // Auto-select first running ether
+    const firstEther = sorted.find(
+      (i) => i.name.startsWith("ether") && i.running !== "false"
+    );
+    if (firstEther) {
+      sel.value = firstEther.name;
+      TRAFFIC.iface = firstEther.name;
+      startTrafficLoop();
+    }
+  } catch (e) {
+    setTrafficEmpty("Gagal memuat daftar interface");
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LOOP — 5 second polling
+═══════════════════════════════════════════════════════════ */
+function startTrafficLoop() {
+  stopTrafficLoop();
+  if (!TRAFFIC.iface || !CS) return;
+
+  // Reset state
+  TRAFFIC.txHistory = [];
+  TRAFFIC.rxHistory = [];
+  TRAFFIC.labels = [];
+  TRAFFIC.peakTx = 0;
+  TRAFFIC.peakRx = 0;
+  TRAFFIC.totalTx = 0;
+  TRAFFIC.totalRx = 0;
+  TRAFFIC.sampleCount = 0;
+  TRAFFIC.prevTxBytes = null;
+  TRAFFIC.prevRxBytes = null;
+  TRAFFIC.cdSec = 5;
+
+  buildTrafficUI();
+  fetchTrafficNow();
+
+  // Poll every 5 seconds
+  TRAFFIC.interval = setInterval(() => {
+    if (!TRAFFIC.paused) fetchTrafficNow();
+  }, 5000);
+
+  // Countdown ring every 1 second
+  TRAFFIC.cdInterval = setInterval(() => {
+    if (TRAFFIC.paused) return;
+    TRAFFIC.cdSec--;
+    if (TRAFFIC.cdSec < 0) TRAFFIC.cdSec = 5;
+    updateCountdownRing();
+  }, 1000);
+}
+
+function stopTrafficLoop() {
+  clearInterval(TRAFFIC.interval);
+  clearInterval(TRAFFIC.cdInterval);
+  TRAFFIC.interval = null;
+  TRAFFIC.cdInterval = null;
+  if (TRAFFIC.chart) {
+    TRAFFIC.chart.destroy();
+    TRAFFIC.chart = null;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FETCH — get interface stats from MikroTik
+═══════════════════════════════════════════════════════════ */
+async function fetchTrafficNow() {
+  if (!CS || !TRAFFIC.iface) return;
+  TRAFFIC.cdSec = 5;
+  updateCountdownRing();
+
+  try {
+    // MikroTik RouterOS API: /interface/monitor-traffic
+    const stats = await req(
+      `/mikrotik/${CS}/interface/traffic/${encodeURIComponent(TRAFFIC.iface)}`
+    );
+
+    if (!stats || stats.error) return;
+
+    // tx-bits-per-second and rx-bits-per-second from RouterOS
+    // Fallback: calculate from raw bytes if API returns bytes
+    let txBps, rxBps;
+
+    if (stats["tx-bits-per-second"] !== undefined) {
+      // RouterOS monitor-traffic gives bits/s directly
+      txBps = parseInt(stats["tx-bits-per-second"]) || 0;
+      rxBps = parseInt(stats["rx-bits-per-second"]) || 0;
+    } else if (stats["tx-byte"] !== undefined) {
+      // Calculate delta from raw bytes
+      const txBytes = parseInt(stats["tx-byte"]) || 0;
+      const rxBytes = parseInt(stats["rx-byte"]) || 0;
+      if (TRAFFIC.prevTxBytes !== null) {
+        const deltaTx = Math.max(0, txBytes - TRAFFIC.prevTxBytes);
+        const deltaRx = Math.max(0, rxBytes - TRAFFIC.prevRxBytes);
+        txBps = (deltaTx * 8) / 5; // /5 because 5s interval
+        rxBps = (deltaRx * 8) / 5;
+      } else {
+        txBps = 0;
+        rxBps = 0;
+      }
+      TRAFFIC.prevTxBytes = txBytes;
+      TRAFFIC.prevRxBytes = rxBytes;
+    } else {
+      return; // unknown format
+    }
+
+    const txMbps = txBps / 1_000_000;
+    const rxMbps = rxBps / 1_000_000;
+
+    pushTrafficPoint(txMbps, rxMbps);
+  } catch (e) {
+    console.warn("fetchTrafficNow:", e.message);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PUSH DATA — add new point to chart
+═══════════════════════════════════════════════════════════ */
+function pushTrafficPoint(txMbps, rxMbps) {
+  const now = new Date().toLocaleTimeString("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+
+  // Rolling window
+  TRAFFIC.txHistory.push(txMbps);
+  TRAFFIC.rxHistory.push(rxMbps);
+  TRAFFIC.labels.push(now);
+  if (TRAFFIC.txHistory.length > TRAFFIC.maxPoints) {
+    TRAFFIC.txHistory.shift();
+    TRAFFIC.rxHistory.shift();
+    TRAFFIC.labels.shift();
+  }
+
+  // Peak
+  if (txMbps > TRAFFIC.peakTx) TRAFFIC.peakTx = txMbps;
+  if (rxMbps > TRAFFIC.peakRx) TRAFFIC.peakRx = rxMbps;
+
+  // Accumulate for average
+  TRAFFIC.totalTx += txMbps;
+  TRAFFIC.totalRx += rxMbps;
+  TRAFFIC.sampleCount++;
+
+  // Update chart
+  if (TRAFFIC.chart) {
+    TRAFFIC.chart.data.labels = [...TRAFFIC.labels];
+    TRAFFIC.chart.data.datasets[0].data = [...TRAFFIC.txHistory];
+    TRAFFIC.chart.data.datasets[1].data = [...TRAFFIC.rxHistory];
+    TRAFFIC.chart.update("none"); // 'none' = no animation for performance
+  }
+
+  // Update speed pills
+  updateSpeedPills(txMbps, rxMbps);
+
+  // Update stats row
+  updateTrafficStats();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BUILD UI — create chart + speed pills on first data
+═══════════════════════════════════════════════════════════ */
+function buildTrafficUI() {
+  document.getElementById("traffic-body").innerHTML = `
+    <!-- Speed pills -->
+    <div class="traffic-speeds">
+      <div class="speed-pill tx">
+        <div class="speed-pill-dot"></div>
+        <div>
+          <div class="speed-pill-val" id="traffic-tx-val">0.00 Mbps</div>
+          <div class="speed-pill-lbl">Upload (TX)</div>
+        </div>
+      </div>
+      <div class="speed-pill rx">
+        <div class="speed-pill-dot"></div>
+        <div>
+          <div class="speed-pill-val" id="traffic-rx-val">0.00 Mbps</div>
+          <div class="speed-pill-lbl">Download (RX)</div>
+        </div>
+      </div>
+    </div>
+ 
+    <!-- Chart -->
+    <div class="traffic-chart-wrap">
+      <canvas id="traffic-chart"></canvas>
+    </div>
+ 
+    <!-- Peak / avg stats -->
+    <div class="traffic-stats-row">
+      <div class="traffic-stat">
+        <span>Peak TX</span>
+        <b id="traffic-peak-tx" style="color:${TRAFFIC.COLOR_TX}">—</b>
+      </div>
+      <div class="traffic-stat">
+        <span>Peak RX</span>
+        <b id="traffic-peak-rx" style="color:${TRAFFIC.COLOR_RX}">—</b>
+      </div>
+      <div class="traffic-stat">
+        <span>Avg TX</span>
+        <b id="traffic-avg-tx">—</b>
+      </div>
+      <div class="traffic-stat">
+        <span>Avg RX</span>
+        <b id="traffic-avg-rx">—</b>
+      </div>
+      <div class="traffic-stat" style="margin-left:auto">
+        <span>Interface</span>
+        <b id="traffic-iface-lbl" style="color:var(--acc2)">${TRAFFIC.iface}</b>
+      </div>
+    </div>`;
+
+  // Build Chart.js line chart
+  const ctx = document.getElementById("traffic-chart").getContext("2d");
+  TRAFFIC.chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: "TX (Upload)",
+          data: [],
+          borderColor: TRAFFIC.COLOR_TX,
+          backgroundColor: hexToRgba(TRAFFIC.COLOR_TX, 0.08),
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          fill: true,
+          tension: 0.4
+        },
+        {
+          label: "RX (Download)",
+          data: [],
+          borderColor: TRAFFIC.COLOR_RX,
+          backgroundColor: hexToRgba(TRAFFIC.COLOR_RX, 0.08),
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          fill: true,
+          tension: 0.4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      animation: false,
+      plugins: {
+        legend: {
+          position: "top",
+          align: "end",
+          labels: {
+            color: "#8b949e",
+            boxWidth: 12,
+            boxHeight: 12,
+            borderRadius: 3,
+            useBorderRadius: true,
+            font: { size: 11 },
+            padding: 12
+          }
+        },
+        tooltip: {
+          backgroundColor: "#0d1117",
+          borderColor: "rgba(255,255,255,.08)",
+          borderWidth: 1,
+          titleColor: "#8b949e",
+          bodyColor: "#f0f6fc",
+          padding: 10,
+          callbacks: {
+            label: (ctx) => ` ${ctx.dataset.label}: ${fmtMbps(ctx.parsed.y)}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: "#8b949e",
+            maxTicksLimit: 6,
+            font: { size: 10 },
+            maxRotation: 0
+          },
+          grid: { color: "rgba(255,255,255,.04)" }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            color: "#8b949e",
+            font: { size: 10 },
+            callback: (v) => fmtMbps(v)
+          },
+          grid: { color: "rgba(255,255,255,.04)" }
+        }
+      }
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   UI HELPERS
+═══════════════════════════════════════════════════════════ */
+function updateSpeedPills(txMbps, rxMbps) {
+  const txEl = document.getElementById("traffic-tx-val");
+  const rxEl = document.getElementById("traffic-rx-val");
+  if (txEl) txEl.textContent = fmtMbps(txMbps);
+  if (rxEl) rxEl.textContent = fmtMbps(rxMbps);
+}
+
+function updateTrafficStats() {
+  const n = TRAFFIC.sampleCount || 1;
+  setEl("traffic-peak-tx", fmtMbps(TRAFFIC.peakTx));
+  setEl("traffic-peak-rx", fmtMbps(TRAFFIC.peakRx));
+  setEl("traffic-avg-tx", fmtMbps(TRAFFIC.totalTx / n));
+  setEl("traffic-avg-rx", fmtMbps(TRAFFIC.totalRx / n));
+}
+
+function updateCountdownRing() {
+  const ring = document.getElementById("traffic-ring");
+  const cdEl = document.getElementById("traffic-cd");
+  if (!ring) return;
+  const pct = TRAFFIC.cdSec / 5;
+  const circ = 56.5;
+  ring.style.strokeDashoffset = circ * (1 - pct);
+  if (cdEl) cdEl.textContent = TRAFFIC.cdSec + "s";
+}
+
+function setTrafficEmpty(msg = "") {
+  const body = document.getElementById("traffic-body");
+  if (body)
+    body.innerHTML = `
+    <div class="traffic-empty">
+      <i class="fa fa-plug"></i>
+      ${msg || "Pilih router dan interface untuk melihat trafik realtime"}
+    </div>`;
+}
+
+function onTrafficIfaceChange() {
+  const sel = document.getElementById("traffic-iface-sel");
+  TRAFFIC.iface = sel.value;
+  if (TRAFFIC.iface) {
+    startTrafficLoop();
+  } else {
+    stopTrafficLoop();
+    setTrafficEmpty();
+  }
+}
+
+function toggleTrafficPause() {
+  TRAFFIC.paused = !TRAFFIC.paused;
+  const btn = document.getElementById("traffic-pause-btn");
+  const icon = document.getElementById("traffic-pause-icon");
+  const lbl = document.getElementById("traffic-pause-lbl");
+  if (!btn) return;
+  btn.classList.toggle("paused", TRAFFIC.paused);
+  icon.className = TRAFFIC.paused ? "fa fa-play" : "fa fa-pause";
+  lbl.textContent = TRAFFIC.paused ? "Resume" : "Pause";
+
+  // While paused, dim the live dot
+  const liveDot = document.querySelector(".traffic-live-dot");
+  if (liveDot) liveDot.style.opacity = TRAFFIC.paused ? ".35" : "1";
+}
+
+/* Helpers */
+function fmtMbps(mbps) {
+  if (mbps === null || mbps === undefined) return "—";
+  if (mbps < 0.01) return "< 0.01 Mbps";
+  if (mbps >= 1000) return (mbps / 1000).toFixed(2) + " Gbps";
+  return mbps.toFixed(2) + " Mbps";
+}
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+function setEl(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}

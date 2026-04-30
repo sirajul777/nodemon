@@ -1,0 +1,3417 @@
+<% layout("./layout") %>
+
+<!-- Include the modular sidebar -->
+<%~ include("./partials/sidebar") %>
+
+<div id="main">
+  <!-- Topbar code goes here -->
+<%~ include("./partials/topbar") %>
+
+    <div id="content">
+        <!-- ══ DASHBOARD ══ -->
+        <div class="page active" id="page-dashboard">
+            <!-- Stat bar -->
+            <!-- Main content grid -->
+            <div class="gcol">
+            <!-- Left column -->
+            <div>
+                <div class="stat-bar">
+                <div class="sbc c-green">
+                    <div class="sbc-icon"><i class="fa fa-money"></i></div>
+                    <div>
+                    <div class="sbc-val" id="db-today-inc">—</div>
+                    <div class="sbc-lbl">Revenue Hari Ini</div>
+                    </div>
+                </div>
+                <div class="sbc c-cyan">
+                    <div class="sbc-icon"><i class="fa fa-calendar"></i></div>
+                    <div>
+                    <div class="sbc-val" id="db-month-inc">—</div>
+                    <div class="sbc-lbl">Revenue Bulan Ini</div>
+                    </div>
+                </div>
+                <div class="sbc c-blue">
+                    <div class="sbc-icon"><i class="fa fa-ticket"></i></div>
+                    <div>
+                    <div class="sbc-val" id="db-today-vcr">—</div>
+                    <div class="sbc-lbl">Voucher Hari Ini</div>
+                    </div>
+                </div>
+                <div class="sbc c-purple">
+                    <div class="sbc-icon"><i class="fa fa-ticket"></i></div>
+                    <div>
+                    <div class="sbc-val" id="db-month-vcr">—</div>
+                    <div class="sbc-lbl">Voucher Bulan Ini</div>
+                    </div>
+                </div>
+                <!-- <div class="sbc c-yellow">
+                <div class="sbc-icon"><i class="fa fa-wifi"></i></div>
+                <div><div class="sbc-val" id="db-hs-online">—</div><div class="sbc-lbl">Hotspot Online</div></div>
+            </div>
+            <div class="sbc c-orange" style="--c:var(--orange)">
+                <div class="sbc-icon" style="background:#db6d2818;color:var(--orange)"><i class="fa fa-plug"></i></div>
+                <div><div class="sbc-val" id="db-ppp-online">—</div><div class="sbc-lbl">PPPoE Online</div></div>
+            </div> -->
+                </div>
+
+                <!-- HS + PPPoE panels -->
+                <div class="g2" style="margin-bottom: 14px">
+                <div class="net-panel">
+                    <div class="net-label">
+                    <i class="fa fa-wifi"></i> HOTSPOT
+                    </div>
+                    <div class="net-stats">
+                    <div class="ns">
+                        <div class="ns-ico gr"><i class="fa fa-users"></i></div>
+                        <div>
+                        <div class="ns-val" id="db-hs-total">—</div>
+                        <div class="ns-lbl">Total User</div>
+                        </div>
+                    </div>
+                    <div class="ns">
+                        <div class="ns-ico bl"><i class="fa fa-laptop"></i></div>
+                        <div>
+                        <div class="ns-val" id="db-hs-active2">—</div>
+                        <div class="ns-lbl">Online</div>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                <div class="net-panel">
+                    <div class="net-label"><i class="fa fa-plug"></i> PPPOE</div>
+                    <div class="net-stats">
+                    <div class="ns">
+                        <div class="ns-ico pu"><i class="fa fa-users"></i></div>
+                        <div>
+                        <div class="ns-val" id="db-ppp-total">—</div>
+                        <div class="ns-lbl">Total User</div>
+                        </div>
+                    </div>
+                    <div class="ns">
+                        <div class="ns-ico or"><i class="fa fa-plug"></i></div>
+                        <div>
+                        <div class="ns-val" id="db-ppp-active2">—</div>
+                        <div class="ns-lbl">Online</div>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                </div>
+
+                <!-- Log Aktivitas -->
+                <div class="card">
+                <div class="card-hd">
+                    <i class="fa fa-list-ul"></i> Log Aktivitas Sistem
+                    <button class="btn b-s b-sm ml" onclick="loadDashboard()">
+                    <i class="fa fa-refresh"></i>
+                    </button>
+                </div>
+                <div class="log-filters">
+                    <button
+                    class="lf-btn active"
+                    onclick="filterLog('all', this)"
+                    >
+                    Semua <span class="cnt" id="lc-all">0</span>
+                    </button>
+                    <button class="lf-btn" onclick="filterLog('hs', this)">
+                    Hotspot <span class="cnt" id="lc-hs">0</span>
+                    </button>
+                    <button class="lf-btn" onclick="filterLog('ppp', this)">
+                    PPPoE <span class="cnt" id="lc-ppp">0</span>
+                    </button>
+                </div>
+                <div class="log-list" id="log-list">
+                    <div
+                    style="
+                        text-align: center;
+                        color: var(--muted);
+                        padding: 20px;
+                    "
+                    >
+                    Loading...
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            <!-- Right column: Status NAS -->
+            <div>
+                <div class="card">
+                <div class="card-hd">
+                    <i class="fa fa-server"></i> Status Router
+                    <button class="btn b-s b-sm ml" onclick="loadDashboard()">
+                    <i class="fa fa-refresh"></i>
+                    </button>
+                </div>
+                <div id="nas-list">
+                    <div
+                    style="
+                        text-align: center;
+                        color: var(--muted);
+                        padding: 20px;
+                    "
+                    >
+                    Pilih router dulu
+                    </div>
+                </div>
+                </div>
+                <div class="traffic-card" id="traffic-card">
+                <!-- Header -->
+                <div class="traffic-hd">
+                    <div class="traffic-hd-left">
+                    <div
+                        style="
+                        width: 32px;
+                        height: 32px;
+                        border-radius: 9px;
+                        background: rgba(56, 189, 248, 0.12);
+                        color: #38bdf8;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 0.9rem;
+                        "
+                    >
+                        <i class="fa fa-line-chart"></i>
+                    </div>
+                    <div>
+                        <div class="traffic-hd-title">Trafik Interface</div>
+                        <div class="traffic-live-dot">Live · 5s</div>
+                    </div>
+                    </div>
+                    <div
+                    style="
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        flex-wrap: wrap;
+                    "
+                    >
+                    <select
+                        id="traffic-iface-sel"
+                        onchange="onTrafficIfaceChange()"
+                    >
+                        <option value="">— Pilih Interface —</option>
+                    </select>
+                    <!-- Countdown ring -->
+                    <div class="traffic-countdown" title="Refresh dalam...">
+                        <svg width="22" height="22" viewBox="0 0 22 22">
+                        <circle
+                            cx="11"
+                            cy="11"
+                            r="9"
+                            fill="none"
+                            stroke="var(--border)"
+                            stroke-width="2.5"
+                        />
+                        <circle
+                            id="traffic-ring"
+                            cx="11"
+                            cy="11"
+                            r="9"
+                            fill="none"
+                            stroke="#38bdf8"
+                            stroke-width="2.5"
+                            stroke-dasharray="56.5"
+                            stroke-dashoffset="0"
+                            stroke-linecap="round"
+                        />
+                        </svg>
+                        <span id="traffic-cd">5s</span>
+                    </div>
+                    <!-- Pause -->
+                    <button
+                        class="traffic-pause-btn"
+                        id="traffic-pause-btn"
+                        onclick="toggleTrafficPause()"
+                    >
+                        <i class="fa fa-pause" id="traffic-pause-icon"></i>
+                        <span id="traffic-pause-lbl">Pause</span>
+                    </button>
+                    <!-- Refresh -->
+                    <button
+                        class="btn b-s b-sm"
+                        onclick="fetchTrafficNow()"
+                        title="Refresh sekarang"
+                    >
+                        <i class="fa fa-refresh"></i>
+                    </button>
+                    </div>
+                </div>
+
+                <!-- Body: empty state or live data -->
+                <div id="traffic-body">
+                    <div class="traffic-empty">
+                    <i class="fa fa-plug"></i>
+                    Pilih router dan interface untuk melihat trafik realtime
+                    </div>
+                </div>
+                </div>
+                <!-- /traffic-card -->
+
+                <!-- </div>/STEP2 wrapper -->
+            </div>
+            </div>
+        </div>
+
+        <!-- ══ HOTSPOT ACTIVE ══ -->
+        <div class="page" id="page-hs-active">
+            <div class="card">
+            <div class="card-hd">
+                <i class="fa fa-laptop"></i> Hotspot Active
+                <span
+                id="ha-ct"
+                style="
+                    color: var(--muted);
+                    font-weight: normal;
+                    font-size: 0.78rem;
+                    margin-left: 5px;
+                "
+                ></span>
+                <button class="btn b-s b-sm ml" onclick="loadHsActive()">
+                <i class="fa fa-refresh"></i>
+                </button>
+            </div>
+            <div style="overflow-x: auto">
+                <table>
+                <thead>
+                    <tr>
+                    <th>User</th>
+                    <th>IP</th>
+                    <th>MAC</th>
+                    <th>Uptime</th>
+                    <th>Session Left</th>
+                    </tr>
+                </thead>
+                <tbody id="t-ha"></tbody>
+                </table>
+            </div>
+            <div id="pg-t-ha"></div>
+            </div>
+        </div>
+
+        <!-- ══ HOTSPOT USERS ══ -->
+        <div class="page" id="page-hs-users">
+            <div class="card">
+            <div class="card-hd"><i class="fa fa-users"></i> Hotspot Users</div>
+            <div class="fb">
+                <div class="fg">
+                <label>Search</label
+                ><input
+                    id="uq"
+                    placeholder="username..."
+                    oninput="filterTbl('t-hu', 'uq')"
+                    style="max-width: 170px"
+                />
+                </div>
+                <div class="fg">
+                <label>Profile</label
+                ><select id="uprof" onchange="loadHsUsers()">
+                    <option value="all">All</option>
+                </select>
+                </div>
+                <div
+                id="hu-bulk"
+                class="fg"
+                style="display: none; align-items: flex-end"
+                >
+                <button class="btn b-d" onclick="bulkDelHs()">
+                    <i class="fa fa-trash"></i> Hapus (<span id="hu-sel-count"
+                    >0</span
+                    >)
+                </button>
+                </div>
+            </div>
+            <div style="overflow-x: auto">
+                <table>
+                <thead>
+                    <tr>
+                    <th style="width: 30px">
+                        <input
+                        type="checkbox"
+                        id="hu-all"
+                        onclick="toggleAllHs(this.checked)"
+                        />
+                    </th>
+                    <th>Username</th>
+                    <th>Profile</th>
+                    <th>Comment</th>
+                    <th>Limit</th>
+                    <th style="width: 50px"></th>
+                    </tr>
+                </thead>
+                <tbody id="t-hu"></tbody>
+                </table>
+            </div>
+            <div id="pg-t-hu"></div>
+            </div>
+        </div>
+        <!-- ══ HOTSPOT PROFILES ══ -->
+        <div class="page" id="page-hs-profiles">
+            <div class="card">
+            <div class="card-hd">
+                <i class="fa fa-id-card"></i> Hotspot User Profiles
+                <button class="btn b-p b-sm ml" onclick="openHsProfileModal()">
+                <i class="fa fa-plus"></i> Add Profile
+                </button>
+            </div>
+            <div style="overflow-x: auto">
+                <table>
+                <thead>
+                    <tr>
+                    <th>Name</th>
+                    <th>Rate Limit</th>
+                    <th>Shared</th>
+                    <th>Expired Mode</th>
+                    <th>Validity</th>
+                    <th>Price</th>
+                    <th>Sell Price</th>
+                    <th></th>
+                    </tr>
+                </thead>
+                <tbody id="t-hsp"></tbody>
+                </table>
+            </div>
+            </div>
+        </div>
+
+        <!-- ══ PPPoE ACTIVE ══ -->
+        <div class="page" id="page-ppp-active">
+            <div class="card">
+            <div class="card-hd">
+                <i class="fa fa-plug"></i> PPPoE Active
+                <span
+                id="pa-ct"
+                style="
+                    color: var(--muted);
+                    font-weight: normal;
+                    font-size: 0.78rem;
+                    margin-left: 5px;
+                "
+                ></span>
+                <button class="btn b-s b-sm ml" onclick="loadPppActive()">
+                <i class="fa fa-refresh"></i>
+                </button>
+            </div>
+            <div style="overflow-x: auto">
+                <table>
+                <thead>
+                    <tr>
+                    <th>Name</th>
+                    <th>Service</th>
+                    <th>Caller ID</th>
+                    <th>Address</th>
+                    <th>Uptime</th>
+                    <th></th>
+                    </tr>
+                </thead>
+                <tbody id="t-pa"></tbody>
+                </table>
+            </div>
+            <div id="pg-t-pa"></div>
+            </div>
+        </div>
+
+        <!-- ══ PPPoE USERS ══ -->
+        <div class="page" id="page-ppp-users">
+            <div class="card">
+            <div class="card-hd">
+                <i class="fa fa-users"></i> PPPoE Users
+                <button class="btn b-p b-sm ml" onclick="openPppUserModal()">
+                <i class="fa fa-plus"></i> Add User
+                </button>
+            </div>
+            <div class="fb">
+                <div class="fg">
+                <label>Search</label
+                ><input
+                    id="pq"
+                    placeholder="username..."
+                    oninput="filterTbl('t-ps', 'pq')"
+                    style="max-width: 170px"
+                />
+                </div>
+                <div class="fg">
+                <label>Profile</label
+                ><select id="ppp-prof-filter" onchange="loadPppUsers()">
+                    <option value="all">All</option>
+                </select>
+                </div>
+            </div>
+            <div style="overflow-x: auto">
+                <table>
+                <thead>
+                    <tr>
+                    <th>Username</th>
+                    <th>Profile</th>
+                    <th>Service</th>
+                    <th>Local IP</th>
+                    <th>Remote IP</th>
+                    <th>Comment</th>
+                    <th>Status</th>
+                    <th></th>
+                    </tr>
+                </thead>
+                <tbody id="t-ps"></tbody>
+                </table>
+            </div>
+            <div id="pg-t-ps"></div>
+            </div>
+        </div>
+
+        <!-- ══ PPPoE PROFILES ══ -->
+        <div class="page" id="page-ppp-profiles">
+            <div class="card">
+            <div class="card-hd">
+                <i class="fa fa-id-card-o"></i> PPPoE Profiles
+                <button class="btn b-p b-sm ml" onclick="openPppProfileModal()">
+                <i class="fa fa-plus"></i> Add Profile
+                </button>
+            </div>
+            <div style="overflow-x: auto">
+                <table>
+                <thead>
+                    <tr>
+                    <th>Name</th>
+                    <th>Rate Limit</th>
+                    <th>Address Pool</th>
+                    <th>Session Timeout</th>
+                    <th>Only One</th>
+                    <th></th>
+                    </tr>
+                </thead>
+                <tbody id="t-pp"></tbody>
+                </table>
+            </div>
+            </div>
+        </div>
+
+        <!-- ══ RESELLER ══ -->
+        <div class="page" id="page-reseller">
+            <div class="card">
+            <div class="card-hd">
+                <i class="fa fa-handshake-o"></i> Reseller
+                <button class="btn b-p b-sm ml" onclick="openResellerModal()">
+                <i class="fa fa-plus"></i> Add Reseller
+                </button>
+            </div>
+            <div style="overflow-x: auto">
+                <table>
+                <thead>
+                    <tr>
+                    <th>Name</th>
+                    <th>ID/Tag</th>
+                    <th>Phone</th>
+                    <th>Discount</th>
+                    <th></th>
+                    </tr>
+                </thead>
+                <tbody id="t-rs"></tbody>
+                </table>
+            </div>
+            <div id="pg-t-rs"></div>
+            </div>
+        </div>
+
+        <!-- ══ BATCH VOUCHER ══ -->
+        <div class="page" id="page-batch">
+            <div class="g2">
+            <div class="card">
+                <div class="card-hd">
+                <i class="fa fa-ticket"></i> Generate Batch Voucher
+                </div>
+                <div class="fg">
+                <label>Profile</label
+                ><select id="bv-prof"></select>
+                </div>
+                <div class="fg2">
+                <div class="fg">
+                    <label>User Type</label
+                    ><select id="bv-type">
+                    <option value="up">User + Password</option>
+                    <option value="vc">User = Password</option>
+                    </select>
+                </div>
+                <div class="fg">
+                    <label>Char Type</label
+                    ><select id="bv-char">
+                    <option value="lowerdigit">Small Letters + Digits</option>
+                    <option value="upperdigit">Capital Letters + Digits</option>
+                    <option value="mixeddigit">Mixed Letters + Digits</option>
+                    <option value="digit">Digits only</option>
+                    <option value="alphabet">Letters only</option>
+                    <option value="lower">Small Letters only</option>
+                    <option value="upper">Capital Letters only</option>
+                    </select>
+                </div>
+                </div>
+                <div class="fg2">
+                <div class="fg">
+                    <label>Quantity</label
+                    ><input
+                    id="bv-qty"
+                    type="number"
+                    value="10"
+                    min="1"
+                    max="500"
+                    />
+                </div>
+                <div class="fg">
+                    <label>Length</label
+                    ><input
+                    id="bv-ulen"
+                    type="number"
+                    value="5"
+                    min="3"
+                    max="12"
+                    />
+                </div>
+                </div>
+                <div class="fg2">
+                <div class="fg">
+                    <label>Prefix</label
+                    ><input id="bv-pfx" placeholder="opsional" />
+                </div>
+                <div class="fg">
+                    <label>Time Limit</label
+                    ><input id="bv-val" placeholder="dari profile" />
+                </div>
+                </div>
+                <div class="fg">
+                <label>Reseller</label
+                ><select id="bv-rs">
+                    <option value="">— Tanpa Reseller —</option>
+                </select>
+                </div>
+                <div style="display: flex; gap: 8px">
+                <button
+                    class="btn b-p"
+                    onclick="generateVouchers(false)"
+                    id="btn-gen"
+                >
+                    <i class="fa fa-bolt"></i> Generate & Simpan
+                </button>
+                <button class="btn b-s" onclick="generateVouchers(true)">
+                    <i class="fa fa-download"></i> CSV
+                </button>
+                </div>
+                <div class="err" id="bv-err"></div>
+            </div>
+            <div class="card">
+                <div class="card-hd">
+                <i class="fa fa-list"></i> Hasil
+                <span
+                    id="gen-ct"
+                    style="
+                    color: var(--muted);
+                    font-weight: normal;
+                    font-size: 0.78rem;
+                    "
+                ></span>
+                <div class="ml" style="display: flex; gap: 5px">
+                    <button
+                    class="btn b-s b-sm"
+                    id="btn-cp"
+                    onclick="copyVouchers()"
+                    style="display: none"
+                    >
+                    <i class="fa fa-copy"></i> Copy
+                    </button>
+                    <button
+                    class="btn b-p b-sm"
+                    id="btn-print"
+                    onclick="openPrintModal()"
+                    style="display: none"
+                    >
+                    <i class="fa fa-print"></i> Print
+                    </button>
+                </div>
+                </div>
+                <div id="vr" style="color: var(--muted); font-size: 0.82rem">
+                Belum ada voucher.
+                </div>
+            </div>
+            </div>
+        </div>
+
+        <!-- ══ BATCH LIST ══ -->
+        <div class="page" id="page-batch-list">
+            <!-- Batch cards grid -->
+            <div id="batch-cards-area">
+            <div
+                style="
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 14px;
+                flex-wrap: wrap;
+                gap: 8px;
+                "
+            >
+                <div
+                style="
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    flex-wrap: wrap;
+                "
+                >
+                <span
+                    id="batch-count-label"
+                    style="color: var(--muted); font-size: 0.85rem"
+                ></span>
+                <select
+                    id="batch-filter-profile"
+                    onchange="loadBatchList()"
+                    style="max-width: 160px"
+                >
+                    <option value="">Semua Package</option>
+                </select>
+                </div>
+                <div style="display: flex; gap: 7px">
+                <button class="btn b-s" onclick="loadBatchList()">
+                    <i class="fa fa-refresh"></i> Refresh
+                </button>
+                <button
+                    class="btn b-s"
+                    onclick="syncBatchToReport()"
+                    style="color: var(--green); border-color: var(--green)"
+                >
+                    <i class="fa fa-upload"></i> Sync ke Selling Report
+                </button>
+                <button
+                    class="btn b-s"
+                    onclick="syncUsedFromMikrotik()"
+                    style="color: var(--cyan); border-color: var(--cyan)"
+                >
+                    <i class="fa fa-refresh"></i> Sync Status Terpakai
+                </button>
+                <div id="STEP2_HTML_INSERT_BEFORE_IMPORT_BUTTON">
+                    <!-- Paste baris ini: -->
+                    <div
+                    class="ar-toggle-wrap"
+                    id="ar-toggle"
+                    onclick="toggleAutoRemoveSetting()"
+                    title="Otomatis hapus batch yang sudah habis terjual"
+                    >
+                    <div class="ar-pill" id="ar-pill"></div>
+                    <span id="ar-label">Auto Hapus Batch Habis</span>
+                    </div>
+                </div>
+                <button
+                    class="btn b-p"
+                    id="btn-import"
+                    onclick="importFromMikrotik()"
+                >
+                    <i class="fa fa-download"></i> Import dari MikroTik
+                </button>
+                </div>
+            </div>
+            <div
+                id="batch-grid"
+                style="
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                gap: 12px;
+                "
+            ></div>
+            </div>
+
+            <!-- Batch detail (shown when a batch is clicked) -->
+            <div id="batch-detail-area" style="display: none">
+            <div
+                style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 14px;
+                "
+            >
+                <button class="btn b-s" onclick="closeBatchDetail()">
+                <i class="fa fa-arrow-left"></i> Kembali
+                </button>
+                <span style="font-size: 0.95rem; font-weight: 600"
+                >Voucher: <span id="bd-title" style="color: var(--acc2)"></span
+                ></span>
+                <div style="margin-left: auto; display: flex; gap: 7px">
+                <button
+                    class="btn b-s"
+                    onclick="filterBatchVouchers('all')"
+                    id="bdf-all"
+                >
+                    Semua
+                </button>
+                <button
+                    class="btn b-s"
+                    onclick="filterBatchVouchers('available')"
+                    id="bdf-avail"
+                >
+                    Tersedia
+                </button>
+                <button
+                    class="btn b-s"
+                    onclick="filterBatchVouchers('used')"
+                    id="bdf-used"
+                >
+                    Terpakai
+                </button>
+                <button class="btn b-p" onclick="printCurrentBatch()">
+                    <i class="fa fa-print"></i> Print Tersisa
+                </button>
+                </div>
+            </div>
+            <div class="card" style="padding: 12px 16px; margin-bottom: 12px">
+                <div
+                style="
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 18px;
+                    font-size: 0.83rem;
+                "
+                >
+                <div>
+                    <span style="color: var(--muted)">Profile:</span>
+                    <b id="bd-profile"></b>
+                </div>
+                <div>
+                    <span style="color: var(--muted)">Harga:</span>
+                    <b id="bd-price" style="color: var(--green)"></b>
+                </div>
+                <div>
+                    <span style="color: var(--muted)">Total:</span>
+                    <b id="bd-total-price" style="color: var(--acc2)"></b>
+                </div>
+                <div>
+                    <span style="color: var(--muted)">Durasi:</span>
+                    <b id="bd-validity"></b>
+                </div>
+                <div>
+                    <span style="color: var(--muted)">Reseller:</span>
+                    <b id="bd-reseller"></b>
+                </div>
+                <div>
+                    <span style="color: var(--muted)">Dibuat:</span>
+                    <b id="bd-created"></b>
+                </div>
+                </div>
+                <div style="margin-top: 10px">
+                <div
+                    style="
+                    display: flex;
+                    justify-content: space-between;
+                    font-size: 0.75rem;
+                    color: var(--muted);
+                    margin-bottom: 4px;
+                    "
+                >
+                    <span id="bd-stat-label">0/0 terpakai</span>
+                    <span id="bd-stat-remain">0 tersisa</span>
+                </div>
+                <div
+                    style="
+                    background: var(--border);
+                    border-radius: 4px;
+                    height: 6px;
+                    overflow: hidden;
+                    "
+                >
+                    <div
+                    id="bd-progress"
+                    style="
+                        height: 100%;
+                        background: var(--acc2);
+                        border-radius: 4px;
+                        transition: 0.4s;
+                    "
+                    ></div>
+                </div>
+                </div>
+            </div>
+            <!-- Voucher table -->
+            <div class="card" style="padding: 0; overflow: hidden">
+                <table>
+                <thead>
+                    <tr>
+                    <th>#</th>
+                    <th>Kode / Username</th>
+                    <th>Password</th>
+                    <th>Status</th>
+                    <th>Digunakan Oleh</th>
+                    <th>Tanggal Pakai</th>
+                    <th></th>
+                    </tr>
+                </thead>
+                <tbody id="t-batch-detail"></tbody>
+                </table>
+            </div>
+            </div>
+        </div>
+
+        <!-- ══ VOUCHER SETTINGS ══ -->
+        <div class="page" id="page-voucher-settings">
+            <div class="card">
+            <div class="card-hd">
+                <i class="fa fa-cog"></i> Settings Voucher Telegram
+                <button class="btn b-p b-sm ml" onclick="openVtModal()">
+                <i class="fa fa-plus"></i> Tambah Tipe
+                </button>
+            </div>
+            <div style="overflow-x: auto">
+                <table>
+                <thead>
+                    <tr>
+                    <th>Nama</th>
+                    <th>Harga</th>
+                    <th>Profile Radius</th>
+                    <th>Durasi</th>
+                    <th>Kode</th>
+                    <th>Maks/Order</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="t-vt"></tbody>
+                </table>
+            </div>
+            </div>
+        </div>
+
+        <!-- ══ SELLING REPORT ══ -->
+        <div class="page" id="page-selling">
+            <div class="card">
+            <div class="card-hd">
+                <i class="fa fa-money"></i> Selling Report
+            </div>
+            <div class="fb">
+                <div class="fg">
+                <label>Day</label
+                ><select id="sr-d" style="max-width: 78px">
+                    <option value="">All</option>
+                </select>
+                </div>
+                <div class="fg">
+                <label>Month</label
+                ><select id="sr-m" style="max-width: 115px"></select>
+                </div>
+                <div class="fg">
+                <label>Year</label
+                ><select id="sr-y" style="max-width: 88px"></select>
+                </div>
+                <div class="fg">
+                <label>Reseller</label
+                ><select id="sr-rs" style="max-width: 145px">
+                    <option value="">All</option>
+                </select>
+                </div>
+                <div class="fg">
+                <label>&nbsp;</label
+                ><button class="btn b-p" onclick="loadSelling()">
+                    <i class="fa fa-search"></i> Filter
+                </button>
+                </div>
+                <div class="fg">
+                <label>&nbsp;</label
+                ><button class="btn b-s" onclick="exportCSV()">
+                    <i class="fa fa-download"></i> CSV
+                </button>
+                </div>
+            </div>
+            <div class="g3" style="max-width: 550px; margin-bottom: 14px">
+                <div class="sbc c-blue" style="padding: 12px">
+                <div
+                    class="sbc-icon"
+                    style="width: 32px; height: 32px; font-size: 0.85rem"
+                >
+                    <i class="fa fa-ticket"></i>
+                </div>
+                <div>
+                    <div class="sbc-val" id="sr-vcr" style="font-size: 1.3rem">
+                    0
+                    </div>
+                    <div class="sbc-lbl">Vouchers</div>
+                </div>
+                </div>
+                <div class="sbc c-green" style="padding: 12px">
+                <div
+                    class="sbc-icon"
+                    style="width: 32px; height: 32px; font-size: 0.85rem"
+                >
+                    <i class="fa fa-money"></i>
+                </div>
+                <div>
+                    <div
+                    class="sbc-val"
+                    id="sr-inc"
+                    style="font-size: 0.95rem; padding-top: 5px"
+                    >
+                    0
+                    </div>
+                    <div class="sbc-lbl">Total Income</div>
+                </div>
+                </div>
+                <div class="sbc c-purple" style="padding: 12px">
+                <div
+                    class="sbc-icon"
+                    style="width: 32px; height: 32px; font-size: 0.85rem"
+                >
+                    <i class="fa fa-handshake-o"></i>
+                </div>
+                <div>
+                    <div class="sbc-val" id="sr-rct" style="font-size: 1.3rem">
+                    0
+                    </div>
+                    <div class="sbc-lbl">Resellers</div>
+                </div>
+                </div>
+            </div>
+            <div class="tab-bar">
+                <div class="tab active" id="tab-det" onclick="switchTab('det')">
+                <i class="fa fa-list"></i> Detail
+                </div>
+                <div class="tab" id="tab-rsl" onclick="switchTab('rsl')">
+                <i class="fa fa-handshake-o"></i> Per Reseller
+                </div>
+            </div>
+            <div id="pnl-det">
+                <div style="overflow-x: auto">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Username</th>
+                        <th>Profile</th>
+                        <th>Reseller</th>
+                        <th style="text-align: right">Price</th>
+                    </tr>
+                    </thead>
+                    <tbody id="t-sel"></tbody>
+                </table>
+                </div>
+                <div id="pg-t-sel"></div>
+            </div>
+            <div id="pnl-rsl" style="display: none">
+                <div id="rsl-grp"></div>
+            </div>
+            </div>
+        </div>
+
+        <!-- ══ RESUME REPORT ══ -->
+        <div class="page" id="page-resume">
+            <div class="card">
+            <div class="card-hd">
+                <i class="fa fa-area-chart"></i> Resume Report
+            </div>
+            <div class="fb">
+                <div class="fg">
+                <label>Month</label
+                ><select id="rr-m" style="max-width: 130px"></select>
+                </div>
+                <div class="fg">
+                <label>Year</label
+                ><select id="rr-y" style="max-width: 88px"></select>
+                </div>
+                <div class="fg">
+                <label>&nbsp;</label
+                ><button class="btn b-p" onclick="loadResume()">
+                    <i class="fa fa-search"></i> Load
+                </button>
+                </div>
+            </div>
+            <canvas
+                id="rc"
+                style="margin-top: 10px; max-height: 260px"
+            ></canvas>
+            <div class="g2" style="max-width: 380px; margin-top: 12px">
+                <div class="sbc c-blue" style="padding: 12px">
+                <div>
+                    <div class="sbc-val" id="rr-v" style="font-size: 1.3rem">
+                    0
+                    </div>
+                    <div class="sbc-lbl">Total Vouchers</div>
+                </div>
+                </div>
+                <div class="sbc c-green" style="padding: 12px">
+                <div>
+                    <div
+                    class="sbc-val"
+                    id="rr-i"
+                    style="font-size: 0.95rem; padding-top: 5px"
+                    >
+                    0
+                    </div>
+                    <div class="sbc-lbl">Total Income</div>
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+
+        <!-- ══ LIVE REPORT ══ -->
+        <div class="page" id="page-live">
+            <div class="card">
+            <div class="card-hd">
+                <i class="fa fa-line-chart"></i> Live Report
+            </div>
+            <div class="g4">
+                <div class="sbc c-yellow" style="padding: 12px">
+                <div
+                    class="sbc-icon"
+                    style="width: 32px; height: 32px; font-size: 0.85rem"
+                >
+                    <i class="fa fa-sun-o"></i>
+                </div>
+                <div>
+                    <div class="sbc-val" id="lr-tv" style="font-size: 1.3rem">
+                    —
+                    </div>
+                    <div class="sbc-lbl">Today Vouchers</div>
+                </div>
+                </div>
+                <div class="sbc c-green" style="padding: 12px">
+                <div
+                    class="sbc-icon"
+                    style="width: 32px; height: 32px; font-size: 0.85rem"
+                >
+                    <i class="fa fa-money"></i>
+                </div>
+                <div>
+                    <div
+                    class="sbc-val"
+                    id="lr-ti"
+                    style="font-size: 0.95rem; padding-top: 5px"
+                    >
+                    —
+                    </div>
+                    <div class="sbc-lbl">Today Income</div>
+                </div>
+                </div>
+                <div class="sbc c-blue" style="padding: 12px">
+                <div
+                    class="sbc-icon"
+                    style="width: 32px; height: 32px; font-size: 0.85rem"
+                >
+                    <i class="fa fa-calendar"></i>
+                </div>
+                <div>
+                    <div class="sbc-val" id="lr-mv" style="font-size: 1.3rem">
+                    —
+                    </div>
+                    <div class="sbc-lbl">Month Vouchers</div>
+                </div>
+                </div>
+                <div class="sbc c-cyan" style="padding: 12px">
+                <div
+                    class="sbc-icon"
+                    style="width: 32px; height: 32px; font-size: 0.85rem"
+                >
+                    <i class="fa fa-bank"></i>
+                </div>
+                <div>
+                    <div
+                    class="sbc-val"
+                    id="lr-mi"
+                    style="font-size: 0.95rem; padding-top: 5px"
+                    >
+                    —
+                    </div>
+                    <div class="sbc-lbl">Month Income</div>
+                </div>
+                </div>
+            </div>
+            <button
+                class="btn b-s"
+                style="margin-top: 12px"
+                onclick="loadLive()"
+            >
+                <i class="fa fa-refresh"></i> Refresh
+            </button>
+            </div>
+        </div>
+
+        <!-- ══ TELEGRAM TOOLS ══ -->
+        <div class="page" id="page-tg-tools">
+            <div class="g2">
+            <!-- Info Bot -->
+            <div class="card">
+                <div class="card-hd" style="justify-content: space-between">
+                <span><i class="fa fa-telegram"></i> Info Bot</span>
+                <button class="btn b-s b-sm" onclick="loadTgInfo()">
+                    <i class="fa fa-refresh"></i>
+                </button>
+                </div>
+                <div class="tg-row">
+                <span class="lbl">Nama Bot</span
+                ><span class="val" id="tg-bot-name">—</span>
+                </div>
+                <div class="tg-row">
+                <span class="lbl">Username</span
+                ><span
+                    class="val"
+                    id="tg-bot-username"
+                    style="color: var(--acc2)"
+                    >—</span
+                >
+                </div>
+                <div class="tg-row">
+                <span class="lbl">Router</span
+                ><span class="val" id="tg-bot-router">—</span>
+                </div>
+                <div class="tg-row">
+                <span class="lbl">Mode</span
+                ><span class="val"
+                    ><span class="tg-badge polling"
+                    ><i class="fa fa-circle"></i> Long Polling</span
+                    ></span
+                >
+                </div>
+                <div class="tg-row">
+                <span class="lbl">Telegram ID Admin</span
+                ><span
+                    class="val"
+                    id="tg-admin-id"
+                    style="font-family: monospace"
+                    >—</span
+                >
+                </div>
+                <div class="tg-row">
+                <span class="lbl">Status</span
+                ><span class="val" id="tg-status-badge"
+                    ><span class="tg-badge stopped">● Stopped</span></span
+                >
+                </div>
+                <div style="margin-top: 14px; display: flex; gap: 8px">
+                <button
+                    class="btn"
+                    id="tg-toggle-btn"
+                    onclick="toggleBot()"
+                    style="
+                    flex: 1;
+                    justify-content: center;
+                    padding: 9px;
+                    background: #f8514918;
+                    color: var(--red);
+                    border: 1px solid #f8514940;
+                    "
+                >
+                    <i class="fa fa-stop-circle"></i> Stop Bot
+                </button>
+                <button
+                    class="btn b-s"
+                    style="flex-shrink: 0; padding: 9px 12px"
+                    onclick="loadTgInfo()"
+                    title="Refresh"
+                >
+                    <i class="fa fa-refresh"></i>
+                </button>
+                </div>
+            </div>
+
+            <!-- Test Koneksi (moved here) -->
+            <div class="card">
+                <div class="card-hd">
+                <i class="fa fa-plug"></i> Test Koneksi Bot
+                </div>
+                <p
+                style="
+                    color: var(--muted);
+                    font-size: 0.82rem;
+                    margin-bottom: 12px;
+                "
+                >
+                Verifikasi bahwa bot token valid dan dapat terhubung ke Telegram
+                API.
+                </p>
+                <button
+                class="btn b-p"
+                style="width: 100%; justify-content: center; padding: 10px"
+                onclick="testTelegram()"
+                >
+                <i class="fa fa-paper-plane"></i> Test Koneksi
+                </button>
+                <div class="err" id="tg-test-err" style="margin-top: 8px"></div>
+            </div>
+
+            <!-- Pengaturan Bot -->
+            <div class="card">
+                <div class="card-hd">
+                <i class="fa fa-cog"></i> Pengaturan Bot
+                </div>
+
+                <div class="fg">
+                <label
+                    >Ganti Bot Token
+                    <small style="color: var(--muted)"
+                    >(kosongkan jika tidak diganti)</small
+                    ></label
+                >
+                <input
+                    id="tg-token"
+                    placeholder="1234567890:ABCdef..."
+                    type="password"
+                    autocomplete="off"
+                />
+                </div>
+
+                <div class="fg">
+                <label
+                    >Telegram ID Admin
+                    <small style="color: var(--muted)"
+                    >Admin menerima notif & bisa approve topup / agen</small
+                    ></label
+                >
+                <input id="tg-chatid" placeholder="5510679225" />
+                </div>
+
+                <div class="fg">
+                <label>Router Session</label>
+                <select id="tg-session">
+                    <option value="">Pilih router...</option>
+                </select>
+                </div>
+
+                <div class="fg">
+                <label>Mode</label>
+                <select id="tg-mode" style="pointer-events: none; opacity: 0.7">
+                    <option value="longpolling">
+                    Long Polling (IP, tanpa HTTPS)
+                    </option>
+                </select>
+                <small style="color: var(--muted); font-size: 0.73rem"
+                    >Mode Long Polling berjalan otomatis di dalam server</small
+                >
+                </div>
+
+                <div class="fg">
+                <label
+                    >User ID Diizinkan Beli Voucher
+                    <small style="color: var(--muted)"
+                    >pisahkan koma, kosong = semua reseller terdaftar</small
+                    ></label
+                >
+                <input id="tg-allowed" placeholder="123456,789012 (opsional)" />
+                </div>
+
+                <div class="fg2">
+                <div class="fg">
+                    <label>Laporan Harian Otomatis</label>
+                    <select id="tg-notif-daily">
+                    <option value="true">Aktif</option>
+                    <option value="false">Nonaktif</option>
+                    </select>
+                </div>
+                <div class="fg">
+                    <label>Jam Laporan</label>
+                    <input id="tg-daily-time" type="time" value="23:59" />
+                </div>
+                </div>
+
+                <div class="fg">
+                <label>Notifikasi Setiap Penjualan</label>
+                <select id="tg-notif-sale">
+                    <option value="false">Nonaktif</option>
+                    <option value="true">Aktif (kirim ke Admin ID)</option>
+                </select>
+                </div>
+
+                <div class="fg">
+                <label>Status Bot</label>
+                <select id="tg-enabled">
+                    <option value="true">Aktif — Bot berjalan</option>
+                    <option value="false">Nonaktif — Bot dihentikan</option>
+                </select>
+                </div>
+
+                <button
+                class="btn b-p"
+                style="
+                    width: 100%;
+                    justify-content: center;
+                    padding: 10px;
+                    margin-top: 4px;
+                "
+                onclick="saveTelegramConfig()"
+                >
+                <i class="fa fa-save"></i> Simpan Pengaturan
+                </button>
+                <div class="err" id="tg-err" style="margin-top: 8px"></div>
+            </div>
+
+            <!-- Broadcast -->
+            <div class="card">
+                <div class="card-hd">
+                <i class="fa fa-paper-plane"></i> Broadcast ke Semua Agen
+                </div>
+                <p
+                style="
+                    color: var(--muted);
+                    font-size: 0.82rem;
+                    margin-bottom: 12px;
+                "
+                >
+                Kirim pesan ke semua user aktif di bot ini.
+                </p>
+                <div class="fg">
+                <label>Pesan Broadcast</label
+                ><textarea
+                    id="tg-broadcast"
+                    rows="4"
+                    placeholder="Tulis pesan broadcast..."
+                ></textarea>
+                </div>
+                <button class="btn b-p" onclick="broadcastMsg()">
+                <i class="fa fa-bullhorn"></i> Kirim Broadcast
+                </button>
+
+                <!-- Log -->
+                <div class="card-hd" style="margin-top: 16px">
+                <i class="fa fa-history"></i> Log Bot Terakhir
+                </div>
+                <div
+                id="tg-log"
+                style="
+                    font-size: 0.76rem;
+                    color: var(--muted);
+                    max-height: 200px;
+                    overflow-y: auto;
+                "
+                ></div>
+            </div>
+            </div>
+        </div>
+
+        <!-- ══ RESELLER BOT ══ -->
+        <div class="page" id="page-tg-reseller">
+            <div class="card" style="margin-bottom: 14px">
+            <div class="card-hd">
+                <i class="fa fa-users"></i> Daftar Reseller Bot
+                <div
+                class="ml"
+                style="display: flex; gap: 7px; align-items: center"
+                >
+                <input
+                    id="rb-search"
+                    placeholder="Cari nama/username/ID..."
+                    oninput="filterTbl('t-rb', 'rb-search')"
+                    style="max-width: 220px"
+                />
+                <button class="btn b-p b-sm" onclick="openRbModal()">
+                    <i class="fa fa-plus"></i> Tambah Reseller
+                </button>
+                </div>
+            </div>
+            <!-- Summary stats -->
+            <div class="g4" style="margin-bottom: 14px">
+                <div class="sbc c-blue" style="padding: 12px">
+                <div
+                    class="sbc-icon"
+                    style="width: 32px; height: 32px; font-size: 0.85rem"
+                >
+                    <i class="fa fa-users"></i>
+                </div>
+                <div>
+                    <div class="sbc-val" id="rb-count" style="font-size: 1.3rem">
+                    0
+                    </div>
+                    <div class="sbc-lbl">Total Reseller</div>
+                </div>
+                </div>
+                <div class="sbc c-green" style="padding: 12px">
+                <div
+                    class="sbc-icon"
+                    style="width: 32px; height: 32px; font-size: 0.85rem"
+                >
+                    <i class="fa fa-check"></i>
+                </div>
+                <div>
+                    <div class="sbc-val" id="rb-active" style="font-size: 1.3rem">
+                    0
+                    </div>
+                    <div class="sbc-lbl">Aktif</div>
+                </div>
+                </div>
+                <div class="sbc c-yellow" style="padding: 12px">
+                <div
+                    class="sbc-icon"
+                    style="width: 32px; height: 32px; font-size: 0.85rem"
+                >
+                    <i class="fa fa-money"></i>
+                </div>
+                <div>
+                    <div
+                    class="sbc-val"
+                    id="rb-total-saldo"
+                    style="font-size: 0.95rem; padding-top: 5px"
+                    >
+                    Rp 0
+                    </div>
+                    <div class="sbc-lbl">Total Saldo</div>
+                </div>
+                </div>
+                <div class="sbc c-purple" style="padding: 12px">
+                <div
+                    class="sbc-icon"
+                    style="width: 32px; height: 32px; font-size: 0.85rem"
+                >
+                    <i class="fa fa-ticket"></i>
+                </div>
+                <div>
+                    <div
+                    class="sbc-val"
+                    id="rb-total-vcr"
+                    style="font-size: 1.3rem"
+                    >
+                    0
+                    </div>
+                    <div class="sbc-lbl">Total Voucher</div>
+                </div>
+                </div>
+            </div>
+            <div style="overflow-x: auto">
+                <table>
+                <thead>
+                    <tr>
+                    <th>Agen</th>
+                    <th>Telegram ID</th>
+                    <th>Saldo</th>
+                    <th>Voucher</th>
+                    <th>Pendapatan</th>
+                    <th>Status</th>
+                    <th>Daftar</th>
+                    <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="t-rb"></tbody>
+                </table>
+            </div>
+            </div>
+
+            <!-- Topup history panel (shown on reseller click) -->
+            <div id="rb-detail" style="display: none">
+            <div
+                style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 10px;
+                "
+            >
+                <button
+                class="btn b-s b-sm"
+                onclick="
+                    document.getElementById('rb-detail').style.display = 'none'
+                "
+                >
+                <i class="fa fa-times"></i>
+                </button>
+                <span id="rb-detail-title" style="font-weight: 600"></span>
+            </div>
+            <div class="g2">
+                <div class="card">
+                <div class="card-hd">
+                    <i class="fa fa-history"></i> Riwayat Topup
+                </div>
+                <div style="overflow-x: auto">
+                    <table>
+                    <thead>
+                        <tr>
+                        <th>Jumlah</th>
+                        <th>Catatan</th>
+                        <th>Oleh</th>
+                        <th>Waktu</th>
+                        </tr>
+                    </thead>
+                    <tbody id="t-rb-topup"></tbody>
+                    </table>
+                </div>
+                </div>
+                <div class="card">
+                <div class="card-hd">
+                    <i class="fa fa-shopping-cart"></i> Riwayat Pembelian (10
+                    terakhir)
+                </div>
+                <div style="overflow-x: auto">
+                    <table>
+                    <thead>
+                        <tr>
+                        <th>Username</th>
+                        <th>Profile</th>
+                        <th>Harga</th>
+                        <th>Waktu</th>
+                        </tr>
+                    </thead>
+                    <tbody id="t-rb-purchase"></tbody>
+                    </table>
+                </div>
+                </div>
+            </div>
+            </div>
+        </div>
+
+        <!-- ══ USER MANAGEMENT ══ -->
+        <div class="page" id="page-user-management">
+            <!-- Role legend -->
+            <div
+            style="
+                display: flex;
+                gap: 8px;
+                flex-wrap: wrap;
+                margin-bottom: 14px;
+            "
+            >
+            <div
+                style="
+                background: var(--acc) 18;
+                border: 1px solid var(--acc) 30;
+                border-radius: 8px;
+                padding: 7px 12px;
+                font-size: 0.77rem;
+                "
+            >
+                <b style="color: var(--acc2)">Admin</b> — Akses penuh semua fitur
+            </div>
+            <div
+                style="
+                background: var(--purple) 18;
+                border: 1px solid var(--purple) 30;
+                border-radius: 8px;
+                padding: 7px 12px;
+                font-size: 0.77rem;
+                "
+            >
+                <b style="color: var(--purple)">Reseller</b> — Kelola voucher
+                &amp; laporan
+            </div>
+            <div
+                style="
+                background: var(--green) 18;
+                border: 1px solid var(--green) 30;
+                border-radius: 8px;
+                padding: 7px 12px;
+                font-size: 0.77rem;
+                "
+            >
+                <b style="color: var(--green)">Collector</b> — Kelola billing
+                &amp; tagihan
+            </div>
+            </div>
+
+            <div class="card">
+            <div class="card-hd" style="flex-wrap: wrap; gap: 8px">
+                <span><i class="fa fa-users"></i> Daftar User Login</span>
+                <button class="btn b-p b-sm ml" onclick="openUmModal()">
+                <i class="fa fa-plus"></i> Tambah User
+                </button>
+            </div>
+            <div style="overflow-x: auto">
+                <table>
+                <thead>
+                    <tr>
+                    <th>Username</th>
+                    <th>Nama</th>
+                    <th>Role</th>
+                    <th>Akses Router</th>
+                    <th>Status</th>
+                    <th>Login Terakhir</th>
+                    <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="t-users"></tbody>
+                </table>
+            </div>
+            <div id="pg-t-users"></div>
+            </div>
+        </div>
+
+        <!-- ══ CHANGE PASSWORD ══ -->
+        <div class="page" id="page-change-password">
+            <div class="card" style="max-width: 480px">
+            <div class="card-hd">
+                <i class="fa fa-key"></i> Ganti Password Login
+            </div>
+            <div class="info-box" style="margin-bottom: 14px">
+                <i class="fa fa-info-circle"></i> Ganti password untuk akun
+                <b id="cp-username-label">—</b> yang sedang login.
+            </div>
+            <div class="fg">
+                <label>Password Lama</label>
+                <input
+                type="password"
+                id="cp-old"
+                class="form-input"
+                placeholder="Password saat ini"
+                />
+            </div>
+            <div class="fg">
+                <label
+                >Password Baru
+                <small style="color: var(--muted)"
+                    >min. 4 karakter</small
+                ></label
+                >
+                <input
+                type="password"
+                id="cp-new"
+                class="form-input"
+                placeholder="Password baru"
+                />
+            </div>
+            <div class="fg">
+                <label>Konfirmasi Password Baru</label>
+                <input
+                type="password"
+                id="cp-confirm"
+                class="form-input"
+                placeholder="Ulangi password baru"
+                />
+            </div>
+            <div class="err" id="cp-err" style="margin-bottom: 10px"></div>
+            <button class="btn b-p" onclick="doChangePassword()">
+                <i class="fa fa-save"></i> Simpan Password Baru
+            </button>
+            </div>
+        </div>
+
+        <!-- ══ MOBILE API ══ -->
+        <div class="page" id="page-mobile-api">
+            <div class="card" style="margin-bottom: 14px">
+            <div class="card-hd">
+                <i class="fa fa-mobile"></i> Mobile API — Dokumentasi & Token
+            </div>
+            <div class="g2">
+                <div>
+                <p
+                    style="
+                    color: var(--muted);
+                    font-size: 0.83rem;
+                    margin-bottom: 10px;
+                    "
+                >
+                    API ini digunakan untuk aplikasi mobile reseller. Reseller
+                    login dengan <b>Telegram ID</b> mereka dan mendapatkan Bearer
+                    Token.
+                </p>
+                <div
+                    style="
+                    background: var(--card2);
+                    border-radius: 8px;
+                    padding: 12px;
+                    margin-bottom: 10px;
+                    "
+                >
+                    <div
+                    style="
+                        font-size: 0.75rem;
+                        color: var(--muted);
+                        margin-bottom: 5px;
+                    "
+                    >
+                    Base URL
+                    </div>
+                    <code
+                    id="api-base-url"
+                    style="
+                        color: var(--acc2);
+                        font-size: 0.85rem;
+                        word-break: break-all;
+                    "
+                    ></code>
+                </div>
+                <div
+                    style="
+                    background: var(--card2);
+                    border-radius: 8px;
+                    padding: 12px;
+                    "
+                >
+                    <div
+                    style="
+                        font-size: 0.75rem;
+                        color: var(--muted);
+                        margin-bottom: 5px;
+                    "
+                    >
+                    Cara Autentikasi
+                    </div>
+                    <code style="font-size: 0.78rem; color: var(--green)"
+                    >Authorization: Bearer &lt;token&gt;</code
+                    >
+                </div>
+                </div>
+                <div>
+                <div
+                    style="
+                    background: var(--card2);
+                    border-radius: 8px;
+                    padding: 12px;
+                    "
+                >
+                    <div
+                    style="
+                        font-weight: 600;
+                        font-size: 0.85rem;
+                        margin-bottom: 8px;
+                    "
+                    >
+                    <i class="fa fa-key"></i> Test Login API
+                    </div>
+                    <div class="fg">
+                    <label>Telegram ID Reseller</label
+                    ><input
+                        id="api-test-tid"
+                        placeholder="123456789"
+                        type="number"
+                    />
+                    </div>
+                    <button
+                    class="btn b-p"
+                    style="width: 100%; justify-content: center"
+                    onclick="testMobileLogin()"
+                    >
+                    <i class="fa fa-sign-in"></i> Test Login
+                    </button>
+                    <div
+                    id="api-test-result"
+                    style="margin-top: 8px; font-size: 0.75rem; display: none"
+                    >
+                    <div style="color: var(--muted); margin-bottom: 4px">
+                        Response:
+                    </div>
+                    <pre
+                        id="api-test-json"
+                        style="
+                        background: var(--bg);
+                        border-radius: 6px;
+                        padding: 8px;
+                        overflow-x: auto;
+                        font-size: 0.73rem;
+                        max-height: 150px;
+                        overflow-y: auto;
+                        "
+                    ></pre>
+                    </div>
+                </div>
+                </div>
+            </div>
+            </div>
+
+            <!-- Endpoint list -->
+            <div id="api-endpoint-list"></div>
+
+            <!-- Active tokens -->
+            <div class="card">
+            <div class="card-hd">
+                <i class="fa fa-list"></i> Token Aktif Reseller
+            </div>
+            <div style="overflow-x: auto">
+                <table>
+                <thead>
+                    <tr>
+                    <th>Reseller</th>
+                    <th>Telegram ID</th>
+                    <th>Session</th>
+                    <th>Dibuat</th>
+                    <th>Expired</th>
+                    <th>Terakhir Dipakai</th>
+                    <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="t-api-tokens"></tbody>
+                </table>
+            </div>
+            </div>
+        </div>
+
+        <!-- ══ BILLING ══ -->
+        <div class="page" id="page-billing">
+            <!-- Stats -->
+            <div class="grid g4" style="margin-bottom: 14px" id="bill-stats-grid">
+            <div class="sbc c-blue" style="padding: 12px">
+                <div
+                class="sbc-icon"
+                style="width: 32px; height: 32px; font-size: 0.85rem"
+                >
+                <i class="fa fa-users"></i>
+                </div>
+                <div>
+                <div class="sbc-val" id="bill-total" style="font-size: 1.3rem">
+                    0
+                </div>
+                <div class="sbc-lbl">Total Pelanggan</div>
+                </div>
+            </div>
+            <div class="sbc c-green" style="padding: 12px">
+                <div
+                class="sbc-icon"
+                style="width: 32px; height: 32px; font-size: 0.85rem"
+                >
+                <i class="fa fa-check-circle"></i>
+                </div>
+                <div>
+                <div class="sbc-val" id="bill-active" style="font-size: 1.3rem">
+                    0
+                </div>
+                <div class="sbc-lbl">Aktif</div>
+                </div>
+            </div>
+            <div class="sbc c-red" style="padding: 12px">
+                <div
+                class="sbc-icon"
+                style="width: 32px; height: 32px; font-size: 0.85rem"
+                >
+                <i class="fa fa-exclamation-circle"></i>
+                </div>
+                <div>
+                <div class="sbc-val" id="bill-unpaid" style="font-size: 1.3rem">
+                    0
+                </div>
+                <div class="sbc-lbl">Belum Bayar</div>
+                </div>
+            </div>
+            <div class="sbc c-yellow" style="padding: 12px">
+                <div
+                class="sbc-icon"
+                style="width: 32px; height: 32px; font-size: 0.85rem"
+                >
+                <i class="fa fa-ban"></i>
+                </div>
+                <div>
+                <div
+                    class="sbc-val"
+                    id="bill-suspended"
+                    style="font-size: 1.3rem"
+                >
+                    0
+                </div>
+                <div class="sbc-lbl">Diblokir</div>
+                </div>
+            </div>
+            </div>
+
+            <div class="card">
+            <div class="card-hd" style="flex-wrap: wrap; gap: 8px">
+                <span><i class="fa fa-users"></i> Daftar Pelanggan</span>
+                <div class="ml" style="display: flex; gap: 7px; flex-wrap: wrap">
+                <select
+                    id="bill-type-filter"
+                    onchange="loadBilling()"
+                    style="max-width: 120px"
+                >
+                    <option value="">Semua Tipe</option>
+                    <option value="pppoe">PPPoE</option>
+                    <option value="hotspot">Hotspot</option>
+                </select>
+                <select
+                    id="bill-status-filter"
+                    onchange="loadBilling()"
+                    style="max-width: 130px"
+                >
+                    <option value="">Semua Status</option>
+                    <option value="active">Aktif</option>
+                    <option value="suspended">Diblokir</option>
+                </select>
+                <button
+                    class="btn b-s b-sm"
+                    onclick="runOverdue()"
+                    title="Cek & blokir yang belum bayar"
+                >
+                    <i class="fa fa-ban"></i> Proses Overdue
+                </button>
+                <button class="btn b-p b-sm" onclick="openBillCustomerModal()">
+                    <i class="fa fa-plus"></i> Tambah Pelanggan
+                </button>
+                </div>
+            </div>
+            <div style="overflow-x: auto">
+                <table>
+                <thead>
+                    <tr>
+                    <th>Nama</th>
+                    <th>Username MikroTik</th>
+                    <th>Tipe</th>
+                    <th>Paket</th>
+                    <th>Tagihan/Bulan</th>
+                    <th>Tgl Tagih</th>
+                    <th>Status</th>
+                    <th>Telegram</th>
+                    <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="t-billing"></tbody>
+                </table>
+            </div>
+            </div>
+        </div>
+
+        <!-- ══ INVOICES ══ -->
+        <div class="page" id="page-invoices">
+            <div class="grid g3" style="margin-bottom: 14px">
+            <div class="sbc c-red" style="padding: 12px">
+                <div>
+                <div
+                    class="sbc-val"
+                    id="inv-unpaid-ct"
+                    style="font-size: 1.3rem"
+                >
+                    0
+                </div>
+                <div class="sbc-lbl">Belum Bayar</div>
+                </div>
+            </div>
+            <div class="sbc c-green" style="padding: 12px">
+                <div>
+                <div class="sbc-val" id="inv-paid-ct" style="font-size: 1.3rem">
+                    0
+                </div>
+                <div class="sbc-lbl">Lunas Bulan Ini</div>
+                </div>
+            </div>
+            <div class="sbc c-cyan" style="padding: 12px">
+                <div>
+                <div
+                    class="sbc-val"
+                    id="inv-income"
+                    style="font-size: 0.95rem; padding-top: 5px"
+                >
+                    Rp 0
+                </div>
+                <div class="sbc-lbl">Pendapatan Bulan Ini</div>
+                </div>
+            </div>
+            </div>
+
+            <div class="card">
+            <div class="card-hd" style="flex-wrap: wrap; gap: 8px">
+                <span><i class="fa fa-list-alt"></i> Daftar Tagihan</span>
+                <div class="ml" style="display: flex; gap: 7px; flex-wrap: wrap">
+                <select
+                    id="inv-status-filter"
+                    onchange="loadInvoices()"
+                    style="max-width: 130px"
+                >
+                    <option value="">Semua</option>
+                    <option value="unpaid">Belum Bayar</option>
+                    <option value="paid">Lunas</option>
+                    <option value="overdue">Overdue</option>
+                </select>
+                <button class="btn b-s b-sm" onclick="generateInvoices()">
+                    <i class="fa fa-bolt"></i> Generate Tagihan Bulan Ini
+                </button>
+                </div>
+            </div>
+            <div style="overflow-x: auto">
+                <table>
+                <thead>
+                    <tr>
+                    <th>ID</th>
+                    <th>Pelanggan</th>
+                    <th>Tipe</th>
+                    <th>Periode</th>
+                    <th style="text-align: right">Tagihan</th>
+                    <th>Jatuh Tempo</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="t-invoices"></tbody>
+                </table>
+            </div>
+            </div>
+        </div>
+
+        <!-- ══ BOT RESELLER ══ -->
+        <div class="page" id="page-bot-reseller">
+            <!-- Stat bar -->
+            <div class="grid g4" style="margin-bottom: 14px">
+            <div class="sbc c-green" style="padding: 12px">
+                <div
+                class="sbc-icon"
+                style="width: 32px; height: 32px; font-size: 0.85rem"
+                >
+                <i class="fa fa-users"></i>
+                </div>
+                <div>
+                <div class="sbc-val" id="brs-total" style="font-size: 1.3rem">
+                    0
+                </div>
+                <div class="sbc-lbl">Total Agen</div>
+                </div>
+            </div>
+            <div class="sbc c-blue" style="padding: 12px">
+                <div
+                class="sbc-icon"
+                style="width: 32px; height: 32px; font-size: 0.85rem"
+                >
+                <i class="fa fa-check-circle"></i>
+                </div>
+                <div>
+                <div class="sbc-val" id="brs-active" style="font-size: 1.3rem">
+                    0
+                </div>
+                <div class="sbc-lbl">Aktif</div>
+                </div>
+            </div>
+            <div class="sbc c-yellow" style="padding: 12px">
+                <div
+                class="sbc-icon"
+                style="width: 32px; height: 32px; font-size: 0.85rem"
+                >
+                <i class="fa fa-ticket"></i>
+                </div>
+                <div>
+                <div class="sbc-val" id="brs-vcr" style="font-size: 1.3rem">
+                    0
+                </div>
+                <div class="sbc-lbl">Total Voucher</div>
+                </div>
+            </div>
+            <div class="sbc c-cyan" style="padding: 12px">
+                <div
+                class="sbc-icon"
+                style="width: 32px; height: 32px; font-size: 0.85rem"
+                >
+                <i class="fa fa-money"></i>
+                </div>
+                <div>
+                <div
+                    class="sbc-val"
+                    id="brs-income"
+                    style="font-size: 0.95rem; padding-top: 5px"
+                >
+                    Rp 0
+                </div>
+                <div class="sbc-lbl">Total Pendapatan</div>
+                </div>
+            </div>
+            </div>
+
+            <div class="card">
+            <div class="card-hd">
+                <i class="fa fa-users"></i> Daftar Agen Reseller
+                <div
+                class="ml"
+                style="display: flex; gap: 7px; align-items: center"
+                >
+                <input
+                    id="brs-q"
+                    placeholder="Cari nama / username / ID..."
+                    oninput="filterTbl('t-brs', 'brs-q')"
+                    style="max-width: 220px"
+                />
+                <button class="btn b-p b-sm" onclick="openBrsModal()">
+                    <i class="fa fa-plus"></i> Tambah Agen
+                </button>
+                </div>
+            </div>
+            <div style="overflow-x: auto">
+                <table>
+                <thead>
+                    <tr>
+                    <th>Agen</th>
+                    <th>Telegram ID</th>
+                    <th style="text-align: right">Saldo</th>
+                    <th style="text-align: center">Voucher</th>
+                    <th style="text-align: right">Pendapatan</th>
+                    <th>Status</th>
+                    <th>Daftar</th>
+                    <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="t-brs"></tbody>
+                </table>
+            </div>
+            </div>
+
+            <!-- Topup Log -->
+            <div class="card" id="brs-log-card" style="display: none">
+            <div class="card-hd">
+                <i class="fa fa-history"></i> Riwayat Topup —
+                <span id="brs-log-name" style="color: var(--acc2)"></span>
+                <button
+                class="btn b-s b-sm ml"
+                onclick="
+                    document.getElementById('brs-log-card').style.display = 'none'
+                "
+                >
+                <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <div style="overflow-x: auto">
+                <table>
+                <thead>
+                    <tr>
+                    <th>Waktu</th>
+                    <th>Tipe</th>
+                    <th style="text-align: right">Jumlah</th>
+                    <th style="text-align: right">Saldo Sebelum</th>
+                    <th style="text-align: right">Saldo Sesudah</th>
+                    <th>Keterangan</th>
+                    <th>Oleh</th>
+                    </tr>
+                </thead>
+                <tbody id="t-brs-log"></tbody>
+                </table>
+            </div>
+            </div>
+        </div>
+
+        <!-- ══ SESSIONS ══ -->
+        <div class="page" id="page-sessions">
+            <div class="card">
+            <div class="card-hd">
+                <i class="fa fa-server"></i> Router Sessions
+                <button class="btn b-p b-sm ml" onclick="openSessionModal()">
+                <i class="fa fa-plus"></i> Add Router
+                </button>
+            </div>
+            <div style="overflow-x: auto">
+                <table>
+                <thead>
+                    <tr>
+                    <th>Name</th>
+                    <th>IP</th>
+                    <th>Port</th>
+                    <th>Currency</th>
+                    <th>Live Report</th>
+                    <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="t-sess"></tbody>
+                </table>
+            </div>
+            <div id="pg-t-sess"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══ MODALS ══ -->
+    <!-- User Modal -->
+    <div class="ov" id="m-um">
+      <div
+        class="modal"
+        style="width: 560px; max-height: 92vh; overflow-y: auto"
+      >
+        <h3>
+          <i class="fa fa-user-plus"></i> <span id="mum-ttl">Tambah User</span>
+        </h3>
+
+        <div class="fg2">
+          <div class="fg">
+            <label
+              >Username
+              <small style="color: var(--muted)">untuk login</small></label
+            ><input
+              id="mum-un"
+              placeholder="user01"
+              oninput="
+                this.value = this.value.toLowerCase().replace(/[^a-z0-9_]/g, '')
+              "
+            />
+          </div>
+          <div class="fg">
+            <label>Nama Lengkap</label
+            ><input id="mum-nm" placeholder="Nama pengguna" />
+          </div>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label
+              >Password
+              <small
+                id="mum-pw-hint"
+                style="color: var(--muted)"
+              ></small></label
+            ><input type="password" id="mum-pw" placeholder="min. 4 karakter" />
+          </div>
+          <div class="fg">
+            <label>Role</label>
+            <select id="mum-role" onchange="onRoleChange()">
+              <option value="admin">Admin — Akses Penuh</option>
+              <option value="reseller">Reseller — Voucher & Laporan</option>
+              <option value="collector">Collector — Billing & Tagihan</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg">
+          <label
+            >Akses Router
+            <small style="color: var(--muted)"
+              >kosong = semua router</small
+            ></label
+          >
+          <div
+            id="mum-sessions-list"
+            style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px"
+          ></div>
+        </div>
+
+        <hr style="border-color: var(--border); margin: 14px 0" />
+        <div
+          style="
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--muted);
+            margin-bottom: 10px;
+          "
+        >
+          <i class="fa fa-shield"></i> Permissions — centang untuk mengizinkan
+        </div>
+        <div
+          id="mum-perms"
+          style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px"
+        ></div>
+
+        <div class="fg" style="margin-top: 14px">
+          <label
+            >Catatan
+            <small style="color: var(--muted)">(opsional)</small></label
+          ><input id="mum-note" placeholder="Catatan tentang user ini" />
+        </div>
+        <div class="fg">
+          <label>Status</label
+          ><select id="mum-active">
+            <option value="true">Aktif</option>
+            <option value="false">Nonaktif</option>
+          </select>
+        </div>
+
+        <div class="err" id="mum-err"></div>
+        <div class="mfoot">
+          <button class="btn b-s" onclick="closeM('m-um')">Batal</button
+          ><button class="btn b-p" onclick="saveUm()">
+            <i class="fa fa-save"></i> Simpan
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reset Password Modal -->
+    <div class="ov" id="m-reset-pw">
+      <div class="modal" style="width: 400px">
+        <h3><i class="fa fa-key"></i> Reset Password</h3>
+        <p style="color: var(--muted); font-size: 0.83rem; margin-bottom: 14px">
+          Reset password untuk user <b id="rpw-name"></b>. User harus ganti
+          password setelah login.
+        </p>
+        <div class="fg">
+          <label>Password Baru</label
+          ><input type="password" id="rpw-new" placeholder="min. 4 karakter" />
+        </div>
+        <div class="fg">
+          <label>Konfirmasi</label
+          ><input
+            type="password"
+            id="rpw-confirm"
+            placeholder="ulangi password baru"
+          />
+        </div>
+        <div class="err" id="rpw-err"></div>
+        <div class="mfoot">
+          <button class="btn b-s" onclick="closeM('m-reset-pw')">Batal</button
+          ><button class="btn b-p" onclick="doResetPw()">
+            <i class="fa fa-check"></i> Reset Password
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Billing Customer Modal -->
+    <div class="ov" id="m-bill">
+      <div
+        class="modal"
+        style="width: 560px; max-height: 90vh; overflow-y: auto"
+      >
+        <h3>
+          <i class="fa fa-user-plus"></i>
+          <span id="mbill-ttl">Tambah Pelanggan</span>
+        </h3>
+        <div class="fg2">
+          <div class="fg">
+            <label>Nama Pelanggan</label
+            ><input id="mb-nm" placeholder="Nama lengkap" />
+          </div>
+          <div class="fg">
+            <label>No. HP / WA</label><input id="mb-ph" placeholder="08xxx" />
+          </div>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label>Tipe Layanan</label>
+            <select id="mb-tp" onchange="loadBillUsers()">
+              <option value="pppoe">PPPoE</option>
+              <option value="hotspot">Hotspot Member</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Username MikroTik</label>
+            <select id="mb-user">
+              <option value="">Loading...</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label>Paket / Profile</label
+            ><input id="mb-prof" placeholder="PPPoE-10M" readonly />
+          </div>
+          <div class="fg">
+            <label>Harga Tagihan/Bulan (Rp)</label
+            ><input id="mb-price" type="number" min="0" placeholder="100000" />
+          </div>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label
+              >Tanggal Tagih
+              <small style="color: var(--muted)">(tgl 1-28)</small></label
+            ><input id="mb-date" type="number" min="1" max="28" value="1" />
+          </div>
+          <div class="fg">
+            <label>Grace Period (hari)</label
+            ><input id="mb-grace" type="number" min="0" max="30" value="3" />
+          </div>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label
+              >Telegram ID Pelanggan
+              <small style="color: var(--muted)">(untuk notif)</small></label
+            ><input id="mb-tg" placeholder="opsional" />
+          </div>
+          <div class="fg">
+            <label>Status</label>
+            <select id="mb-st">
+              <option value="active">Aktif</option>
+              <option value="suspended">Diblokir</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg">
+          <label>Pengingat tagihan (hari sebelum jatuh tempo)</label>
+          <div
+            style="display: flex; gap: 8px; margin-top: 5px; flex-wrap: wrap"
+          >
+            <label
+              style="
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                font-size: 0.8rem;
+                color: var(--text);
+              "
+              ><input type="checkbox" id="mb-rem7" checked /> 7 hari</label
+            >
+            <label
+              style="
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                font-size: 0.8rem;
+                color: var(--text);
+              "
+              ><input type="checkbox" id="mb-rem3" checked /> 3 hari</label
+            >
+            <label
+              style="
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                font-size: 0.8rem;
+                color: var(--text);
+              "
+              ><input type="checkbox" id="mb-rem1" checked /> 1 hari</label
+            >
+            <label
+              style="
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                font-size: 0.8rem;
+                color: var(--text);
+              "
+              ><input type="checkbox" id="mb-rem0" /> H-0 (hari H)</label
+            >
+          </div>
+        </div>
+        <div class="fg">
+          <label>Auto-disable jika belum bayar</label>
+          <select id="mb-auto">
+            <option value="true">Ya (otomatis blokir)</option>
+            <option value="false">Tidak (manual)</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Catatan</label><input id="mb-note" placeholder="opsional" />
+        </div>
+        <div class="err" id="mb-err"></div>
+        <div class="mfoot">
+          <button class="btn b-s" onclick="closeM('m-bill')">Batal</button
+          ><button class="btn b-p" onclick="saveBillCustomer()">
+            <i class="fa fa-save"></i> Simpan
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pay Invoice Modal -->
+    <div class="ov" id="m-pay">
+      <div class="modal" style="width: 420px">
+        <h3><i class="fa fa-check-circle"></i> Konfirmasi Pembayaran</h3>
+        <div
+          style="
+            background: var(--card2);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 14px;
+          "
+        >
+          <div style="font-weight: 600" id="pay-name">—</div>
+          <div style="color: var(--muted); font-size: 0.8rem" id="pay-period">
+            —
+          </div>
+          <div style="margin-top: 6px; font-size: 0.95rem">
+            Tagihan: <b style="color: var(--green)" id="pay-amount">Rp 0</b>
+          </div>
+          <div style="font-size: 0.78rem; color: var(--muted); margin-top: 2px">
+            Jatuh tempo: <span id="pay-due">—</span>
+          </div>
+        </div>
+        <div class="fg">
+          <label>Diterima Oleh</label><input id="pay-by" placeholder="Admin" />
+        </div>
+        <div class="fg">
+          <label>Keterangan</label
+          ><input id="pay-note" placeholder="Transfer, Cash, dst..." />
+        </div>
+        <div class="err" id="pay-err"></div>
+        <div class="mfoot">
+          <button class="btn b-s" onclick="closeM('m-pay')">Batal</button>
+          <button
+            class="btn b-p"
+            onclick="confirmPay()"
+            style="background: var(--green)"
+          >
+            <i class="fa fa-check"></i> Lunas
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Send Reminder Modal -->
+    <div class="ov" id="m-reminder">
+      <div class="modal" style="width: 420px">
+        <h3><i class="fa fa-paper-plane"></i> Kirim Reminder Telegram</h3>
+        <p style="color: var(--muted); font-size: 0.82rem; margin-bottom: 12px">
+          Preview pesan yang akan dikirim:
+        </p>
+        <div
+          id="rem-preview"
+          style="
+            background: var(--card2);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+            line-height: 1.6;
+          "
+        ></div>
+        <div class="err" id="rem-err" style="margin-top: 8px"></div>
+        <div class="mfoot">
+          <button class="btn b-s" onclick="closeM('m-reminder')">Batal</button>
+          <button class="btn b-p" onclick="sendReminder()">
+            <i class="fa fa-paper-plane"></i> Kirim Sekarang
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bot Reseller Modal -->
+    <div class="ov" id="m-brs">
+      <div class="modal" style="width: 500px">
+        <h3>
+          <i class="fa fa-users"></i> <span id="mbrs-ttl">Tambah Agen</span>
+        </h3>
+        <div class="fg2">
+          <div class="fg">
+            <label>Nama Agen</label
+            ><input id="mbrs-nm" placeholder="Nama lengkap" />
+          </div>
+          <div class="fg">
+            <label
+              >Username Telegram
+              <small style="color: var(--muted)">@user</small></label
+            ><input id="mbrs-un" placeholder="@username" />
+          </div>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label
+              >Telegram ID
+              <small style="color: var(--muted)">angka numeric</small></label
+            ><input id="mbrs-tid" placeholder="1234567890" type="number" />
+          </div>
+          <div class="fg">
+            <label>Status</label
+            ><select id="mbrs-st">
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label
+              >Diskon %
+              <small style="color: var(--muted)"
+                >dari selling price</small
+              ></label
+            ><input id="mbrs-dc" type="number" value="0" min="0" max="100" />
+          </div>
+          <div class="fg">
+            <label>Saldo Awal (Rp)</label
+            ><input id="mbrs-sl" type="number" value="0" min="0" />
+          </div>
+        </div>
+        <div class="fg">
+          <label>Catatan</label><input id="mbrs-nt" placeholder="opsional" />
+        </div>
+        <div class="err" id="mbrs-err"></div>
+        <div class="mfoot">
+          <button class="btn b-s" onclick="closeM('m-brs')">Batal</button
+          ><button class="btn b-p" onclick="saveBrs()">
+            <i class="fa fa-save"></i> Simpan
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Topup Saldo Modal -->
+    <div class="ov" id="m-topup">
+      <div class="modal" style="width: 420px">
+        <h3><i class="fa fa-money"></i> Topup Saldo</h3>
+        <div
+          style="
+            background: var(--card2);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 14px;
+          "
+        >
+          <div style="font-weight: 600; font-size: 0.92rem" id="tp-name">—</div>
+          <div style="color: var(--muted); font-size: 0.8rem" id="tp-tid">
+            —
+          </div>
+          <div style="margin-top: 6px; font-size: 0.85rem">
+            Saldo saat ini: <b style="color: var(--green)" id="tp-cur">Rp 0</b>
+          </div>
+        </div>
+        <div class="fg">
+          <label
+            >Jumlah Topup (Rp)
+            <small style="color: var(--muted)"
+              >negatif = potong saldo</small
+            ></label
+          ><input
+            id="tp-amt"
+            type="number"
+            min="-9999999"
+            placeholder="50000"
+          />
+        </div>
+        <div
+          style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px"
+        >
+          <button class="btn b-s b-sm" onclick="quickTopup(10000)">+10K</button>
+          <button class="btn b-s b-sm" onclick="quickTopup(20000)">+20K</button>
+          <button class="btn b-s b-sm" onclick="quickTopup(50000)">+50K</button>
+          <button class="btn b-s b-sm" onclick="quickTopup(100000)">
+            +100K
+          </button>
+          <button class="btn b-s b-sm" onclick="quickTopup(200000)">
+            +200K
+          </button>
+          <button class="btn b-s b-sm" onclick="quickTopup(500000)">
+            +500K
+          </button>
+        </div>
+        <div class="fg">
+          <label>Keterangan</label
+          ><input id="tp-note" placeholder="Transfer BRI, dst..." />
+        </div>
+        <div class="err" id="tp-err"></div>
+        <div class="mfoot">
+          <button class="btn b-s" onclick="closeM('m-topup')">Batal</button>
+          <button class="btn b-p" onclick="doTopup()">
+            <i class="fa fa-check"></i> Proses Topup
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reseller Bot Modal -->
+    <div class="ov" id="m-rb">
+      <div class="modal" style="width: 500px">
+        <h3>
+          <i class="fa fa-users"></i> <span id="mrb-ttl">Tambah Reseller</span>
+        </h3>
+        <div class="fg2">
+          <div class="fg">
+            <label>Nama Lengkap</label
+            ><input id="mrb-name" placeholder="Nama reseller" />
+          </div>
+          <div class="fg">
+            <label
+              >Username Telegram
+              <small style="color: var(--muted)">tanpa @</small></label
+            ><input id="mrb-uname" placeholder="username123" />
+          </div>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label
+              >Telegram ID
+              <small style="color: var(--muted)">angka</small></label
+            ><input id="mrb-tid" placeholder="123456789" type="number" />
+          </div>
+          <div class="fg">
+            <label>Router Session</label
+            ><select id="mrb-sess">
+              <option value="">Pilih router...</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label>Markup per Voucher (Rp)</label
+            ><input id="mrb-markup" type="number" value="0" min="0" />
+          </div>
+          <div class="fg">
+            <label>Status</label
+            ><select id="mrb-status">
+              <option value="active">Aktif</option>
+              <option value="inactive">Nonaktif</option>
+            </select>
+          </div>
+        </div>
+        <div class="err" id="mrb-err"></div>
+        <div class="mfoot">
+          <button class="btn b-s" onclick="closeM('m-rb')">Batal</button
+          ><button class="btn b-p" onclick="saveRb()">
+            <i class="fa fa-save"></i> Simpan
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Topup Modal -->
+    <div class="ov" id="m-topup">
+      <div class="modal" style="width: 420px">
+        <h3><i class="fa fa-money"></i> Topup Saldo Reseller</h3>
+        <input type="hidden" id="tu-id" />
+        <div
+          style="
+            background: var(--card2);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 14px;
+          "
+        >
+          <div style="font-size: 0.82rem; color: var(--muted)">Reseller</div>
+          <div id="tu-name" style="font-weight: 700; font-size: 0.95rem"></div>
+          <div style="font-size: 0.82rem; color: var(--muted); margin-top: 4px">
+            Saldo saat ini:
+            <b id="tu-current-saldo" style="color: var(--green)"></b>
+          </div>
+        </div>
+        <div class="fg">
+          <label>Jumlah Topup (Rp)</label
+          ><input
+            id="tu-amount"
+            type="number"
+            min="1000"
+            step="1000"
+            placeholder="50000"
+          />
+        </div>
+        <div class="fg">
+          <label>Catatan</label
+          ><input id="tu-note" placeholder="Transfer BRI / Tunai / dll..." />
+        </div>
+        <div
+          id="tu-preview"
+          style="
+            background: var(--acc) 15;
+            border: 1px solid var(--acc) 30;
+            border-radius: 7px;
+            padding: 9px;
+            font-size: 0.82rem;
+            margin-top: 4px;
+            display: none;
+          "
+        >
+          Saldo setelah topup: <b id="tu-after" style="color: var(--green)"></b>
+        </div>
+        <div class="err" id="tu-err"></div>
+        <div class="mfoot">
+          <button class="btn b-s" onclick="closeM('m-topup')">Batal</button
+          ><button class="btn b-p" onclick="doTopup()">
+            <i class="fa fa-money"></i> Topup Sekarang
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Import Voucher Modal -->
+    <div class="ov" id="m-import">
+      <div class="modal" style="width: 560px">
+        <h3><i class="fa fa-download"></i> Import Voucher dari MikroTik</h3>
+        <p style="color: var(--muted); font-size: 0.82rem; margin-bottom: 14px">
+          Pilih profile yang ingin diimport. Import dilakukan satu per satu agar
+          tidak timeout.
+        </p>
+
+        <!-- Step 1: Profile list -->
+        <div id="imp-step1">
+          <div
+            id="imp-profiles-list"
+            style="max-height: 340px; overflow-y: auto"
+          >
+            <div style="text-align: center; padding: 20px; color: var(--muted)">
+              <i class="fa fa-spinner fa-spin"></i> Memuat daftar profile...
+            </div>
+          </div>
+          <div
+            style="
+              margin-top: 12px;
+              display: flex;
+              gap: 7px;
+              align-items: center;
+              flex-wrap: wrap;
+            "
+          >
+            <label style="font-size: 0.78rem; color: var(--muted)"
+              >Cek selling script:</label
+            >
+            <select id="imp-months" style="max-width: 160px; width: auto">
+              <option value="1">1 bulan terakhir</option>
+              <option value="3" selected>3 bulan terakhir</option>
+              <option value="6">6 bulan terakhir</option>
+              <option value="12">12 bulan terakhir</option>
+            </select>
+          </div>
+          <div
+            style="
+              margin-top: 10px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            "
+          >
+            <button class="btn b-s b-sm" onclick="selectAllProfiles()">
+              <i class="fa fa-check-square-o"></i> Pilih Semua
+            </button>
+            <div style="display: flex; gap: 7px">
+              <button class="btn b-s" onclick="closeM('m-import')">
+                Batal
+              </button>
+              <button
+                class="btn b-p"
+                id="imp-start-btn"
+                onclick="startImport()"
+              >
+                <i class="fa fa-play"></i> Mulai Import
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Progress -->
+        <div id="imp-step2" style="display: none">
+          <div
+            id="imp-progress-list"
+            style="max-height: 340px; overflow-y: auto"
+          ></div>
+          <div style="margin-top: 12px">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                font-size: 0.78rem;
+                color: var(--muted);
+                margin-bottom: 5px;
+              "
+            >
+              <span id="imp-progress-label">0 / 0 selesai</span>
+              <span id="imp-progress-pct">0%</span>
+            </div>
+            <div
+              style="
+                background: var(--border);
+                border-radius: 4px;
+                height: 7px;
+                overflow: hidden;
+              "
+            >
+              <div
+                id="imp-progress-bar"
+                style="
+                  height: 100%;
+                  background: var(--acc2);
+                  border-radius: 4px;
+                  transition: 0.3s;
+                  width: 0%;
+                "
+              ></div>
+            </div>
+          </div>
+          <div
+            style="
+              margin-top: 12px;
+              display: flex;
+              justify-content: flex-end;
+              gap: 7px;
+            "
+          >
+            <div
+              id="imp-summary"
+              style="flex: 1; font-size: 0.8rem; color: var(--muted)"
+            ></div>
+            <button
+              class="btn b-p"
+              id="imp-done-btn"
+              onclick="
+                closeM('m-import');
+                loadBatchList();
+              "
+              style="display: none"
+            >
+              <i class="fa fa-check"></i> Selesai — Lihat Batch
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Print Voucher Modal -->
+    <div class="ov" id="m-print" style="z-index: 2000">
+      <div
+        class="modal"
+        style="
+          width: 98vw;
+          max-width: 1100px;
+          max-height: 95vh;
+          padding: 0;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+        "
+      >
+        <!-- Header -->
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+          "
+        >
+          <div style="flex: 1">
+            <h3 style="margin: 0; font-size: 0.95rem">
+              <i class="fa fa-print"></i> Print Voucher (<span id="pv-count"
+                >0</span
+              >
+              buah)
+            </h3>
+          </div>
+          <button class="btn b-p" onclick="downloadPDF()" style="gap: 6px">
+            <i class="fa fa-download"></i> Download PDF
+          </button>
+          <button
+            class="btn b-p"
+            onclick="doPrint()"
+            style="background: var(--green); gap: 6px"
+          >
+            <i class="fa fa-print"></i> Print
+          </button>
+          <button class="btn b-s" onclick="closeM('m-print')">Tutup</button>
+        </div>
+        <!-- Controls -->
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 10px 20px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            font-size: 0.82rem;
+            color: var(--muted);
+          "
+        >
+          <span>Kertas:</span>
+          <div style="display: flex; gap: 4px" id="paper-btns">
+            <button class="pv-btn active" onclick="setPaper('A4', this)">
+              A4
+            </button>
+            <button class="pv-btn" onclick="setPaper('F4', this)">F4</button>
+          </div>
+          <span style="margin-left: 8px">Orientasi:</span>
+          <div style="display: flex; gap: 4px" id="orient-btns">
+            <button class="pv-btn active" onclick="setOrient('portrait', this)">
+              Portrait
+            </button>
+            <button class="pv-btn" onclick="setOrient('landscape', this)">
+              Landscape
+            </button>
+          </div>
+          <span style="margin-left: 8px">Kolom:</span>
+          <div style="display: flex; gap: 4px" id="col-btns">
+            <button class="pv-btn" onclick="setCols(3, this)">3</button>
+            <button class="pv-btn" onclick="setCols(4, this)">4</button>
+            <button class="pv-btn active" onclick="setCols(5, this)">5</button>
+            <button class="pv-btn" onclick="setCols(6, this)">6</button>
+            <button class="pv-btn" onclick="setCols(7, this)">7</button>
+          </div>
+          <span
+            id="pv-info"
+            style="margin-left: auto; color: var(--acc2); font-weight: 500"
+          ></span>
+        </div>
+        <!-- Preview -->
+        <div
+          style="
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px;
+            background: var(--bg);
+          "
+        >
+          <div id="pv-preview"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Session Modal -->
+    <div class="ov" id="m-sess">
+      <div class="modal">
+        <h3>
+          <i class="fa fa-server"></i> <span id="ms-ttl">Add Router</span>
+        </h3>
+        <div class="fg2">
+          <div class="fg">
+            <label>Session ID</label
+            ><input
+              id="ms-id"
+              placeholder="SIWARNET"
+              oninput="
+                this.value = this.value.toUpperCase().replace(/[^A-Z0-9_]/g, '')
+              "
+            />
+          </div>
+          <div class="fg">
+            <label>Display Name</label
+            ><input id="ms-nm" placeholder="My Router" />
+          </div>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label>IP Address</label
+            ><input id="ms-ip" placeholder="192.168.1.1" />
+          </div>
+          <div class="fg">
+            <label>API Port</label
+            ><input id="ms-pt" type="number" value="8728" />
+          </div>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label>API Username</label><input id="ms-us" placeholder="admin" />
+          </div>
+          <div class="fg">
+            <label
+              >API Password
+              <small id="ms-ph" style="color: var(--muted)"></small></label
+            ><input id="ms-pw" type="password" placeholder="password" />
+          </div>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label>Currency</label><input id="ms-cr" value="Rp" />
+          </div>
+          <div class="fg">
+            <label>Live Report</label
+            ><select id="ms-lv">
+              <option value="enable">Enable</option>
+              <option value="disable">Disable</option>
+            </select>
+          </div>
+        </div>
+        <div class="err" id="ms-err"></div>
+        <div class="mfoot">
+          <button class="btn b-s" onclick="closeM('m-sess')">Batal</button
+          ><button class="btn b-p" onclick="saveSession()">
+            <i class="fa fa-save"></i> Simpan
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HS Profile Modal -->
+    <div class="ov" id="m-hsp">
+      <div class="modal">
+        <h3>
+          <i class="fa fa-id-card"></i> <span id="mhp-ttl">Add HS Profile</span>
+        </h3>
+        <div class="fg">
+          <label>Profile Name</label
+          ><input id="mhp-nm" placeholder="VOCER-1K" />
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label>Rate Limit</label><input id="mhp-rl" placeholder="2M/2M" />
+          </div>
+          <div class="fg">
+            <label>Shared Users</label
+            ><input id="mhp-su" type="number" value="1" min="1" />
+          </div>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label>Session Timeout</label
+            ><input id="mhp-st" placeholder="00:00:00" />
+          </div>
+          <div class="fg">
+            <label>Idle Timeout</label
+            ><input id="mhp-it" placeholder="00:05:00" />
+          </div>
+        </div>
+        <div class="fg">
+          <label>Address Pool</label><input id="mhp-ap" placeholder="hs-pool" />
+        </div>
+        <hr style="border-color: var(--border); margin: 12px 0" />
+        <div class="fg">
+          <label>Expired Mode</label
+          ><select id="mhp-em">
+            <option value="">None</option>
+            <option value="rem">Remove</option>
+            <option value="ntf">Notice</option>
+            <option value="remc">Remove &amp; Record</option>
+            <option value="ntfc">Notice &amp; Record</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label
+            >Validity
+            <small style="color: var(--muted)">e.g. 4h, 1d, 7d</small></label
+          ><input id="mhp-vl" placeholder="1d" />
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label>Price (Modal) Rp</label
+            ><input id="mhp-pr" type="number" value="0" />
+          </div>
+          <div class="fg">
+            <label>Selling Price Rp</label
+            ><input id="mhp-sp" type="number" value="0" />
+          </div>
+        </div>
+        <div class="fg">
+          <label>Lock User</label
+          ><select id="mhp-lu">
+            <option value="">Disable</option>
+            <option value="Enable">Enable</option>
+          </select>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label
+              >Warna Voucher
+              <small style="color: var(--muted)">(untuk print)</small></label
+            >
+            <div style="display: flex; gap: 8px; align-items: center">
+              <input
+                type="color"
+                id="mhp-color"
+                value="#1f6feb"
+                style="
+                  width: 44px;
+                  height: 34px;
+                  padding: 2px;
+                  cursor: pointer;
+                  flex-shrink: 0;
+                "
+              />
+              <input
+                id="mhp-color-hex"
+                placeholder="#1f6feb"
+                style="font-family: monospace"
+                oninput="syncColorHex()"
+                maxlength="7"
+              />
+            </div>
+          </div>
+          <div class="fg">
+            <label>Caption Voucher</label
+            ><input id="mhp-caption" placeholder="cth: Hotspot 10M" />
+          </div>
+        </div>
+        <div class="err" id="mhp-err"></div>
+        <div class="mfoot">
+          <button class="btn b-s" onclick="closeM('m-hsp')">Batal</button
+          ><button class="btn b-p" onclick="saveHsProfile()">
+            <i class="fa fa-save"></i> Simpan
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PPPoE User Modal -->
+    <div class="ov" id="m-pu">
+      <div class="modal">
+        <h3>
+          <i class="fa fa-users"></i> <span id="mpu-ttl">Add PPPoE User</span>
+        </h3>
+        <div class="fg2">
+          <div class="fg">
+            <label>Username</label><input id="mpu-nm" placeholder="user01" />
+          </div>
+          <div class="fg">
+            <label>Password</label
+            ><input id="mpu-pw" type="password" placeholder="password" />
+          </div>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label>Profile</label
+            ><select id="mpu-pr">
+              <option value="default">default</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Service</label
+            ><select id="mpu-sv">
+              <option value="pppoe">pppoe</option>
+              <option value="any">any</option>
+              <option value="pptp">pptp</option>
+              <option value="l2tp">l2tp</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label>Local Address</label
+            ><input id="mpu-la" placeholder="opsional" />
+          </div>
+          <div class="fg">
+            <label>Remote Address</label
+            ><input id="mpu-ra" placeholder="opsional" />
+          </div>
+        </div>
+        <div class="fg">
+          <label>Comment</label
+          ><input id="mpu-cm" placeholder="Nama pelanggan" />
+        </div>
+        <div class="err" id="mpu-err"></div>
+        <div class="mfoot">
+          <button class="btn b-s" onclick="closeM('m-pu')">Batal</button
+          ><button class="btn b-p" onclick="savePppUser()">
+            <i class="fa fa-save"></i> Simpan
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PPPoE Profile Modal -->
+    <div class="ov" id="m-pp">
+      <div class="modal">
+        <h3>
+          <i class="fa fa-id-card-o"></i>
+          <span id="mpp-ttl">Add PPPoE Profile</span>
+        </h3>
+        <div class="fg">
+          <label>Profile Name</label
+          ><input id="mpp-nm" placeholder="PPPoE-10M" />
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label>Rate Limit</label><input id="mpp-rl" placeholder="10M/10M" />
+          </div>
+          <div class="fg">
+            <label>Address Pool</label
+            ><input id="mpp-ap" placeholder="pppoe-pool" />
+          </div>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label>Local Address</label
+            ><input id="mpp-la" placeholder="opsional" />
+          </div>
+          <div class="fg">
+            <label>Session Timeout</label
+            ><input id="mpp-st" placeholder="00:00:00" />
+          </div>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label>Idle Timeout</label
+            ><input id="mpp-it" placeholder="00:05:00" />
+          </div>
+          <div class="fg">
+            <label>Only One</label
+            ><select id="mpp-oo">
+              <option value="default">default</option>
+              <option value="yes">yes</option>
+              <option value="no">no</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label>Comment</label><input id="mpp-cm" placeholder="" />
+          </div>
+          <div class="fg" style="max-width: 120px">
+            <label>Status</label
+            ><select id="mpp-act">
+              <option value="true">Aktif</option>
+              <option value="false">Nonaktif</option>
+            </select>
+          </div>
+        </div>
+        <div class="err" id="mpp-err"></div>
+        <div class="mfoot">
+          <button class="btn b-s" onclick="closeM('m-pp')">Batal</button
+          ><button class="btn b-p" onclick="savePppProfile()">
+            <i class="fa fa-save"></i> Simpan
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reseller Modal -->
+    <div class="ov" id="m-rs">
+      <div class="modal">
+        <h3>
+          <i class="fa fa-handshake-o"></i>
+          <span id="mrs-ttl">Add Reseller</span>
+        </h3>
+        <div class="fg2">
+          <div class="fg">
+            <label>ID/Tag</label
+            ><input
+              id="mrs-id"
+              placeholder="MOM"
+              oninput="
+                this.value = this.value.toUpperCase().replace(/[^A-Z0-9_]/g, '')
+              "
+            />
+          </div>
+          <div class="fg">
+            <label>Nama</label><input id="mrs-nm" placeholder="Nama reseller" />
+          </div>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label>No. HP</label><input id="mrs-ph" placeholder="08xxx" />
+          </div>
+          <div class="fg">
+            <label>Diskon %</label
+            ><input id="mrs-dc" type="number" value="0" min="0" max="100" />
+          </div>
+        </div>
+        <div class="fg">
+          <label>Alamat</label><textarea id="mrs-ad" rows="2"></textarea>
+        </div>
+        <div class="err" id="mrs-err"></div>
+        <div class="mfoot">
+          <button class="btn b-s" onclick="closeM('m-rs')">Batal</button
+          ><button class="btn b-p" onclick="saveReseller()">
+            <i class="fa fa-save"></i> Simpan
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Voucher Type Modal -->
+    <div class="ov" id="m-vt">
+      <div class="modal" style="width: 520px">
+        <h3>
+          <i class="fa fa-cog"></i>
+          <span id="mvt-ttl">Tambah Tipe Voucher</span>
+        </h3>
+        <div class="fg2">
+          <div class="fg">
+            <label
+              >Nama
+              <small style="color: var(--muted)">e.g. VOCER 1K</small></label
+            ><input id="mvt-nm" placeholder="VOCER 1K" />
+          </div>
+          <div class="fg">
+            <label>Harga Jual (Rp)</label
+            ><input id="mvt-pr" type="number" value="1000" min="0" />
+          </div>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label>Profile MikroTik</label
+            ><select id="mvt-prof">
+              <option value="">Loading...</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label
+              >Durasi
+              <small style="color: var(--muted)">e.g. 4j, 1 hari</small></label
+            ><input id="mvt-dur" placeholder="4j" />
+          </div>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label>User Type</label
+            ><select id="mvt-type">
+              <option value="up">User + Password</option>
+              <option value="vc">User = Password</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Panjang Kode</label
+            ><input id="mvt-len" type="number" value="6" min="4" max="12" />
+          </div>
+          <div class="fg">
+            <label>Format Kode</label
+            ><select id="mvt-fmt">
+              <option value="upper+digit">Huruf Kapital + Angka</option>
+              <option value="lower+digit">Huruf Kecil + Angka</option>
+              <option value="mixed+digit">Huruf Besar+Kecil + Angka</option>
+              <option value="digit">Angka saja</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg2">
+          <div class="fg">
+            <label>Maks/Order</label
+            ><input id="mvt-max" type="number" value="10" min="1" max="200" />
+          </div>
+          <div class="fg">
+            <label>Status</label
+            ><select id="mvt-act">
+              <option value="true">Aktif</option>
+              <option value="false">Nonaktif</option>
+            </select>
+          </div>
+        </div>
+        <div class="err" id="mvt-err"></div>
+        <div class="mfoot">
+          <button class="btn b-s" onclick="closeM('m-vt')">Batal</button
+          ><button class="btn b-p" onclick="saveVt()">
+            <i class="fa fa-save"></i> Simpan
+          </button>
+        </div>
+      </div>
+    </div>
+</div>

@@ -1,0 +1,36 @@
+<div id="topbar">
+    <div class="tb-left">
+        <div class="menu-toggle" onclick="toggleSidebar()">
+        <i class="fa fa-bars"></i>
+        </div>
+        <div class="tb-clock">
+        <i class="fa fa-clock-o" style="color: var(--acc2)"></i>
+        <span class="time" id="tb-time">--:--:--</span>
+        <span id="tb-date" style="color: var(--muted)"></span>
+        </div>
+        <span class="tb-title" id="pg-title">Dashboard</span>
+    </div>
+    <div class="tb-right">
+        <div class="tb-refresh" id="refresh-indicator" style="display: none">
+        <div class="dot"></div>
+        <span
+            >Live &nbsp;<span
+            id="countdown-val"
+            style="
+                font-variant-numeric: tabular-nums;
+                color: var(--text);
+                font-weight: 600;
+            "
+            >30s</span
+            ></span
+        >
+        </div>
+        <button class="btn b-s b-sm" onclick="loadPage()" title="Refresh">
+        <i class="fa fa-refresh"></i>
+        </button>
+        <div class="tb-user" onclick="go('sessions')">
+        <div class="tb-avatar" id="tb-av">M</div>
+        <span class="tb-uname" id="tb-un">Admin</span>
+        </div>
+    </div>
+</div>
