@@ -17,6 +17,7 @@
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.6",
     "dotenv": "^17.4.2",
+    "eta": "^4.6.0",
     "express-session": "^1.17.3",
     "node-routeros": "^1.2.2",
     "reflect-metadata": "^0.1.13",
