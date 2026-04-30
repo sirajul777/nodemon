@@ -5,7 +5,7 @@
       <div class="logo"><i class="fa fa-wifi"></i></div>
       <div>
         <div class="bname">NODEMON</div>
-        <div class="bsub">Hotspot Monitor</div>
+        <div class="bsub">ISP BILLING APP</div>
       </div>
     </div>
     <div class="sb-close" onclick="toggleSidebar()">

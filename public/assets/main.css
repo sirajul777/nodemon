@@ -5,15 +5,15 @@
 
 :root {
   /* Background */
-  --bg: #3d4e6f;
-  --sb: rgba(41, 52, 67, 0.85);
-  --card: #2e3a4c;
-  --card2: #323e4d;
+  --bg: #050608;
+  --sb: rgba(13, 17, 23, 0.85);
+  --card: #0d1117;
+  --card2: #161b22;
   --border: rgba(255, 255, 255, 0.08);
 
   /* Accent */
-  --acc: linear-gradient(135deg, #467ef6, #4f95ff);
-  --acc-glow: 0 0 15px rgba(77, 150, 253, 0.35);
+  --acc: linear-gradient(135deg, #316ce8, #4f95ff);
+  --acc-glow: 0 0 15px rgba(56, 139, 253, 0.35);
 
   /* Text */
   --text: #f0f6fc;
@@ -24,8 +24,8 @@
   --yellow: #f2c053;
   --red: #f66961;
   --purple: #bc8cff;
-  --cyan: #67eee5;
-  --orange: #e97c38;
+  --cyan: #2f8e87;
+  --orange: #db6d28;
 
   --radius: 12px;
 }

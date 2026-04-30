@@ -8,20 +8,20 @@
   background: var(--sb);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  margin: 12px 0 12px 12px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
+  /* margin: 12px 0 12px 12px; */
+  /* border-radius: var(--radius); */
+  /* border: 1px solid var(--border); */
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 24px);
+  height: 100vh;
   flex-shrink: 0;
   transition: all 0.3s ease;
   z-index: 2000;
-  box-shadow: 0 8px 32px 0 rgba(0,0,0,0.5);
+  box-shadow: 0 4px 20px rgba(48, 74, 203, 0.2);
 }
 
 /* Mobile: hidden by default, slide in on .open */
-@media(max-width:1024px) {
+@media (max-width: 1024px) {
   #sb {
     position: fixed;
     left: -280px;
@@ -29,7 +29,9 @@
     height: 100vh;
     border-radius: 0;
   }
-  #sb.open { left: 0; }
+  #sb.open {
+    left: 0;
+  }
 }
 
 /* ── Brand header ── */
@@ -41,20 +43,44 @@
   justify-content: space-between;
 }
 .sb-brand .logo {
-  width: 36px; height: 36px;
+  width: 36px;
+  height: 36px;
   background: var(--acc);
   border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   box-shadow: var(--acc-glow);
   color: #fff;
   font-size: 1rem;
 }
-.sb-brand-left { display: flex; align-items: center; gap: 10px; }
-.bname { font-weight: 700; font-size: 0.92rem; color: var(--text); }
-.bsub  { font-size: 0.68rem; color: var(--muted); margin-top: 1px; }
+.sb-brand-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.bname {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--text);
+}
+.bsub {
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-top: 1px;
+}
 
-.sb-close { display: none; cursor: pointer; color: var(--muted); font-size: 1rem; }
-@media(max-width:1024px) { .sb-close { display: block; } }
+.sb-close {
+  display: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 1rem;
+}
+@media (max-width: 1024px) {
+  .sb-close {
+    display: block;
+  }
+}
 
 /* ── Section header ── */
 .sb-section {
@@ -67,9 +93,15 @@
 }
 
 /* ── Nav links ── */
-nav { flex: 1; overflow-y: auto; padding: 10px 0; }
+nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 0;
+}
 nav a {
-  display: flex; align-items: center; gap: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   padding: 10px 16px;
   color: #c9d1d9;
   text-decoration: none;
@@ -79,19 +111,26 @@ nav a {
   font-size: 0.88rem;
   font-weight: 500;
 }
-nav a i { width: 18px; text-align: center; font-size: 1rem; }
-nav a:hover { background: rgba(255,255,255,0.05); color: #fff; }
+nav a i {
+  width: 18px;
+  text-align: center;
+  font-size: 1rem;
+}
+nav a:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
 nav a.active {
   background: var(--acc);
   color: #fff;
-  box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 /* ── Router selector ── */
 .sb-router {
   margin: 12px;
   padding: 10px;
-  background: rgba(255,255,255,0.03);
+  background: rgba(93, 89, 89, 0.03);
   border-radius: 10px;
   border: 1px solid var(--border);
 }
