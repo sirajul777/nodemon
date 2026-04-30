@@ -1,29 +1,29 @@
 <!doctype html>
 <html lang="id">
-<head>
-````<meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NODEMON</title>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
-    />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>NODEMON</title>
+        <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
+        />
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <link rel="stylesheet" href="assets/batch-card.css" />
-    <link rel="stylesheet" href="assets/button-badged.css" />
-    <link rel="stylesheet" href="assets/card.css" />
-    <link rel="stylesheet" href="assets/dashboard.css" />
-    <link rel="stylesheet" href="assets/form-table.css" />
-    <link rel="stylesheet" href="assets/log.css" />
-    <link rel="stylesheet" href="assets/main.css" />
-    <link rel="stylesheet" href="assets/modals.css" />
-    <link rel="stylesheet" href="assets/print.css" />
-    <link rel="stylesheet" href="assets/report.css" />
-    <link rel="stylesheet" href="assets/sidebar.css" />
-    <link rel="stylesheet" href="assets/telegram.css" />
-    <link rel="stylesheet" href="assets/topbar.css" />
-</head>
+        <link rel="stylesheet" href="assets/batch-card.css" />
+        <link rel="stylesheet" href="assets/button-badged.css" />
+        <link rel="stylesheet" href="assets/card.css" />
+        <link rel="stylesheet" href="assets/dashboard.css" />
+        <link rel="stylesheet" href="assets/form-table.css" />
+        <link rel="stylesheet" href="assets/log.css" />
+        <link rel="stylesheet" href="assets/main.css" />
+        <link rel="stylesheet" href="assets/modals.css" />
+        <link rel="stylesheet" href="assets/print.css" />
+        <link rel="stylesheet" href="assets/report.css" />
+        <link rel="stylesheet" href="assets/sidebar.css" />
+        <link rel="stylesheet" href="assets/telegram.css" />
+        <link rel="stylesheet" href="assets/topbar.css" />
+    </head>
 <body>
 <%~ it.body %>
 
