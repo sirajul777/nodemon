@@ -35,7 +35,7 @@ async function bootstrap() {
 
   // Static assets configuration (for your CSS/JS)
   app.useStaticAssets(resolve(__dirname, "..", "public"), {
-    prefix: "/assets/"
+    prefix: "/"
   });
 
   app.use(cookieParser());

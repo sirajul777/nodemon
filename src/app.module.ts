@@ -22,10 +22,10 @@ import { AppController } from "./app.controller";
 
 @Module({
   imports: [
-    ServeStaticModule.forRoot({
-      rootPath: join(__dirname, "..", "public"),
-      exclude: ["/api*"]
-    }),
+    // ServeStaticModule.forRoot({
+    //   rootPath: join(__dirname, "..", "public"),
+    //   exclude: ["/api*"]
+    // }),
     ConfigModule,
     AuthModule,
     SessionModule,
