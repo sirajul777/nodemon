@@ -1710,7 +1710,7 @@ async function initSelling() {
       yEl.innerHTML += `<option value="${y}" ${y === now.getFullYear() ? "selected" : ""}>${y}</option>`;
     slInited = true;
   }
-  const rs = (await req("/resellers")) || [];
+  const rs = (await req(`/resellers/session/${CS}`)) || [];
   const rsel = document.getElementById("sr-rs");
   rsel.innerHTML = '<option value="">All Reseller</option>';
   rs.forEach(
