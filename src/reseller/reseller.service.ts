@@ -31,8 +31,13 @@ export class ResellerService {
     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
   }
 
-  getAll(): Reseller[] {
-    return Object.values(this.load());
+  getAll(sessionId: string): Reseller[] {
+    let data = [];
+    Object.values(this.load()).forEach((r) => {
+      if (r.router !== sessionId) return;
+      data.push(r);
+    });
+    return data;
   }
 
   getById(id: string): Reseller | null {

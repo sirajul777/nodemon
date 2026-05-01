@@ -1272,7 +1272,7 @@ async function delPppProfile(name) {
 async function loadResellers(isPg = false) {
   if (!isPg) {
     showL();
-    const d = (await req("/resellers")) || [];
+    const d = (await req(`/resellers/session/${CS}`)) || [];
     PG["t-rs"].data = d;
     PG["t-rs"].page = 1;
     hideL();
