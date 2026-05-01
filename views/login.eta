@@ -1,5 +1,5 @@
 
-  <div class="bg-grid"></div>
+  <div class="bg-grid">
 
   <div class="card">
     <div class="logo-wrap">
@@ -63,3 +63,4 @@
 
     <p class="footer-text">NodeMon v2.0 &mdash; &copy; 2026</p>
   </div>
+</div>
