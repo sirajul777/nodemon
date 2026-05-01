@@ -1328,7 +1328,8 @@ async function saveReseller() {
     name: nm,
     phone: v("mrs-ph"),
     discount: parseInt(v("mrs-dc")) || 0,
-    address: v("mrs-ad")
+    address: v("mrs-ad"),
+    router: v("mrs-rt")
   };
   const d = await post("/resellers", body);
   if (d?.id) {
