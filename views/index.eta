@@ -1394,6 +1394,8 @@
         <div class="fg">
           <label>Alamat</label><textarea id="mrs-ad" rows="2"></textarea>
         </div>
+        <input id="mrs-rt" placeholder="08xxx" />
+
         <div class="err" id="mrs-err"></div>
         <div class="mfoot">
           <button class="btn b-s" onclick="closeM('m-rs')">Batal</button
