@@ -1463,7 +1463,7 @@ async function generateVouchers(asCsv = false) {
   }
 
   const rsId = v("bv-rs");
-  const rsList = (await req("/resellers")) || [];
+  const rsList = (await req(`/resellers/session/${CS}`)) || [];
   const reseller = rsList.find((r) => r.id === rsId) || null;
   const profileName = v("bv-prof");
   const limitUptime = v("bv-val") || undefined;
