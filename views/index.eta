@@ -57,13 +57,13 @@
 <%~ include("./page/telegram/seller") %>
 
         <!-- ══ USER MANAGEMENT ══ -->
-<%~ include("./page/management/user") %>
+<%~ include("./page/managment/user") %>
 
         <!-- ══ CHANGE PASSWORD ══ -->
-<%~ include("./page/management/password") %>
+<%~ include("./page/managment/password") %>
 
         <!-- ══ MOBILE API ══ -->
-<%~ include("./page/management/mobile-api") %>
+<%~ include("./page/managment/mobile-api") %>
 
         <!-- ══ BILLING ══ -->
 <%~ include("./page/billing/customer") %>
@@ -74,7 +74,7 @@
         <!-- ══ BOT RESELLER ══ -->
 
         <!-- ══ SESSIONS ══ -->
-<%~ include("./page/management/router") %>
+<%~ include("./page/managment/router") %>
 
     </div>
 
