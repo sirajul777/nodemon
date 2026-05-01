@@ -1352,7 +1352,7 @@ async function initBatch() {
   if (!CS) return;
   const [profs, rs] = await Promise.all([
     req(`/voucher/${CS}/profiles`),
-    req("/resellers")
+    req(`/resellers/session/${CS}`)
   ]);
   const psel = document.getElementById("bv-prof");
   psel.innerHTML =
