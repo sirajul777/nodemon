@@ -1,0 +1,301 @@
+<% /* <div class="page" id="page-tg-reseller">
+    <div class="card" style="margin-bottom: 14px">
+    <div class="card-hd">
+        <i class="fa fa-users"></i> Daftar Reseller Bot
+        <div
+        class="ml"
+        style="display: flex; gap: 7px; align-items: center"
+        >
+        <input
+            id="rb-search"
+            placeholder="Cari nama/username/ID..."
+            oninput="filterTbl('t-rb', 'rb-search')"
+            style="max-width: 220px"
+        />
+        <button class="btn b-p b-sm" onclick="openRbModal()">
+            <i class="fa fa-plus"></i> Tambah Reseller
+        </button>
+        </div>
+    </div>
+    <!-- Summary stats -->
+    <div class="g4" style="margin-bottom: 14px">
+        <div class="sbc c-blue" style="padding: 12px">
+        <div
+            class="sbc-icon"
+            style="width: 32px; height: 32px; font-size: 0.85rem"
+        >
+            <i class="fa fa-users"></i>
+        </div>
+        <div>
+            <div class="sbc-val" id="rb-count" style="font-size: 1.3rem">
+            0
+            </div>
+            <div class="sbc-lbl">Total Reseller</div>
+        </div>
+        </div>
+        <div class="sbc c-green" style="padding: 12px">
+        <div
+            class="sbc-icon"
+            style="width: 32px; height: 32px; font-size: 0.85rem"
+        >
+            <i class="fa fa-check"></i>
+        </div>
+        <div>
+            <div class="sbc-val" id="rb-active" style="font-size: 1.3rem">
+            0
+            </div>
+            <div class="sbc-lbl">Aktif</div>
+        </div>
+        </div>
+        <div class="sbc c-yellow" style="padding: 12px">
+        <div
+            class="sbc-icon"
+            style="width: 32px; height: 32px; font-size: 0.85rem"
+        >
+            <i class="fa fa-money"></i>
+        </div>
+        <div>
+            <div
+            class="sbc-val"
+            id="rb-total-saldo"
+            style="font-size: 0.95rem; padding-top: 5px"
+            >
+            Rp 0
+            </div>
+            <div class="sbc-lbl">Total Saldo</div>
+        </div>
+        </div>
+        <div class="sbc c-purple" style="padding: 12px">
+        <div
+            class="sbc-icon"
+            style="width: 32px; height: 32px; font-size: 0.85rem"
+        >
+            <i class="fa fa-ticket"></i>
+        </div>
+        <div>
+            <div
+            class="sbc-val"
+            id="rb-total-vcr"
+            style="font-size: 1.3rem"
+            >
+            0
+            </div>
+            <div class="sbc-lbl">Total Voucher</div>
+        </div>
+        </div>
+    </div>
+    <div style="overflow-x: auto">
+        <table>
+        <thead>
+            <tr>
+            <th>Agen</th>
+            <th>Telegram ID</th>
+            <th>Saldo</th>
+            <th>Voucher</th>
+            <th>Pendapatan</th>
+            <th>Status</th>
+            <th>Daftar</th>
+            <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody id="t-rb"></tbody>
+        </table>
+    </div>
+    </div>
+
+    <!-- Topup history panel (shown on reseller click) -->
+    <div id="rb-detail" style="display: none">
+    <div
+        style="
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+        "
+    >
+        <button
+        class="btn b-s b-sm"
+        onclick="
+            document.getElementById('rb-detail').style.display = 'none'
+        "
+        >
+        <i class="fa fa-times"></i>
+        </button>
+        <span id="rb-detail-title" style="font-weight: 600"></span>
+    </div>
+    <div class="g2">
+        <div class="card">
+        <div class="card-hd">
+            <i class="fa fa-history"></i> Riwayat Topup
+        </div>
+        <div style="overflow-x: auto">
+            <table>
+            <thead>
+                <tr>
+                <th>Jumlah</th>
+                <th>Catatan</th>
+                <th>Oleh</th>
+                <th>Waktu</th>
+                </tr>
+            </thead>
+            <tbody id="t-rb-topup"></tbody>
+            </table>
+        </div>
+        </div>
+        <div class="card">
+        <div class="card-hd">
+            <i class="fa fa-shopping-cart"></i> Riwayat Pembelian (10
+            terakhir)
+        </div>
+        <div style="overflow-x: auto">
+            <table>
+            <thead>
+                <tr>
+                <th>Username</th>
+                <th>Profile</th>
+                <th>Harga</th>
+                <th>Waktu</th>
+                </tr>
+            </thead>
+            <tbody id="t-rb-purchase"></tbody>
+            </table>
+        </div>
+        </div>
+    </div>
+    </div>
+</div> */ %>
+
+<div class="page" id="page-bot-reseller">
+    <!-- Stat bar -->
+    <div class="grid g4" style="margin-bottom: 14px">
+    <div class="sbc c-green" style="padding: 12px">
+        <div
+        class="sbc-icon"
+        style="width: 32px; height: 32px; font-size: 0.85rem"
+        >
+        <i class="fa fa-users"></i>
+        </div>
+        <div>
+        <div class="sbc-val" id="brs-total" style="font-size: 1.3rem">
+            0
+        </div>
+        <div class="sbc-lbl">Total Agen</div>
+        </div>
+    </div>
+    <div class="sbc c-blue" style="padding: 12px">
+        <div
+        class="sbc-icon"
+        style="width: 32px; height: 32px; font-size: 0.85rem"
+        >
+        <i class="fa fa-check-circle"></i>
+        </div>
+        <div>
+        <div class="sbc-val" id="brs-active" style="font-size: 1.3rem">
+            0
+        </div>
+        <div class="sbc-lbl">Aktif</div>
+        </div>
+    </div>
+    <div class="sbc c-yellow" style="padding: 12px">
+        <div
+        class="sbc-icon"
+        style="width: 32px; height: 32px; font-size: 0.85rem"
+        >
+        <i class="fa fa-ticket"></i>
+        </div>
+        <div>
+        <div class="sbc-val" id="brs-vcr" style="font-size: 1.3rem">
+            0
+        </div>
+        <div class="sbc-lbl">Total Voucher</div>
+        </div>
+    </div>
+    <div class="sbc c-cyan" style="padding: 12px">
+        <div
+        class="sbc-icon"
+        style="width: 32px; height: 32px; font-size: 0.85rem"
+        >
+        <i class="fa fa-money"></i>
+        </div>
+        <div>
+        <div
+            class="sbc-val"
+            id="brs-income"
+            style="font-size: 0.95rem; padding-top: 5px"
+        >
+            Rp 0
+        </div>
+        <div class="sbc-lbl">Total Pendapatan</div>
+        </div>
+    </div>
+    </div>
+
+    <div class="card">
+    <div class="card-hd">
+        <i class="fa fa-users"></i> Daftar Agen Reseller
+        <div
+        class="ml"
+        style="display: flex; gap: 7px; align-items: center"
+        >
+        <input
+            id="brs-q"
+            placeholder="Cari nama / username / ID..."
+            oninput="filterTbl('t-brs', 'brs-q')"
+            style="max-width: 220px"
+        />
+        <button class="btn b-p b-sm" onclick="openBrsModal()">
+            <i class="fa fa-plus"></i> Tambah Agen
+        </button>
+        </div>
+    </div>
+    <div style="overflow-x: auto">
+        <table>
+        <thead>
+            <tr>
+            <th>Agen</th>
+            <th>Telegram ID</th>
+            <th style="text-align: right">Saldo</th>
+            <th style="text-align: center">Voucher</th>
+            <th style="text-align: right">Pendapatan</th>
+            <th>Status</th>
+            <th>Daftar</th>
+            <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody id="t-brs"></tbody>
+        </table>
+    </div>
+    </div>
+
+    <!-- Topup Log -->
+    <div class="card" id="brs-log-card" style="display: none">
+    <div class="card-hd">
+        <i class="fa fa-history"></i> Riwayat Topup —
+        <span id="brs-log-name" style="color: var(--acc2)"></span>
+        <button
+        class="btn b-s b-sm ml"
+        onclick="
+            document.getElementById('brs-log-card').style.display = 'none'
+        "
+        >
+        <i class="fa fa-times"></i>
+        </button>
+    </div>
+    <div style="overflow-x: auto">
+        <table>
+        <thead>
+            <tr>
+            <th>Waktu</th>
+            <th>Tipe</th>
+            <th style="text-align: right">Jumlah</th>
+            <th style="text-align: right">Saldo Sebelum</th>
+            <th style="text-align: right">Saldo Sesudah</th>
+            <th>Keterangan</th>
+            <th>Oleh</th>
+            </tr>
+        </thead>
+        <tbody id="t-brs-log"></tbody>
+        </table>
+    </div>
+    </div>
+</div>

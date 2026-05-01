@@ -1,0 +1,25 @@
+<div class="page" id="page-reseller">
+    <div class="card">
+    <div class="card-hd">
+        <i class="fa fa-handshake-o"></i> Reseller
+        <button class="btn b-p b-sm ml" onclick="openResellerModal()">
+        <i class="fa fa-plus"></i> Add Reseller
+        </button>
+    </div>
+    <div style="overflow-x: auto">
+        <table>
+        <thead>
+            <tr>
+            <th>Name</th>
+            <th>ID/Tag</th>
+            <th>Phone</th>
+            <th>Discount</th>
+            <th></th>
+            </tr>
+        </thead>
+        <tbody id="t-rs"></tbody>
+        </table>
+    </div>
+    <div id="pg-t-rs"></div>
+    </div>
+</div>

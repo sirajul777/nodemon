@@ -1,0 +1,73 @@
+<div class="page" id="page-user-management">
+    <!-- Role legend -->
+    <div
+    style="
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+    "
+    >
+    <div
+        style="
+        background: var(--acc) 18;
+        border: 1px solid var(--acc) 30;
+        border-radius: 8px;
+        padding: 7px 12px;
+        font-size: 0.77rem;
+        "
+    >
+        <b style="color: var(--acc2)">Admin</b> — Akses penuh semua fitur
+    </div>
+    <div
+        style="
+        background: var(--purple) 18;
+        border: 1px solid var(--purple) 30;
+        border-radius: 8px;
+        padding: 7px 12px;
+        font-size: 0.77rem;
+        "
+    >
+        <b style="color: var(--purple)">Reseller</b> — Kelola voucher
+        &amp; laporan
+    </div>
+    <div
+        style="
+        background: var(--green) 18;
+        border: 1px solid var(--green) 30;
+        border-radius: 8px;
+        padding: 7px 12px;
+        font-size: 0.77rem;
+        "
+    >
+        <b style="color: var(--green)">Collector</b> — Kelola billing
+        &amp; tagihan
+    </div>
+    </div>
+
+    <div class="card">
+    <div class="card-hd" style="flex-wrap: wrap; gap: 8px">
+        <span><i class="fa fa-users"></i> Daftar User Login</span>
+        <button class="btn b-p b-sm ml" onclick="openUmModal()">
+        <i class="fa fa-plus"></i> Tambah User
+        </button>
+    </div>
+    <div style="overflow-x: auto">
+        <table>
+        <thead>
+            <tr>
+            <th>Username</th>
+            <th>Nama</th>
+            <th>Role</th>
+            <th>Akses Router</th>
+            <th>Status</th>
+            <th>Login Terakhir</th>
+            <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody id="t-users"></tbody>
+        </table>
+    </div>
+    <div id="pg-t-users"></div>
+    </div>
+</div>

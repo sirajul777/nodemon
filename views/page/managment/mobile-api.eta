@@ -1,0 +1,148 @@
+<div class="page" id="page-mobile-api">
+    <div class="card" style="margin-bottom: 14px">
+    <div class="card-hd">
+        <i class="fa fa-mobile"></i> Mobile API — Dokumentasi & Token
+    </div>
+    <div class="g2">
+        <div>
+        <p
+            style="
+            color: var(--muted);
+            font-size: 0.83rem;
+            margin-bottom: 10px;
+            "
+        >
+            API ini digunakan untuk aplikasi mobile reseller. Reseller
+            login dengan <b>Telegram ID</b> mereka dan mendapatkan Bearer
+            Token.
+        </p>
+        <div
+            style="
+            background: var(--card2);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            "
+        >
+            <div
+            style="
+                font-size: 0.75rem;
+                color: var(--muted);
+                margin-bottom: 5px;
+            "
+            >
+            Base URL
+            </div>
+            <code
+            id="api-base-url"
+            style="
+                color: var(--acc2);
+                font-size: 0.85rem;
+                word-break: break-all;
+            "
+            ></code>
+        </div>
+        <div
+            style="
+            background: var(--card2);
+            border-radius: 8px;
+            padding: 12px;
+            "
+        >
+            <div
+            style="
+                font-size: 0.75rem;
+                color: var(--muted);
+                margin-bottom: 5px;
+            "
+            >
+            Cara Autentikasi
+            </div>
+            <code style="font-size: 0.78rem; color: var(--green)"
+            >Authorization: Bearer &lt;token&gt;</code
+            >
+        </div>
+        </div>
+        <div>
+        <div
+            style="
+            background: var(--card2);
+            border-radius: 8px;
+            padding: 12px;
+            "
+        >
+            <div
+            style="
+                font-weight: 600;
+                font-size: 0.85rem;
+                margin-bottom: 8px;
+            "
+            >
+            <i class="fa fa-key"></i> Test Login API
+            </div>
+            <div class="fg">
+            <label>Telegram ID Reseller</label
+            ><input
+                id="api-test-tid"
+                placeholder="123456789"
+                type="number"
+            />
+            </div>
+            <button
+            class="btn b-p"
+            style="width: 100%; justify-content: center"
+            onclick="testMobileLogin()"
+            >
+            <i class="fa fa-sign-in"></i> Test Login
+            </button>
+            <div
+            id="api-test-result"
+            style="margin-top: 8px; font-size: 0.75rem; display: none"
+            >
+            <div style="color: var(--muted); margin-bottom: 4px">
+                Response:
+            </div>
+            <pre
+                id="api-test-json"
+                style="
+                background: var(--bg);
+                border-radius: 6px;
+                padding: 8px;
+                overflow-x: auto;
+                font-size: 0.73rem;
+                max-height: 150px;
+                overflow-y: auto;
+                "
+            ></pre>
+            </div>
+        </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- Endpoint list -->
+    <div id="api-endpoint-list"></div>
+
+    <!-- Active tokens -->
+    <div class="card">
+    <div class="card-hd">
+        <i class="fa fa-list"></i> Token Aktif Reseller
+    </div>
+    <div style="overflow-x: auto">
+        <table>
+        <thead>
+            <tr>
+            <th>Reseller</th>
+            <th>Telegram ID</th>
+            <th>Session</th>
+            <th>Dibuat</th>
+            <th>Expired</th>
+            <th>Terakhir Dipakai</th>
+            <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody id="t-api-tokens"></tbody>
+        </table>
+    </div>
+    </div>
+</div>

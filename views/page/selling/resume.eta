@@ -1,0 +1,49 @@
+<div class="page" id="page-resume">
+    <div class="card">
+    <div class="card-hd">
+        <i class="fa fa-area-chart"></i> Resume Report
+    </div>
+    <div class="fb">
+        <div class="fg">
+        <label>Month</label
+        ><select id="rr-m" style="max-width: 130px"></select>
+        </div>
+        <div class="fg">
+        <label>Year</label
+        ><select id="rr-y" style="max-width: 88px"></select>
+        </div>
+        <div class="fg">
+        <label>&nbsp;</label
+        ><button class="btn b-p" onclick="loadResume()">
+            <i class="fa fa-search"></i> Load
+        </button>
+        </div>
+    </div>
+    <canvas
+        id="rc"
+        style="margin-top: 10px; max-height: 260px"
+    ></canvas>
+    <div class="g2" style="max-width: 380px; margin-top: 12px">
+        <div class="sbc c-blue" style="padding: 12px">
+        <div>
+            <div class="sbc-val" id="rr-v" style="font-size: 1.3rem">
+            0
+            </div>
+            <div class="sbc-lbl">Total Vouchers</div>
+        </div>
+        </div>
+        <div class="sbc c-green" style="padding: 12px">
+        <div>
+            <div
+            class="sbc-val"
+            id="rr-i"
+            style="font-size: 0.95rem; padding-top: 5px"
+            >
+            0
+            </div>
+            <div class="sbc-lbl">Total Income</div>
+        </div>
+        </div>
+    </div>
+    </div>
+</div>

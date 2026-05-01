@@ -1,0 +1,80 @@
+<div class="page" id="page-live">
+    <div class="card">
+    <div class="card-hd">
+        <i class="fa fa-line-chart"></i> Live Report
+    </div>
+    <div class="g4">
+        <div class="sbc c-yellow" style="padding: 12px">
+        <div
+            class="sbc-icon"
+            style="width: 32px; height: 32px; font-size: 0.85rem"
+        >
+            <i class="fa fa-sun-o"></i>
+        </div>
+        <div>
+            <div class="sbc-val" id="lr-tv" style="font-size: 1.3rem">
+            —
+            </div>
+            <div class="sbc-lbl">Today Vouchers</div>
+        </div>
+        </div>
+        <div class="sbc c-green" style="padding: 12px">
+        <div
+            class="sbc-icon"
+            style="width: 32px; height: 32px; font-size: 0.85rem"
+        >
+            <i class="fa fa-money"></i>
+        </div>
+        <div>
+            <div
+            class="sbc-val"
+            id="lr-ti"
+            style="font-size: 0.95rem; padding-top: 5px"
+            >
+            —
+            </div>
+            <div class="sbc-lbl">Today Income</div>
+        </div>
+        </div>
+        <div class="sbc c-blue" style="padding: 12px">
+        <div
+            class="sbc-icon"
+            style="width: 32px; height: 32px; font-size: 0.85rem"
+        >
+            <i class="fa fa-calendar"></i>
+        </div>
+        <div>
+            <div class="sbc-val" id="lr-mv" style="font-size: 1.3rem">
+            —
+            </div>
+            <div class="sbc-lbl">Month Vouchers</div>
+        </div>
+        </div>
+        <div class="sbc c-cyan" style="padding: 12px">
+        <div
+            class="sbc-icon"
+            style="width: 32px; height: 32px; font-size: 0.85rem"
+        >
+            <i class="fa fa-bank"></i>
+        </div>
+        <div>
+            <div
+            class="sbc-val"
+            id="lr-mi"
+            style="font-size: 0.95rem; padding-top: 5px"
+            >
+            —
+            </div>
+            <div class="sbc-lbl">Month Income</div>
+        </div>
+        </div>
+    </div>
+    <button
+        class="btn b-s"
+        style="margin-top: 12px"
+        onclick="loadLive()"
+    >
+        <i class="fa fa-refresh"></i> Refresh
+    </button>
+    </div>
+</div>

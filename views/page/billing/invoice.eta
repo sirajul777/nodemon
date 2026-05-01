@@ -1,0 +1,74 @@
+<div class="page" id="page-invoices">
+    <div class="grid g3" style="margin-bottom: 14px">
+    <div class="sbc c-red" style="padding: 12px">
+        <div>
+        <div
+            class="sbc-val"
+            id="inv-unpaid-ct"
+            style="font-size: 1.3rem"
+        >
+            0
+        </div>
+        <div class="sbc-lbl">Belum Bayar</div>
+        </div>
+    </div>
+    <div class="sbc c-green" style="padding: 12px">
+        <div>
+        <div class="sbc-val" id="inv-paid-ct" style="font-size: 1.3rem">
+            0
+        </div>
+        <div class="sbc-lbl">Lunas Bulan Ini</div>
+        </div>
+    </div>
+    <div class="sbc c-cyan" style="padding: 12px">
+        <div>
+        <div
+            class="sbc-val"
+            id="inv-income"
+            style="font-size: 0.95rem; padding-top: 5px"
+        >
+            Rp 0
+        </div>
+        <div class="sbc-lbl">Pendapatan Bulan Ini</div>
+        </div>
+    </div>
+    </div>
+
+    <div class="card">
+    <div class="card-hd" style="flex-wrap: wrap; gap: 8px">
+        <span><i class="fa fa-list-alt"></i> Daftar Tagihan</span>
+        <div class="ml" style="display: flex; gap: 7px; flex-wrap: wrap">
+        <select
+            id="inv-status-filter"
+            onchange="loadInvoices()"
+            style="max-width: 130px"
+        >
+            <option value="">Semua</option>
+            <option value="unpaid">Belum Bayar</option>
+            <option value="paid">Lunas</option>
+            <option value="overdue">Overdue</option>
+        </select>
+        <button class="btn b-s b-sm" onclick="generateInvoices()">
+            <i class="fa fa-bolt"></i> Generate Tagihan Bulan Ini
+        </button>
+        </div>
+    </div>
+    <div style="overflow-x: auto">
+        <table>
+        <thead>
+            <tr>
+            <th>ID</th>
+            <th>Pelanggan</th>
+            <th>Tipe</th>
+            <th>Periode</th>
+            <th style="text-align: right">Tagihan</th>
+            <th>Jatuh Tempo</th>
+            <th>Status</th>
+            <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody id="t-invoices"></tbody>
+        </table>
+    </div>
+    </div>
+</div>

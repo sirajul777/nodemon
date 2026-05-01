@@ -1,0 +1,34 @@
+<div class="page" id="page-hs-active">
+    <div class="card">
+    <div class="card-hd">
+        <i class="fa fa-laptop"></i> Hotspot Active
+        <span
+        id="ha-ct"
+        style="
+            color: var(--muted);
+            font-weight: normal;
+            font-size: 0.78rem;
+            margin-left: 5px;
+        "
+        ></span>
+        <button class="btn b-s b-sm ml" onclick="loadHsActive()">
+        <i class="fa fa-refresh"></i>
+        </button>
+    </div>
+    <div style="overflow-x: auto">
+        <table>
+        <thead>
+            <tr>
+            <th>User</th>
+            <th>IP</th>
+            <th>MAC</th>
+            <th>Uptime</th>
+            <th>Session Left</th>
+            </tr>
+        </thead>
+        <tbody id="t-ha"></tbody>
+        </table>
+    </div>
+    <div id="pg-t-ha"></div>
+    </div>
+</div>

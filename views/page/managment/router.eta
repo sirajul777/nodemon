@@ -1,0 +1,26 @@
+<div class="page" id="page-sessions">
+    <div class="card">
+    <div class="card-hd">
+        <i class="fa fa-server"></i> Router Sessions
+        <button class="btn b-p b-sm ml" onclick="openSessionModal()">
+        <i class="fa fa-plus"></i> Add Router
+        </button>
+    </div>
+    <div style="overflow-x: auto">
+        <table>
+        <thead>
+            <tr>
+            <th>Name</th>
+            <th>IP</th>
+            <th>Port</th>
+            <th>Currency</th>
+            <th>Live Report</th>
+            <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="t-sess"></tbody>
+        </table>
+    </div>
+    <div id="pg-t-sess"></div>
+    </div>
+</div>

@@ -1309,6 +1309,7 @@ function openResellerModal(data = null) {
   document.getElementById("mrs-ph").value = data?.phone || "";
   document.getElementById("mrs-dc").value = data?.discount || 0;
   document.getElementById("mrs-ad").value = data?.address || "";
+  document.getElementById("mrs-rt").value = data?.router || "";
   document.getElementById("m-rs").classList.add("show");
 }
 async function editRsFn(id) {

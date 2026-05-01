@@ -1,0 +1,119 @@
+<div class="page" id="page-selling">
+    <div class="card">
+    <div class="card-hd">
+        <i class="fa fa-money"></i> Selling Report
+    </div>
+    <div class="fb">
+        <div class="fg">
+        <label>Day</label
+        ><select id="sr-d" style="max-width: 78px">
+            <option value="">All</option>
+        </select>
+        </div>
+        <div class="fg">
+        <label>Month</label
+        ><select id="sr-m" style="max-width: 115px"></select>
+        </div>
+        <div class="fg">
+        <label>Year</label
+        ><select id="sr-y" style="max-width: 88px"></select>
+        </div>
+        <div class="fg">
+        <label>Reseller</label
+        ><select id="sr-rs" style="max-width: 145px">
+            <option value="">All</option>
+        </select>
+        </div>
+        <div class="fg">
+        <label>&nbsp;</label
+        ><button class="btn b-p" onclick="loadSelling()">
+            <i class="fa fa-search"></i> Filter
+        </button>
+        </div>
+        <div class="fg">
+        <label>&nbsp;</label
+        ><button class="btn b-s" onclick="exportCSV()">
+            <i class="fa fa-download"></i> CSV
+        </button>
+        </div>
+    </div>
+    <div class="g3" style="max-width: 550px; margin-bottom: 14px">
+        <div class="sbc c-blue" style="padding: 12px">
+        <div
+            class="sbc-icon"
+            style="width: 32px; height: 32px; font-size: 0.85rem"
+        >
+            <i class="fa fa-ticket"></i>
+        </div>
+        <div>
+            <div class="sbc-val" id="sr-vcr" style="font-size: 1.3rem">
+            0
+            </div>
+            <div class="sbc-lbl">Vouchers</div>
+        </div>
+        </div>
+        <div class="sbc c-green" style="padding: 12px">
+        <div
+            class="sbc-icon"
+            style="width: 32px; height: 32px; font-size: 0.85rem"
+        >
+            <i class="fa fa-money"></i>
+        </div>
+        <div>
+            <div
+            class="sbc-val"
+            id="sr-inc"
+            style="font-size: 0.95rem; padding-top: 5px"
+            >
+            0
+            </div>
+            <div class="sbc-lbl">Total Income</div>
+        </div>
+        </div>
+        <div class="sbc c-purple" style="padding: 12px">
+        <div
+            class="sbc-icon"
+            style="width: 32px; height: 32px; font-size: 0.85rem"
+        >
+            <i class="fa fa-handshake-o"></i>
+        </div>
+        <div>
+            <div class="sbc-val" id="sr-rct" style="font-size: 1.3rem">
+            0
+            </div>
+            <div class="sbc-lbl">Resellers</div>
+        </div>
+        </div>
+    </div>
+    <div class="tab-bar">
+        <div class="tab active" id="tab-det" onclick="switchTab('det')">
+        <i class="fa fa-list"></i> Detail
+        </div>
+        <div class="tab" id="tab-rsl" onclick="switchTab('rsl')">
+        <i class="fa fa-handshake-o"></i> Per Reseller
+        </div>
+    </div>
+    <div id="pnl-det">
+        <div style="overflow-x: auto">
+        <table>
+            <thead>
+            <tr>
+                <th>#</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Username</th>
+                <th>Profile</th>
+                <th>Reseller</th>
+                <th style="text-align: right">Price</th>
+            </tr>
+            </thead>
+            <tbody id="t-sel"></tbody>
+        </table>
+        </div>
+        <div id="pg-t-sel"></div>
+    </div>
+    <div id="pnl-rsl" style="display: none">
+        <div id="rsl-grp"></div>
+    </div>
+    </div>
+</div>

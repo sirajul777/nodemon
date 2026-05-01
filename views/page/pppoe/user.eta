@@ -1,0 +1,45 @@
+<div class="page" id="page-ppp-users">
+    <div class="card">
+    <div class="card-hd">
+        <i class="fa fa-users"></i> PPPoE Users
+        <button class="btn b-p b-sm ml" onclick="openPppUserModal()">
+        <i class="fa fa-plus"></i> Add User
+        </button>
+    </div>
+    <div class="fb">
+        <div class="fg">
+        <label>Search</label
+        ><input
+            id="pq"
+            placeholder="username..."
+            oninput="filterTbl('t-ps', 'pq')"
+            style="max-width: 170px"
+        />
+        </div>
+        <div class="fg">
+        <label>Profile</label
+        ><select id="ppp-prof-filter" onchange="loadPppUsers()">
+            <option value="all">All</option>
+        </select>
+        </div>
+    </div>
+    <div style="overflow-x: auto">
+        <table>
+        <thead>
+            <tr>
+            <th>Username</th>
+            <th>Profile</th>
+            <th>Service</th>
+            <th>Local IP</th>
+            <th>Remote IP</th>
+            <th>Comment</th>
+            <th>Status</th>
+            <th></th>
+            </tr>
+        </thead>
+        <tbody id="t-ps"></tbody>
+        </table>
+    </div>
+    <div id="pg-t-ps"></div>
+    </div>
+</div>

@@ -1,0 +1,27 @@
+<div class="page" id="page-voucher-settings">
+    <div class="card">
+    <div class="card-hd">
+        <i class="fa fa-cog"></i> Settings Voucher Telegram
+        <button class="btn b-p b-sm ml" onclick="openVtModal()">
+        <i class="fa fa-plus"></i> Tambah Tipe
+        </button>
+    </div>
+    <div style="overflow-x: auto">
+        <table>
+        <thead>
+            <tr>
+            <th>Nama</th>
+            <th>Harga</th>
+            <th>Profile Radius</th>
+            <th>Durasi</th>
+            <th>Kode</th>
+            <th>Maks/Order</th>
+            <th>Status</th>
+            <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody id="t-vt"></tbody>
+        </table>
+    </div>
+    </div>
+</div>

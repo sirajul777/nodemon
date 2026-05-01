@@ -1,0 +1,124 @@
+<div class="page" id="page-billing">
+    <!-- Stats -->
+    <div class="grid g4" style="margin-bottom: 14px" id="bill-stats-grid">
+    <div class="sbc c-blue" style="padding: 12px">
+        <div
+        class="sbc-icon"
+        style="width: 32px; height: 32px; font-size: 0.85rem"
+        >
+        <i class="fa fa-users"></i>
+        </div>
+        <div>
+        <div class="sbc-val" id="bill-total" style="font-size: 1.3rem">
+            0
+        </div>
+        <div class="sbc-lbl">Total Pelanggan</div>
+        </div>
+    </div>
+    <div class="sbc c-green" style="padding: 12px">
+        <div
+        class="sbc-icon"
+        style="width: 32px; height: 32px; font-size: 0.85rem"
+        >
+        <i class="fa fa-check-circle"></i>
+        </div>
+        <div>
+        <div class="sbc-val" id="bill-active" style="font-size: 1.3rem">
+            0
+        </div>
+        <div class="sbc-lbl">Aktif</div>
+        </div>
+    </div>
+    <div class="sbc c-red" style="padding: 12px">
+        <div
+        class="sbc-icon"
+        style="width: 32px; height: 32px; font-size: 0.85rem"
+        >
+        <i class="fa fa-exclamation-circle"></i>
+        </div>
+        <div>
+        <div class="sbc-val" id="bill-unpaid" style="font-size: 1.3rem">
+            0
+        </div>
+        <div class="sbc-lbl">Belum Bayar</div>
+        </div>
+    </div>
+    <div class="sbc c-yellow" style="padding: 12px">
+        <div
+        class="sbc-icon"
+        style="width: 32px; height: 32px; font-size: 0.85rem"
+        >
+        <i class="fa fa-ban"></i>
+        </div>
+        <div>
+        <div
+            class="sbc-val"
+            id="bill-suspended"
+            style="font-size: 1.3rem"
+        >
+            0
+        </div>
+        <div class="sbc-lbl">Diblokir</div>
+        </div>
+    </div>
+    </div>
+
+    <div class="card">
+    <div class="card-hd" style="flex-wrap: wrap; gap: 8px">
+        <span><i class="fa fa-users"></i> Daftar Pelanggan</span>
+        <div class="ml" style="display: flex; gap: 7px; flex-wrap: wrap">
+        <select
+            id="bill-type-filter"
+            onchange="loadBilling()"
+            style="max-width: 120px"
+        >
+            <option value="">Semua Tipe</option>
+            <option value="pppoe">PPPoE</option>
+            <option value="hotspot">Hotspot</option>
+        </select>
+        <select
+            id="bill-status-filter"
+            onchange="loadBilling()"
+            style="max-width: 130px"
+        >
+            <option value="">Semua Status</option>
+            <option value="active">Aktif</option>
+            <option value="suspended">Diblokir</option>
+        </select>
+        <button
+            class="btn b-s b-sm"
+            onclick="runOverdue()"
+            title="Cek & blokir yang belum bayar"
+        >
+            <i class="fa fa-ban"></i> Proses Overdue
+        </button>
+        <!-- Paste baris ini: -->
+        <button class="btn b-s b-sm" onclick="openImportBillingModal()"
+                style="color:#58a6ff;border-color:rgba(56,139,253,.3)">
+            <i class="fa fa-upload"></i> Import JSON
+        </button>
+        <button class="btn b-p b-sm" onclick="openBillCustomerModal()">
+            <i class="fa fa-plus"></i> Tambah Pelanggan
+        </button>
+        </div>
+    </div>
+    <div style="overflow-x: auto">
+        <table>
+        <thead>
+            <tr>
+            <th>Nama</th>
+            <th>Username MikroTik</th>
+            <th>Tipe</th>
+            <th>Paket</th>
+            <th>Tagihan/Bulan</th>
+            <th>Tgl Tagih</th>
+            <th>Status</th>
+            <th>Telegram</th>
+            <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody id="t-billing"></tbody>
+        </table>
+    </div>
+    </div>
+</div>

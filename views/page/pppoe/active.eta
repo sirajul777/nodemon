@@ -1,0 +1,35 @@
+<div class="page" id="page-ppp-active">
+    <div class="card">
+    <div class="card-hd">
+        <i class="fa fa-plug"></i> PPPoE Active
+        <span
+        id="pa-ct"
+        style="
+            color: var(--muted);
+            font-weight: normal;
+            font-size: 0.78rem;
+            margin-left: 5px;
+        "
+        ></span>
+        <button class="btn b-s b-sm ml" onclick="loadPppActive()">
+        <i class="fa fa-refresh"></i>
+        </button>
+    </div>
+    <div style="overflow-x: auto">
+        <table>
+        <thead>
+            <tr>
+            <th>Name</th>
+            <th>Service</th>
+            <th>Caller ID</th>
+            <th>Address</th>
+            <th>Uptime</th>
+            <th></th>
+            </tr>
+        </thead>
+        <tbody id="t-pa"></tbody>
+        </table>
+    </div>
+    <div id="pg-t-pa"></div>
+    </div>
+</div>

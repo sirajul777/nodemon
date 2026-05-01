@@ -1,0 +1,211 @@
+<div class="page" id="page-batch-list">
+    <!-- Batch cards grid -->
+    <div id="batch-cards-area">
+    <div
+        style="
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+        gap: 8px;
+        "
+    >
+        <div
+        style="
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        "
+        >
+        <span
+            id="batch-count-label"
+            style="color: var(--muted); font-size: 0.85rem"
+        ></span>
+        <select
+            id="batch-filter-profile"
+            onchange="loadBatchList()"
+            style="max-width: 160px"
+        >
+            <option value="">Semua Package</option>
+        </select>
+        </div>
+        <div style="display: flex; gap: 7px">
+        <button class="btn b-s" onclick="loadBatchList()">
+            <i class="fa fa-refresh"></i> Refresh
+        </button>
+        <button
+            class="btn b-s"
+            onclick="syncBatchToReport()"
+            style="color: var(--green); border-color: var(--green)"
+        >
+            <i class="fa fa-upload"></i> Sync ke Selling Report
+        </button>
+        <button
+            class="btn b-s"
+            onclick="syncUsedFromMikrotik()"
+            style="color: var(--cyan); border-color: var(--cyan)"
+        >
+            <i class="fa fa-refresh"></i> Sync Status Terpakai
+        </button>
+        <div id="STEP2_HTML_INSERT_BEFORE_IMPORT_BUTTON">
+            <!-- Paste baris ini: -->
+            <div
+            class="ar-toggle-wrap"
+            id="ar-toggle"
+            onclick="toggleAutoRemoveSetting()"
+            title="Otomatis hapus batch yang sudah habis terjual"
+            >
+            <div class="ar-pill" id="ar-pill"></div>
+            <span id="ar-label">Auto Hapus Batch Habis</span>
+            </div>
+        </div>
+        <button
+            class="btn b-p"
+            id="btn-import"
+            onclick="importFromMikrotik()"
+        >
+            <i class="fa fa-download"></i> Import dari MikroTik
+        </button>
+        </div>
+    </div>
+    <div
+        id="batch-grid"
+        style="
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 12px;
+        "
+    ></div>
+    </div>
+
+    <!-- Batch detail (shown when a batch is clicked) -->
+    <div id="batch-detail-area" style="display: none">
+    <div
+        style="
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+        "
+    >
+        <button class="btn b-s" onclick="closeBatchDetail()">
+        <i class="fa fa-arrow-left"></i> Kembali
+        </button>
+        <span style="font-size: 0.95rem; font-weight: 600"
+        >Voucher: <span id="bd-title" style="color: var(--acc2)"></span
+        ></span>
+        <div style="margin-left: auto; display: flex; gap: 7px">
+        <button
+            class="btn b-s"
+            onclick="filterBatchVouchers('all')"
+            id="bdf-all"
+        >
+            Semua
+        </button>
+        <button
+            class="btn b-s"
+            onclick="filterBatchVouchers('available')"
+            id="bdf-avail"
+        >
+            Tersedia
+        </button>
+        <button
+            class="btn b-s"
+            onclick="filterBatchVouchers('used')"
+            id="bdf-used"
+        >
+            Terpakai
+        </button>
+        <button class="btn b-p" onclick="printCurrentBatch()">
+            <i class="fa fa-print"></i> Print Tersisa
+        </button>
+        </div>
+    </div>
+    <div class="card" style="padding: 12px 16px; margin-bottom: 12px">
+        <div
+        style="
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            font-size: 0.83rem;
+        "
+        >
+        <div>
+            <span style="color: var(--muted)">Profile:</span>
+            <b id="bd-profile"></b>
+        </div>
+        <div>
+            <span style="color: var(--muted)">Harga:</span>
+            <b id="bd-price" style="color: var(--green)"></b>
+        </div>
+        <div>
+            <span style="color: var(--muted)">Total:</span>
+            <b id="bd-total-price" style="color: var(--acc2)"></b>
+        </div>
+        <div>
+            <span style="color: var(--muted)">Durasi:</span>
+            <b id="bd-validity"></b>
+        </div>
+        <div>
+            <span style="color: var(--muted)">Reseller:</span>
+            <b id="bd-reseller"></b>
+        </div>
+        <div>
+            <span style="color: var(--muted)">Dibuat:</span>
+            <b id="bd-created"></b>
+        </div>
+        </div>
+        <div style="margin-top: 10px">
+        <div
+            style="
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+            "
+        >
+            <span id="bd-stat-label">0/0 terpakai</span>
+            <span id="bd-stat-remain">0 tersisa</span>
+        </div>
+        <div
+            style="
+            background: var(--border);
+            border-radius: 4px;
+            height: 6px;
+            overflow: hidden;
+            "
+        >
+            <div
+            id="bd-progress"
+            style="
+                height: 100%;
+                background: var(--acc2);
+                border-radius: 4px;
+                transition: 0.4s;
+            "
+            ></div>
+        </div>
+        </div>
+    </div>
+    <!-- Voucher table -->
+    <div class="card" style="padding: 0; overflow: hidden">
+        <table>
+        <thead>
+            <tr>
+            <th>#</th>
+            <th>Kode / Username</th>
+            <th>Password</th>
+            <th>Status</th>
+            <th>Digunakan Oleh</th>
+            <th>Tanggal Pakai</th>
+            <th></th>
+            </tr>
+        </thead>
+        <tbody id="t-batch-detail"></tbody>
+        </table>
+    </div>
+    </div>
+</div>

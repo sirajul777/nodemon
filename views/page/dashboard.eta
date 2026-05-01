@@ -1,0 +1,245 @@
+<!-- ══ DASHBOARD ══ -->
+<div class="page active" id="page-dashboard">
+    <!-- Stat bar -->
+    <!-- Main content grid -->
+    <div class="gcol">
+    <!-- Left column -->
+    <div>
+        <div class="stat-bar">
+        <div class="sbc c-green">
+            <div class="sbc-icon"><i class="fa fa-money"></i></div>
+            <div>
+            <div class="sbc-val" id="db-today-inc">—</div>
+            <div class="sbc-lbl">Revenue Hari Ini</div>
+            </div>
+        </div>
+        <div class="sbc c-cyan">
+            <div class="sbc-icon"><i class="fa fa-calendar"></i></div>
+            <div>
+            <div class="sbc-val" id="db-month-inc">—</div>
+            <div class="sbc-lbl">Revenue Bulan Ini</div>
+            </div>
+        </div>
+        <div class="sbc c-blue">
+            <div class="sbc-icon"><i class="fa fa-ticket"></i></div>
+            <div>
+            <div class="sbc-val" id="db-today-vcr">—</div>
+            <div class="sbc-lbl">Voucher Hari Ini</div>
+            </div>
+        </div>
+        <div class="sbc c-purple">
+            <div class="sbc-icon"><i class="fa fa-ticket"></i></div>
+            <div>
+            <div class="sbc-val" id="db-month-vcr">—</div>
+            <div class="sbc-lbl">Voucher Bulan Ini</div>
+            </div>
+        </div>
+        <!-- <div class="sbc c-yellow">
+        <div class="sbc-icon"><i class="fa fa-wifi"></i></div>
+        <div><div class="sbc-val" id="db-hs-online">—</div><div class="sbc-lbl">Hotspot Online</div></div>
+    </div>
+    <div class="sbc c-orange" style="--c:var(--orange)">
+        <div class="sbc-icon" style="background:#db6d2818;color:var(--orange)"><i class="fa fa-plug"></i></div>
+        <div><div class="sbc-val" id="db-ppp-online">—</div><div class="sbc-lbl">PPPoE Online</div></div>
+    </div> -->
+        </div>
+
+        <!-- HS + PPPoE panels -->
+        <div class="g2" style="margin-bottom: 14px">
+        <div class="net-panel">
+            <div class="net-label">
+            <i class="fa fa-wifi"></i> HOTSPOT
+            </div>
+            <div class="net-stats">
+            <div class="ns">
+                <div class="ns-ico gr"><i class="fa fa-users"></i></div>
+                <div>
+                <div class="ns-val" id="db-hs-total">—</div>
+                <div class="ns-lbl">Total User</div>
+                </div>
+            </div>
+            <div class="ns">
+                <div class="ns-ico bl"><i class="fa fa-laptop"></i></div>
+                <div>
+                <div class="ns-val" id="db-hs-active2">—</div>
+                <div class="ns-lbl">Online</div>
+                </div>
+            </div>
+            </div>
+        </div>
+        <div class="net-panel">
+            <div class="net-label"><i class="fa fa-plug"></i> PPPOE</div>
+            <div class="net-stats">
+            <div class="ns">
+                <div class="ns-ico pu"><i class="fa fa-users"></i></div>
+                <div>
+                <div class="ns-val" id="db-ppp-total">—</div>
+                <div class="ns-lbl">Total User</div>
+                </div>
+            </div>
+            <div class="ns">
+                <div class="ns-ico or"><i class="fa fa-plug"></i></div>
+                <div>
+                <div class="ns-val" id="db-ppp-active2">—</div>
+                <div class="ns-lbl">Online</div>
+                </div>
+            </div>
+            </div>
+        </div>
+        </div>
+
+        <!-- Log Aktivitas -->
+        <div class="card">
+        <div class="card-hd">
+            <i class="fa fa-list-ul"></i> Log Aktivitas Sistem
+            <button class="btn b-s b-sm ml" onclick="loadDashboard()">
+            <i class="fa fa-refresh"></i>
+            </button>
+        </div>
+        <div class="log-filters">
+            <button
+            class="lf-btn active"
+            onclick="filterLog('all', this)"
+            >
+            Semua <span class="cnt" id="lc-all">0</span>
+            </button>
+            <button class="lf-btn" onclick="filterLog('hs', this)">
+            Hotspot <span class="cnt" id="lc-hs">0</span>
+            </button>
+            <button class="lf-btn" onclick="filterLog('ppp', this)">
+            PPPoE <span class="cnt" id="lc-ppp">0</span>
+            </button>
+        </div>
+        <div class="log-list" id="log-list">
+            <div
+            style="
+                text-align: center;
+                color: var(--muted);
+                padding: 20px;
+            "
+            >
+            Loading...
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- Right column: Status NAS -->
+    <div>
+        <div class="card">
+        <div class="card-hd">
+            <i class="fa fa-server"></i> Status Router
+            <button class="btn b-s b-sm ml" onclick="loadDashboard()">
+            <i class="fa fa-refresh"></i>
+            </button>
+        </div>
+        <div id="nas-list">
+            <div
+            style="
+                text-align: center;
+                color: var(--muted);
+                padding: 20px;
+            "
+            >
+            Pilih router dulu
+            </div>
+        </div>
+        </div>
+        <div class="traffic-card" id="traffic-card">
+        <!-- Header -->
+        <div class="traffic-hd">
+            <div class="traffic-hd-left">
+            <div
+                style="
+                width: 32px;
+                height: 32px;
+                border-radius: 9px;
+                background: rgba(56, 189, 248, 0.12);
+                color: #38bdf8;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 0.9rem;
+                "
+            >
+                <i class="fa fa-line-chart"></i>
+            </div>
+            <div>
+                <div class="traffic-hd-title">Trafik Interface</div>
+                <div class="traffic-live-dot">Live · 5s</div>
+            </div>
+            </div>
+            <div
+            style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex-wrap: wrap;
+            "
+            >
+            <select
+                id="traffic-iface-sel"
+                onchange="onTrafficIfaceChange()"
+            >
+                <option value="">— Pilih Interface —</option>
+            </select>
+            <!-- Countdown ring -->
+            <div class="traffic-countdown" title="Refresh dalam...">
+                <svg width="22" height="22" viewBox="0 0 22 22">
+                <circle
+                    cx="11"
+                    cy="11"
+                    r="9"
+                    fill="none"
+                    stroke="var(--border)"
+                    stroke-width="2.5"
+                />
+                <circle
+                    id="traffic-ring"
+                    cx="11"
+                    cy="11"
+                    r="9"
+                    fill="none"
+                    stroke="#38bdf8"
+                    stroke-width="2.5"
+                    stroke-dasharray="56.5"
+                    stroke-dashoffset="0"
+                    stroke-linecap="round"
+                />
+                </svg>
+                <span id="traffic-cd">5s</span>
+            </div>
+            <!-- Pause -->
+            <button
+                class="traffic-pause-btn"
+                id="traffic-pause-btn"
+                onclick="toggleTrafficPause()"
+            >
+                <i class="fa fa-pause" id="traffic-pause-icon"></i>
+                <span id="traffic-pause-lbl">Pause</span>
+            </button>
+            <!-- Refresh -->
+            <button
+                class="btn b-s b-sm"
+                onclick="fetchTrafficNow()"
+                title="Refresh sekarang"
+            >
+                <i class="fa fa-refresh"></i>
+            </button>
+            </div>
+        </div>
+
+        <!-- Body: empty state or live data -->
+        <div id="traffic-body">
+            <div class="traffic-empty">
+            <i class="fa fa-plug"></i>
+            Pilih router dan interface untuk melihat trafik realtime
+            </div>
+        </div>
+        </div>
+        <!-- /traffic-card -->
+
+        <!-- </div>/STEP2 wrapper -->
+    </div>
+    </div>
+</div>

@@ -1,0 +1,25 @@
+<div class="page" id="page-ppp-profiles">
+    <div class="card">
+    <div class="card-hd">
+        <i class="fa fa-id-card-o"></i> PPPoE Profiles
+        <button class="btn b-p b-sm ml" onclick="openPppProfileModal()">
+        <i class="fa fa-plus"></i> Add Profile
+        </button>
+    </div>
+    <div style="overflow-x: auto">
+        <table>
+        <thead>
+            <tr>
+            <th>Name</th>
+            <th>Rate Limit</th>
+            <th>Address Pool</th>
+            <th>Session Timeout</th>
+            <th>Only One</th>
+            <th></th>
+            </tr>
+        </thead>
+        <tbody id="t-pp"></tbody>
+        </table>
+    </div>
+    </div>
+</div>

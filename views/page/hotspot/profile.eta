@@ -1,0 +1,27 @@
+<div class="page" id="page-hs-profiles">
+    <div class="card">
+    <div class="card-hd">
+        <i class="fa fa-id-card"></i> Hotspot User Profiles
+        <button class="btn b-p b-sm ml" onclick="openHsProfileModal()">
+        <i class="fa fa-plus"></i> Add Profile
+        </button>
+    </div>
+    <div style="overflow-x: auto">
+        <table>
+        <thead>
+            <tr>
+            <th>Name</th>
+            <th>Rate Limit</th>
+            <th>Shared</th>
+            <th>Expired Mode</th>
+            <th>Validity</th>
+            <th>Price</th>
+            <th>Sell Price</th>
+            <th></th>
+            </tr>
+        </thead>
+        <tbody id="t-hsp"></tbody>
+        </table>
+    </div>
+    </div>
+</div>

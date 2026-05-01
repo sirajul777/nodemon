@@ -1,0 +1,55 @@
+<div class="page" id="page-hs-users">
+    <div class="card">
+    <div class="card-hd"><i class="fa fa-users"></i> Hotspot Users</div>
+    <div class="fb">
+        <div class="fg">
+        <label>Search</label
+        ><input
+            id="uq"
+            placeholder="username..."
+            oninput="filterTbl('t-hu', 'uq')"
+            style="max-width: 170px"
+        />
+        </div>
+        <div class="fg">
+        <label>Profile</label
+        ><select id="uprof" onchange="loadHsUsers()">
+            <option value="all">All</option>
+        </select>
+        </div>
+        <div
+        id="hu-bulk"
+        class="fg"
+        style="display: none; align-items: flex-end"
+        >
+        <button class="btn b-d" onclick="bulkDelHs()">
+            <i class="fa fa-trash"></i> Hapus (<span id="hu-sel-count"
+            >0</span
+            >)
+        </button>
+        </div>
+    </div>
+    <div style="overflow-x: auto">
+        <table>
+        <thead>
+            <tr>
+            <th style="width: 30px">
+                <input
+                type="checkbox"
+                id="hu-all"
+                onclick="toggleAllHs(this.checked)"
+                />
+            </th>
+            <th>Username</th>
+            <th>Profile</th>
+            <th>Comment</th>
+            <th>Limit</th>
+            <th style="width: 50px"></th>
+            </tr>
+        </thead>
+        <tbody id="t-hu"></tbody>
+        </table>
+    </div>
+    <div id="pg-t-hu"></div>
+    </div>
+</div>
