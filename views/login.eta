@@ -1,66 +1,64 @@
+<!-- Login -->
+<div id="ls">
+    <div class="lbox">
+        <div class="logo-wrap">
+        <svg width="72" height="72" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <line x1="18" y1="10" x2="18" y2="90" stroke="#1e3a8a" stroke-width="14" stroke-linecap="round"/>
+            <line x1="18" y1="10" x2="82" y2="90" stroke="#1e3a8a" stroke-width="14" stroke-linecap="round"/>
+            <line x1="82" y1="10" x2="82" y2="90" stroke="#1e3a8a" stroke-width="14" stroke-linecap="round"/>
+            <line x1="18" y1="10" x2="18" y2="90" stroke="#3b82f6" stroke-width="7" stroke-linecap="round"/>
+            <line x1="18" y1="10" x2="82" y2="90" stroke="#3b82f6" stroke-width="7" stroke-linecap="round"/>
+            <line x1="82" y1="10" x2="82" y2="90" stroke="#3b82f6" stroke-width="7" stroke-linecap="round"/>
+            <line x1="18" y1="30" x2="4" y2="30" stroke="#4ade80" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="0" cy="30" r="5" fill="none" stroke="#4ade80" stroke-width="2.5"/>
+            <circle cx="0" cy="30" r="2.5" fill="#4ade80"/>
+            <line x1="18" y1="62" x2="4" y2="62" stroke="#2dd4bf" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="0" cy="62" r="5" fill="none" stroke="#2dd4bf" stroke-width="2.5"/>
+            <circle cx="0" cy="62" r="2.5" fill="#2dd4bf"/>
+            <line x1="82" y1="30" x2="96" y2="30" stroke="#4ade80" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="100" cy="30" r="5" fill="none" stroke="#4ade80" stroke-width="2.5"/>
+            <circle cx="100" cy="30" r="2.5" fill="#4ade80"/>
+            <line x1="82" y1="62" x2="96" y2="62" stroke="#2563eb" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="100" cy="62" r="5" fill="none" stroke="#2563eb" stroke-width="2.5"/>
+            <circle cx="100" cy="62" r="2.5" fill="#2563eb"/>
+            <line x1="50" y1="48" x2="50" y2="34" stroke="#60a5fa" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="50" cy="30" r="5" fill="none" stroke="#60a5fa" stroke-width="2.5"/>
+            <circle cx="50" cy="30" r="2.5" fill="#60a5fa"/>
+            <circle cx="18" cy="10" r="7" fill="#3b82f6"/>
+            <circle cx="18" cy="10" r="3.5" fill="#0d1117"/>
+            <circle cx="82" cy="10" r="7" fill="#3b82f6"/>
+            <circle cx="82" cy="10" r="3.5" fill="#0d1117"/>
+            <circle cx="18" cy="90" r="7" fill="#3b82f6"/>
+            <circle cx="18" cy="90" r="3.5" fill="#0d1117"/>
+            <circle cx="82" cy="90" r="7" fill="#3b82f6"/>
+            <circle cx="82" cy="90" r="3.5" fill="#0d1117"/>
+        </svg>
 
-  <div class="bg-grid">
-
-  <div class="card">
-    <div class="logo-wrap">
-      <svg width="72" height="72" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <line x1="18" y1="10" x2="18" y2="90" stroke="#1e3a8a" stroke-width="14" stroke-linecap="round"/>
-        <line x1="18" y1="10" x2="82" y2="90" stroke="#1e3a8a" stroke-width="14" stroke-linecap="round"/>
-        <line x1="82" y1="10" x2="82" y2="90" stroke="#1e3a8a" stroke-width="14" stroke-linecap="round"/>
-        <line x1="18" y1="10" x2="18" y2="90" stroke="#3b82f6" stroke-width="7" stroke-linecap="round"/>
-        <line x1="18" y1="10" x2="82" y2="90" stroke="#3b82f6" stroke-width="7" stroke-linecap="round"/>
-        <line x1="82" y1="10" x2="82" y2="90" stroke="#3b82f6" stroke-width="7" stroke-linecap="round"/>
-        <line x1="18" y1="30" x2="4" y2="30" stroke="#4ade80" stroke-width="3" stroke-linecap="round"/>
-        <circle cx="0" cy="30" r="5" fill="none" stroke="#4ade80" stroke-width="2.5"/>
-        <circle cx="0" cy="30" r="2.5" fill="#4ade80"/>
-        <line x1="18" y1="62" x2="4" y2="62" stroke="#2dd4bf" stroke-width="3" stroke-linecap="round"/>
-        <circle cx="0" cy="62" r="5" fill="none" stroke="#2dd4bf" stroke-width="2.5"/>
-        <circle cx="0" cy="62" r="2.5" fill="#2dd4bf"/>
-        <line x1="82" y1="30" x2="96" y2="30" stroke="#4ade80" stroke-width="3" stroke-linecap="round"/>
-        <circle cx="100" cy="30" r="5" fill="none" stroke="#4ade80" stroke-width="2.5"/>
-        <circle cx="100" cy="30" r="2.5" fill="#4ade80"/>
-        <line x1="82" y1="62" x2="96" y2="62" stroke="#2563eb" stroke-width="3" stroke-linecap="round"/>
-        <circle cx="100" cy="62" r="5" fill="none" stroke="#2563eb" stroke-width="2.5"/>
-        <circle cx="100" cy="62" r="2.5" fill="#2563eb"/>
-        <line x1="50" y1="48" x2="50" y2="34" stroke="#60a5fa" stroke-width="3" stroke-linecap="round"/>
-        <circle cx="50" cy="30" r="5" fill="none" stroke="#60a5fa" stroke-width="2.5"/>
-        <circle cx="50" cy="30" r="2.5" fill="#60a5fa"/>
-        <circle cx="18" cy="10" r="7" fill="#3b82f6"/>
-        <circle cx="18" cy="10" r="3.5" fill="#0d1117"/>
-        <circle cx="82" cy="10" r="7" fill="#3b82f6"/>
-        <circle cx="82" cy="10" r="3.5" fill="#0d1117"/>
-        <circle cx="18" cy="90" r="7" fill="#3b82f6"/>
-        <circle cx="18" cy="90" r="3.5" fill="#0d1117"/>
-        <circle cx="82" cy="90" r="7" fill="#3b82f6"/>
-        <circle cx="82" cy="90" r="3.5" fill="#0d1117"/>
-      </svg>
-
-      <div style="text-align:center;">
-        <div class="wordmark">NODE<span>MON</span></div>
-        <div class="divider" style="margin-top:6px;"></div>
-        <div class="tagline">ISP Billing &amp; Monitor</div>
-      </div>
+        <div style="text-align:center;">
+            <div class="wordmark">NODE<span>MON</span></div>
+            <div class="divider" style="margin-top:6px;"></div>
+            <div class="tagline">ISP Billing &amp; Monitor</div>
+        </div>
+        </div>
+        <div class="fg">
+            <label>Username</label
+            ><input id="lu" placeholder="Username" autocomplete="username" />
+        </div>
+        <div class="fg">
+            <label>Password</label
+            ><input
+            type="password"
+            id="lp"
+            placeholder="Password"
+            autocomplete="current-password"
+            />
+        </div>
+        <div class="err" id="le"></div>
+        <br />
+        <button class="btn b-p" style="width: 100%" onclick="doLogin()">
+            <i class="fa fa-sign-in"></i> Login
+        </button>
     </div>
-
-    <div class="field">
-      <label for="username">Username</label>
-      <input type="text" id="username" placeholder="Enter your username" autocomplete="username"/>
-    </div>
-
-    <div class="field">
-      <label for="password">Password</label>
-      <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password"/>
-    </div>
-
-    <button class="btn" onclick="doLogin()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-        <polyline points="10 17 15 12 10 7"/>
-        <line x1="15" y1="12" x2="3" y2="12"/>
-      </svg>
-      Login
-    </button>
-
-    <p class="footer-text">NodeMon v2.0 &mdash; &copy; 2026</p>
-  </div>
 </div>
+<div id="ld"><div class="spin"></div></div>
+<div id="toast"></div>
