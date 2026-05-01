@@ -689,7 +689,7 @@
                 >
                     <i class="fa fa-refresh"></i> Sync Status Terpakai
                 </button>
-<% /* <div id="STEP2_HTML_INSERT_BEFORE_IMPORT_BUTTON">
+                <div id="STEP2_HTML_INSERT_BEFORE_IMPORT_BUTTON">
                     <!-- Paste baris ini: -->
                     <div
                     class="ar-toggle-wrap"
@@ -700,7 +700,7 @@
                     <div class="ar-pill" id="ar-pill"></div>
                     <span id="ar-label">Auto Hapus Batch Habis</span>
                     </div>
-                </div> */ %>
+                </div>
                 <button
                     class="btn b-p"
                     id="btn-import"

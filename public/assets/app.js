@@ -2379,11 +2379,6 @@ async function loadBatchList() {
       <div style="font-size:.95rem;margin-bottom:8px">Belum ada batch voucher</div>
       <div style="font-size:.82rem;margin-bottom:16px">Generate voucher baru atau import dari MikroTik</div>
       <div id="STEP2_HTML_INSERT_BEFORE_IMPORT_BUTTON">
-      <div class="ar-toggle-wrap" id="ar-toggle" onclick="toggleAutoRemoveSetting()" title="Otomatis hapus batch yang sudah habis terjual">
-          <div class="ar-pill" id="ar-pill"></div>
-          <span id="ar-label">Auto Hapus Batch Habis</span>
-        </div>
-      </div>
       <button class="btn b-p" onclick="importFromMikrotik()"><i class="fa fa-download"></i> Import dari MikroTik</button>
     </div>`;
     return;
