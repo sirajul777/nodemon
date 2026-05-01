@@ -1,4 +1,4 @@
-<% /* <div class="page" id="page-tg-reseller">
+<div class="page" id="page-tg-reseller">
     <div class="card" style="margin-bottom: 14px">
     <div class="card-hd">
         <i class="fa fa-users"></i> Daftar Reseller Bot
@@ -163,9 +163,9 @@
         </div>
     </div>
     </div>
-</div> */ %>
+</div>
 
-<div class="page" id="page-bot-reseller">
+<% /* <div class="page" id="page-bot-reseller">
     <!-- Stat bar -->
     <div class="grid g4" style="margin-bottom: 14px">
     <div class="sbc c-green" style="padding: 12px">
@@ -298,4 +298,4 @@
         </table>
     </div>
     </div>
-</div>
+</div> */ %>
