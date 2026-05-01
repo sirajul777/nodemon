@@ -1678,7 +1678,7 @@
 
         <!-- ══ MOBILE API ══ -->
         <div class="page" id="page-mobile-api">
-            <div class="card" style="margin-bottom: 14px">
+          <div class="card" style="margin-bottom: 14px">
             <div class="card-hd">
                 <i class="fa fa-mobile"></i> Mobile API — Dokumentasi & Token
             </div>
@@ -1829,7 +1829,7 @@
         <!-- ══ BILLING ══ -->
         <div class="page" id="page-billing">
             <!-- Stats -->
-            <div class="grid g4" style="margin-bottom: 14px" id="bill-stats-grid">
+          <div class="grid g4" style="margin-bottom: 14px" id="bill-stats-grid">
             <div class="sbc c-blue" style="padding: 12px">
                 <div
                 class="sbc-icon"
@@ -1921,6 +1921,13 @@
                 >
                     <i class="fa fa-ban"></i> Proses Overdue
                 </button>
+                <div id="STEP2A_BUTTON">
+  <!-- Paste baris ini: -->
+                  <button class="btn b-s b-sm" onclick="openImportBillingModal()"
+                          style="color:#58a6ff;border-color:rgba(56,139,253,.3)">
+                    <i class="fa fa-upload"></i> Import JSON
+                  </button>
+                </div>
                 <button class="btn b-p b-sm" onclick="openBillCustomerModal()">
                     <i class="fa fa-plus"></i> Tambah Pelanggan
                 </button>
@@ -2454,6 +2461,180 @@
             <i class="fa fa-save"></i> Simpan
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- import Billing Customer Modal -->
+    <div class="ov" id="m-import-billing">
+      <div class="modal" style="width:640px;max-height:92vh;overflow-y:auto">
+
+        <h3 style="margin-bottom:4px;display:flex;align-items:center;gap:10px">
+          <i class="fa fa-upload" style="color:#58a6ff"></i>
+          Import Pelanggan Billing dari JSON
+        </h3>
+        <p style="color:var(--muted);font-size:.8rem;margin-bottom:16px">
+          Upload file JSON hasil export sistem lain. Data akan diimport satu per satu ke billing MikHMon.
+        </p>
+
+        <!-- STEP 1: Drop zone -->
+        <div id="imp-step-upload">
+          <div class="import-dropzone" id="imp-dropzone"
+              ondragover="impDragOver(event)" ondragleave="impDragLeave(event)"
+              ondrop="impDrop(event)">
+            <input type="file" accept=".json" onchange="impFileSelected(this)">
+            <i class="fa fa-cloud-upload"></i>
+            <div class="dz-title">Drop file JSON di sini atau klik untuk browse</div>
+            <div class="dz-sub">Format: customers_clean.json atau billing_import_ready.json</div>
+          </div>
+
+          <!-- Mapping info (collapsed) -->
+          <div class="mapping-section" style="margin-top:12px">
+            <div class="mapping-toggle" onclick="toggleMapping()">
+              <i class="fa fa-chevron-right" id="map-chevron"></i>
+              Field mapping yang didukung
+            </div>
+            <div class="mapping-grid" id="map-grid">
+              <div class="mapping-row"><span class="mk">name</span><i class="fa fa-arrow-right"></i><span class="mv">Nama Pelanggan</span></div>
+              <div class="mapping-row"><span class="mk">phone</span><i class="fa fa-arrow-right"></i><span class="mv">No. HP</span></div>
+              <div class="mapping-row"><span class="mk">service_type / type</span><i class="fa fa-arrow-right"></i><span class="mv">Tipe (pppoe/hotspot)</span></div>
+              <div class="mapping-row"><span class="mk">pppoe_username / mikrotikUser</span><i class="fa fa-arrow-right"></i><span class="mv">Username MikroTik</span></div>
+              <div class="mapping-row"><span class="mk">pppoe_profile / profile</span><i class="fa fa-arrow-right"></i><span class="mv">Profile Paket</span></div>
+              <div class="mapping-row"><span class="mk">package_price / price</span><i class="fa fa-arrow-right"></i><span class="mv">Harga Tagihan</span></div>
+              <div class="mapping-row"><span class="mk">billing_day / billDate</span><i class="fa fa-arrow-right"></i><span class="mv">Tanggal Tagih</span></div>
+              <div class="mapping-row"><span class="mk">auto_suspension / autoDisable</span><i class="fa fa-arrow-right"></i><span class="mv">Auto Blokir</span></div>
+              <div class="mapping-row"><span class="mk">status</span><i class="fa fa-arrow-right"></i><span class="mv">Status</span></div>
+              <div class="mapping-row"><span class="mk">package_name / note</span><i class="fa fa-arrow-right"></i><span class="mv">Catatan</span></div>
+            </div>
+          </div>
+
+          <span class="err" id="imp-file-err"></span>
+        </div>
+
+        <!-- STEP 2: Preview + options (setelah file dipilih) -->
+        <div id="imp-step-preview" style="display:none">
+
+          <!-- Stats -->
+          <div class="import-stats">
+            <div class="import-stat">
+              <div class="sv" id="imp-total" style="color:#58a6ff">0</div>
+              <div class="sl">Total</div>
+            </div>
+            <div class="import-stat">
+              <div class="sv" id="imp-valid" style="color:var(--green)">0</div>
+              <div class="sl">Valid</div>
+            </div>
+            <div class="import-stat">
+              <div class="sv" id="imp-warn-ct" style="color:var(--yellow)">0</div>
+              <div class="sl">Peringatan</div>
+            </div>
+            <div class="import-stat">
+              <div class="sv" id="imp-invalid-ct" style="color:var(--red)">0</div>
+              <div class="sl">Error</div>
+            </div>
+          </div>
+
+          <!-- Options -->
+          <div class="import-options">
+            <label>
+              <input type="checkbox" id="imp-opt-skip-dup" checked>
+              Skip duplikat (username sudah ada)
+            </label>
+            <label>
+              <input type="checkbox" id="imp-opt-clean-phone" checked>
+              Bersihkan karakter unicode di nomor HP
+            </label>
+            <label>
+              <input type="checkbox" id="imp-opt-grace">
+              Grace period:
+              <select id="imp-grace-days">
+                <option value="0">0 hari</option>
+                <option value="3" selected>3 hari</option>
+                <option value="5">5 hari</option>
+                <option value="7">7 hari</option>
+              </select>
+            </label>
+          </div>
+
+          <!-- Preview table -->
+          <div class="import-preview-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Nama</th>
+                  <th>Username MikroTik</th>
+                  <th>Profile</th>
+                  <th>Harga</th>
+                  <th>Tgl Tagih</th>
+                  <th>Status</th>
+                  <th>Cek</th>
+                </tr>
+              </thead>
+              <tbody id="imp-preview-tbody"></tbody>
+            </table>
+          </div>
+
+          <!-- Action buttons -->
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <button class="btn b-s" onclick="impReset()">
+              <i class="fa fa-arrow-left"></i> Ganti File
+            </button>
+            <button class="btn b-p" id="imp-start-btn" onclick="startBillingImport()"
+                    style="flex:1;justify-content:center">
+              <i class="fa fa-play"></i>
+              Mulai Import <span id="imp-count-label"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 3: Progress (saat import berjalan) -->
+        <div id="imp-step-progress" style="display:none">
+
+          <div class="import-progress-wrap">
+            <div class="import-progress-bar-bg">
+              <div class="import-progress-fill" id="imp-prog-fill" style="width:0%"></div>
+            </div>
+            <div class="import-progress-label">
+              <span id="imp-prog-label">0 / 0 selesai</span>
+              <span id="imp-prog-pct">0%</span>
+            </div>
+          </div>
+
+          <!-- Live log -->
+          <div class="import-log" id="imp-log"></div>
+
+          <!-- Result summary (muncul setelah selesai) -->
+          <div id="imp-result-summary" style="display:none;margin-bottom:14px">
+            <div class="import-stats">
+              <div class="import-stat">
+                <div class="sv" id="res-imported" style="color:var(--green)">0</div>
+                <div class="sl">Berhasil</div>
+              </div>
+              <div class="import-stat">
+                <div class="sv" id="res-skipped" style="color:var(--yellow)">0</div>
+                <div class="sl">Dilewati</div>
+              </div>
+              <div class="import-stat">
+                <div class="sv" id="res-errors" style="color:var(--red)">0</div>
+                <div class="sl">Gagal</div>
+              </div>
+              <div class="import-stat">
+                <div class="sv" id="res-time" style="color:var(--muted)">0s</div>
+                <div class="sl">Durasi</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="imp-prog-actions" style="display:none;gap:8px">
+            <button class="btn b-s" onclick="closeM('m-import-billing');loadBilling()" style="flex:1;justify-content:center">
+              <i class="fa fa-check"></i> Selesai — Lihat Data Billing
+            </button>
+            <button class="btn b-ghost" onclick="impReset()" style="flex:1;justify-content:center">
+              <i class="fa fa-upload"></i> Import Lagi
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
 

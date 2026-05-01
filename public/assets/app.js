@@ -5125,3 +5125,439 @@ function setEl(id, val) {
   const el = document.getElementById(id);
   if (el) el.textContent = val;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   IMPORT BILLING — STATE
+═══════════════════════════════════════════════════════════ */
+const IMP = {
+  rawData: null, // parsed JSON
+  customers: [], // mapped + validated rows
+  running: false
+};
+
+/* ── Open modal ── */
+function openImportBillingModal() {
+  impReset();
+  document.getElementById("m-import-billing").classList.add("show");
+}
+
+/* ── Reset to step 1 ── */
+function impReset() {
+  IMP.rawData = null;
+  IMP.customers = [];
+  IMP.running = false;
+
+  document.getElementById("imp-step-upload").style.display = "";
+  document.getElementById("imp-step-preview").style.display = "none";
+  document.getElementById("imp-step-progress").style.display = "none";
+  document.getElementById("imp-file-err").textContent = "";
+  document.getElementById("imp-log").innerHTML = "";
+  document.getElementById("imp-log").style.display = "none";
+  document.getElementById("imp-result-summary").style.display = "none";
+  document.getElementById("imp-prog-actions").style.display = "none";
+
+  // Reset progress
+  document.getElementById("imp-prog-fill").style.width = "0%";
+  document.getElementById("imp-prog-label").textContent = "0 / 0 selesai";
+  document.getElementById("imp-prog-pct").textContent = "0%";
+}
+
+/* ── Drag & drop ── */
+function impDragOver(e) {
+  e.preventDefault();
+  document.getElementById("imp-dropzone").classList.add("drag-over");
+}
+function impDragLeave(e) {
+  document.getElementById("imp-dropzone").classList.remove("drag-over");
+}
+function impDrop(e) {
+  e.preventDefault();
+  document.getElementById("imp-dropzone").classList.remove("drag-over");
+  const file = e.dataTransfer.files[0];
+  if (file) processImportFile(file);
+}
+function impFileSelected(input) {
+  if (input.files[0]) processImportFile(input.files[0]);
+}
+
+/* ── Toggle mapping ── */
+function toggleMapping() {
+  const grid = document.getElementById("map-grid");
+  const icon = document.getElementById("map-chevron");
+  grid.classList.toggle("show");
+  icon.className = grid.classList.contains("show")
+    ? "fa fa-chevron-down"
+    : "fa fa-chevron-right";
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PARSE & VALIDATE FILE
+═══════════════════════════════════════════════════════════ */
+function processImportFile(file) {
+  const errEl = document.getElementById("imp-file-err");
+  if (!file.name.endsWith(".json")) {
+    errEl.textContent = "File harus berformat .json";
+    return;
+  }
+  errEl.textContent = "";
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      IMP.rawData = parsed;
+
+      // Support multiple JSON shapes
+      let rows = [];
+      if (Array.isArray(parsed))
+        rows = parsed; // bare array
+      else if (Array.isArray(parsed.customers))
+        rows = parsed.customers; // { customers: [...] }
+      else if (Array.isArray(parsed.data))
+        rows = parsed.data; // { data: [...] }
+      else {
+        errEl.textContent =
+          "Format JSON tidak dikenali. Harus berisi array customers.";
+        return;
+      }
+
+      if (!rows.length) {
+        errEl.textContent = "File JSON kosong.";
+        return;
+      }
+
+      IMP.customers = rows.map((r, i) => mapAndValidate(r, i));
+      renderImportPreview();
+    } catch (err) {
+      errEl.textContent = "File JSON tidak valid: " + err.message;
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ── Map external JSON → MikHMon billing format ── */
+function mapAndValidate(raw, index) {
+  const cleanStr = (s) => {
+    if (!s) return "";
+    // Remove unicode directional marks (copy-paste dari WhatsApp/Excel)
+    return String(s)
+      .replace(
+        /[\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069]/g,
+        ""
+      )
+      .trim();
+  };
+
+  const type = raw.service_type || raw.type || "pppoe";
+  const mikrotikUser = cleanStr(
+    type === "pppoe"
+      ? raw.pppoe_username || raw.mikrotikUser
+      : raw.hotspot_username || raw.mikrotikUser
+  );
+  const profile =
+    type === "pppoe"
+      ? raw.pppoe_profile || raw.profile
+      : raw.hotspot_profile || raw.profile;
+  const price = parseFloat(raw.package_price || raw.price) || 0;
+  const billDate = Math.max(
+    1,
+    Math.min(28, parseInt(raw.billing_day || raw.billDate) || 1)
+  );
+  const phone = cleanStr(raw.phone);
+  const name = (raw.name || "").trim();
+  const status = raw.status || "active";
+  const autoDisable =
+    raw.auto_suspension === 1 ||
+    raw.autoDisable === true ||
+    raw.autoDisable === 1;
+  const note = raw.package_name || raw.note || "";
+
+  // Validation
+  const warnings = [];
+  const errors = [];
+  if (!name) errors.push("Nama kosong");
+  if (!mikrotikUser) errors.push("Username MikroTik kosong");
+  if (price <= 0) warnings.push("Harga 0");
+  if (!profile) warnings.push("Profile kosong");
+  if (phone && phone.length > 15) warnings.push("No HP terlalu panjang");
+
+  return {
+    _index: index,
+    _valid: errors.length === 0,
+    _errors: errors,
+    _warnings: warnings,
+    _status: "pending", // pending | loading | success | skip | error
+    _msg: "",
+    // Billing fields
+    name,
+    phone,
+    type,
+    mikrotikUser,
+    profile: profile || "",
+    price,
+    billDate,
+    graceDays: 3,
+    telegramId: raw.telegramId || "",
+    status,
+    autoDisable,
+    reminderDays: raw.reminderDays || [7, 3, 1],
+    note
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RENDER PREVIEW TABLE
+═══════════════════════════════════════════════════════════ */
+function renderImportPreview() {
+  const customers = IMP.customers;
+  const valid = customers.filter((c) => c._valid).length;
+  const warnCount = customers.filter(
+    (c) => c._warnings.length > 0 && c._valid
+  ).length;
+  const invalid = customers.filter((c) => !c._valid).length;
+
+  document.getElementById("imp-total").textContent = customers.length;
+  document.getElementById("imp-valid").textContent = valid;
+  document.getElementById("imp-warn-ct").textContent = warnCount;
+  document.getElementById("imp-invalid-ct").textContent = invalid;
+  document.getElementById("imp-count-label").textContent = `(${valid} valid)`;
+
+  const tbody = document.getElementById("imp-preview-tbody");
+  tbody.innerHTML = customers
+    .map((c, i) => {
+      const hasIssue = !c._valid || c._warnings.length > 0;
+      const rowColor = !c._valid
+        ? "rgba(248,81,73,.05)"
+        : c._warnings.length
+          ? "rgba(210,153,34,.05)"
+          : "";
+      const checks =
+        [
+          ...c._errors.map(
+            (e) =>
+              `<span style="color:var(--red)"><i class="fa fa-times-circle"></i> ${e}</span>`
+          ),
+          ...c._warnings.map(
+            (w) =>
+              `<span style="color:var(--yellow)"><i class="fa fa-exclamation-triangle"></i> ${w}</span>`
+          )
+        ].join("<br>") ||
+        `<span style="color:var(--green)"><i class="fa fa-check-circle"></i> OK</span>`;
+
+      return `<tr style="background:${rowColor}" id="imp-row-${i}">
+      <td style="color:var(--muted)">${i + 1}</td>
+      <td><b>${c.name || "—"}</b></td>
+      <td style="font-family:monospace;font-size:.76rem">${c.mikrotikUser || "—"}</td>
+      <td><span class="badge b-bl" style="font-size:.65rem">${c.profile || "—"}</span></td>
+      <td>Rp ${Math.round(c.price).toLocaleString("id-ID")}</td>
+      <td style="text-align:center">${c.billDate}</td>
+      <td><span class="badge ${c.status === "active" ? "b-gr" : "b-rd"}">${c.status}</span></td>
+      <td id="imp-check-${i}" style="font-size:.72rem;line-height:1.6">${checks}</td>
+    </tr>`;
+    })
+    .join("");
+
+  // Show preview step
+  document.getElementById("imp-step-upload").style.display = "none";
+  document.getElementById("imp-step-preview").style.display = "";
+}
+
+/* ═══════════════════════════════════════════════════════════
+   IMPORT — MAIN LOOP
+═══════════════════════════════════════════════════════════ */
+async function startBillingImport() {
+  if (IMP.running) return;
+  if (!CS) {
+    toast("Pilih router session terlebih dahulu", true);
+    return;
+  }
+
+  const skipDup = document.getElementById("imp-opt-skip-dup").checked;
+  const cleanPhone = document.getElementById("imp-opt-clean-phone").checked;
+  const graceDays =
+    parseInt(document.getElementById("imp-grace-days").value) || 3;
+
+  const toImport = IMP.customers.filter((c) => c._valid);
+  if (!toImport.length) {
+    toast("Tidak ada data valid untuk diimport", true);
+    return;
+  }
+
+  // Show progress step
+  IMP.running = true;
+  document.getElementById("imp-step-preview").style.display = "none";
+  document.getElementById("imp-step-progress").style.display = "";
+  document.getElementById("imp-log").style.display = "";
+
+  const logEl = document.getElementById("imp-log");
+  const startTime = Date.now();
+  let imported = 0,
+    skipped = 0,
+    errors = 0;
+
+  function addLog(cls, msg) {
+    const line = document.createElement("div");
+    line.className = cls;
+    line.textContent = msg;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  addLog(
+    "log-info",
+    `[START] Mulai import ${toImport.length} pelanggan ke session ${CS}...`
+  );
+
+  for (let i = 0; i < toImport.length; i++) {
+    const c = toImport[i];
+
+    // Update progress
+    const pct = Math.round((i / toImport.length) * 100);
+    document.getElementById("imp-prog-fill").style.width = pct + "%";
+    document.getElementById("imp-prog-label").textContent =
+      `${i} / ${toImport.length} selesai`;
+    document.getElementById("imp-prog-pct").textContent = pct + "%";
+
+    // Update row status in preview (still in DOM)
+    updateImportRow(c._index, "loading", "⏳ Mengimpor...");
+
+    // Apply options
+    const payload = {
+      name: c.name,
+      phone: cleanPhone ? cleanPhoneNumber(c.phone) : c.phone,
+      type: c.type,
+      mikrotikUser: c.mikrotikUser,
+      profile: c.profile,
+      price: c.price,
+      billDate: c.billDate,
+      graceDays,
+      telegramId: c.telegramId || "",
+      status: c.status,
+      autoDisable: c.autoDisable,
+      reminderDays: c.reminderDays,
+      note: c.note
+    };
+
+    try {
+      const res = await fetch(`${API}/billing/${CS}/customers`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }).then((r) => r.json());
+
+      if (res.id || res.success) {
+        imported++;
+        updateImportRow(c._index, "success", "✅ Berhasil");
+        addLog(
+          "log-ok",
+          `[${i + 1}] ✅ ${c.name} (${c.mikrotikUser}) → imported`
+        );
+      } else if (
+        res.error &&
+        skipDup &&
+        (res.error.toLowerCase().includes("duplicate") ||
+          res.error.toLowerCase().includes("already") ||
+          res.error.toLowerCase().includes("exists"))
+      ) {
+        skipped++;
+        updateImportRow(c._index, "skip", "⚠ Sudah ada");
+        addLog(
+          "log-skip",
+          `[${i + 1}] ⚠  ${c.name} (${c.mikrotikUser}) → dilewati (duplikat)`
+        );
+      } else {
+        errors++;
+        const errMsg = res.error || JSON.stringify(res).slice(0, 60);
+        updateImportRow(c._index, "error", "❌ " + errMsg);
+        addLog("log-err", `[${i + 1}] ❌ ${c.name} → ${errMsg}`);
+      }
+    } catch (e) {
+      errors++;
+      updateImportRow(c._index, "error", "❌ Network error");
+      addLog("log-err", `[${i + 1}] ❌ ${c.name} → ${e.message}`);
+    }
+
+    // Small delay — don't hammer the server
+    await new Promise((r) => setTimeout(r, 120));
+  }
+
+  // Done
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  IMP.running = false;
+
+  document.getElementById("imp-prog-fill").style.width = "100%";
+  document.getElementById("imp-prog-label").textContent =
+    `${toImport.length} / ${toImport.length} selesai`;
+  document.getElementById("imp-prog-pct").textContent = "100%";
+
+  addLog(
+    "log-info",
+    `[DONE] Selesai dalam ${elapsed}s — ${imported} berhasil, ${skipped} dilewati, ${errors} gagal`
+  );
+
+  // Show result summary
+  document.getElementById("res-imported").textContent = imported;
+  document.getElementById("res-skipped").textContent = skipped;
+  document.getElementById("res-errors").textContent = errors;
+  document.getElementById("res-time").textContent = elapsed + "s";
+  document.getElementById("imp-result-summary").style.display = "";
+
+  // Show action buttons
+  const actEl = document.getElementById("imp-prog-actions");
+  actEl.style.display = "flex";
+
+  // Toast
+  toast(
+    `✅ Import selesai: ${imported} berhasil, ${skipped} dilewati, ${errors} gagal`
+  );
+
+  // Refresh billing table in background
+  loadBilling().catch(() => {});
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════════════ */
+
+/**
+ * Update status cell in the preview table row
+ * (table stays visible in DOM below progress bar)
+ */
+function updateImportRow(index, statusCls, msg) {
+  const cell = document.getElementById(`imp-check-${index}`);
+  if (!cell) return;
+  const colors = {
+    loading: "var(--yellow)",
+    success: "var(--green)",
+    skip: "var(--yellow)",
+    error: "var(--red)"
+  };
+  cell.innerHTML = `<span class="imp-status ${statusCls}" style="color:${colors[statusCls] || "var(--muted)"}">${msg}</span>`;
+  // Highlight row
+  const row = document.getElementById(`imp-row-${index}`);
+  if (row) {
+    row.style.background =
+      statusCls === "success"
+        ? "rgba(63,185,80,.06)"
+        : statusCls === "error"
+          ? "rgba(248,81,73,.06)"
+          : statusCls === "skip"
+            ? "rgba(210,153,34,.06)"
+            : "";
+  }
+}
+
+/**
+ * Clean phone number — remove unicode directional marks, dashes, spaces
+ */
+function cleanPhoneNumber(phone) {
+  if (!phone) return "";
+  return phone
+    .replace(
+      /[\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069]/g,
+      ""
+    )
+    .replace(/[\s\-().]/g, "")
+    .trim();
+}
