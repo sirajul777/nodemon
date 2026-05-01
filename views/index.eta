@@ -1921,13 +1921,11 @@
                 >
                     <i class="fa fa-ban"></i> Proses Overdue
                 </button>
-                <div id="STEP2A_BUTTON">
-  <!-- Paste baris ini: -->
-                  <button class="btn b-s b-sm" onclick="openImportBillingModal()"
-                          style="color:#58a6ff;border-color:rgba(56,139,253,.3)">
-                    <i class="fa fa-upload"></i> Import JSON
-                  </button>
-                </div>
+                <!-- Paste baris ini: -->
+                <button class="btn b-s b-sm" onclick="openImportBillingModal()"
+                        style="color:#58a6ff;border-color:rgba(56,139,253,.3)">
+                  <i class="fa fa-upload"></i> Import JSON
+                </button>
                 <button class="btn b-p b-sm" onclick="openBillCustomerModal()">
                     <i class="fa fa-plus"></i> Tambah Pelanggan
                 </button>
