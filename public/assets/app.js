@@ -4042,10 +4042,10 @@ async function loadBotResellers() {
   const active = list.filter((r) => r.status === "active").length;
   const vcr = list.reduce((s, r) => s + (r.totalVoucher || 0), 0);
   const income = list.reduce((s, r) => s + (r.totalIncome || 0), 0);
-  document.getElementById("brs-total").textContent = list.length;
-  document.getElementById("brs-active").textContent = active;
-  document.getElementById("brs-vcr").textContent = vcr;
-  document.getElementById("brs-income").textContent =
+  document.getElementById("brs-total").text = list.length;
+  document.getElementById("brs-active").text = active;
+  document.getElementById("brs-vcr").text = vcr;
+  document.getElementById("brs-income").text =
     "Rp " + Math.round(income).toLocaleString("id-ID");
 
   const tb = document.getElementById("t-brs");
