@@ -18,7 +18,7 @@
         </div>
     </div>
     <!-- Summary stats -->
-    <div class="g4" style="margin-bottom: 14px">
+    <div class="grid g4" style="margin-bottom: 14px">
         <div class="sbc c-blue" style="padding: 12px">
         <div
             class="sbc-icon"
@@ -123,7 +123,7 @@
         </button>
         <span id="rb-detail-title" style="font-weight: 600"></span>
     </div>
-    <div class="g2">
+    <div class="grid g2">
         <div class="card">
         <div class="card-hd">
             <i class="fa fa-history"></i> Riwayat Topup
@@ -164,8 +164,7 @@
     </div>
     </div>
 </div>
-
-<% /* <div class="page" id="page-bot-reseller">
+<div class="page" id="page-bot-reseller">
     <!-- Stat bar -->
     <div class="grid g4" style="margin-bottom: 14px">
     <div class="sbc c-green" style="padding: 12px">
@@ -298,4 +297,4 @@
         </table>
     </div>
     </div>
-</div> */ %>
+</div>

@@ -4036,51 +4036,75 @@ let editBrsId = null,
   topupBrsId = null;
 
 async function loadBotResellers() {
-  const list = (await req("/bot-resellers")) || [];
+  try {
+    const list = (await req("/bot-resellers")) || [];
 
-  // Stats
-  const active = list.filter((r) => r.status === "active").length;
-  const vcr = list.reduce((s, r) => s + (r.totalVoucher || 0), 0);
-  const income = list.reduce((s, r) => s + (r.totalIncome || 0), 0);
-  document.getElementById("brs-total").text = list.length;
-  document.getElementById("brs-active").text = active;
-  document.getElementById("brs-vcr").text = vcr;
-  document.getElementById("brs-income").text =
-    "Rp " + Math.round(income).toLocaleString("id-ID");
+    // Validasi data
+    if (!Array.isArray(list)) {
+      console.error("Data dari API bukan array:", list);
+      return;
+    }
 
-  const tb = document.getElementById("t-brs");
-  tb.innerHTML = list.length
-    ? list
-        .map((r) => {
-          const date = r.createdAt
-            ? new Date(r.createdAt).toLocaleString("id-ID", {
-                dateStyle: "short",
-                timeStyle: "short"
-              })
-            : "—";
-          return `<tr>
-      <td>
-        <div style="font-weight:600">${r.name}</div>
-        <div style="font-size:.75rem;color:var(--muted)">${r.username ? "@" + r.username.replace("@", "") : "—"}</div>
-      </td>
-      <td><code style="font-size:.8rem">${r.telegramId}</code></td>
-      <td style="text-align:right;font-weight:600;color:var(--green)">Rp ${Math.round(r.saldo || 0).toLocaleString("id-ID")}</td>
-      <td style="text-align:center">${r.totalVoucher || 0}</td>
-      <td style="text-align:right;color:var(--acc2)">Rp ${Math.round(r.totalIncome || 0).toLocaleString("id-ID")}</td>
-      <td><span class="badge ${r.status === "active" ? "b-gr" : "b-rd"}" style="cursor:pointer" onclick="toggleBrs('${r.id}')">${r.status === "active" ? "Active" : "Inactive"}</span></td>
-      <td style="font-size:.75rem;color:var(--muted)">${date}</td>
-      <td>
-        <div style="display:flex;gap:4px">
-          <button class="btn b-g b-sm" onclick="openTopupModal('${r.id}')" title="Topup Saldo"><i class="fa fa-plus-circle"></i></button>
-          <button class="btn b-s b-sm" onclick="showBrsLog('${r.id}','${r.name}')" title="Riwayat"><i class="fa fa-history"></i></button>
-          <button class="btn b-w b-sm" onclick="editBrsFn('${r.id}')"><i class="fa fa-pencil"></i></button>
-          <button class="btn b-d b-sm" onclick="deleteBrs('${r.id}')"><i class="fa fa-trash"></i></button>
-        </div>
-      </td>
-    </tr>`;
-        })
-        .join("")
-    : '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px"><i class="fa fa-users" style="font-size:1.5rem;display:block;margin-bottom:8px;opacity:.3"></i>Belum ada agen reseller</td></tr>';
+    // Stats
+    const active = list.filter((r) => r.status === "active").length;
+    const vcr = list.reduce((s, r) => s + (r.totalVoucher || 0), 0);
+    const income = list.reduce((s, r) => s + (r.totalIncome || 0), 0);
+
+    // Perbaiki: .text menjadi .textContent atau .innerHTML
+    const brsTotalEl = document.getElementById("brs-total");
+    const brsActiveEl = document.getElementById("brs-active");
+    const brsVcrEl = document.getElementById("brs-vcr");
+    const brsIncomeEl = document.getElementById("brs-income");
+
+    if (brsTotalEl) brsTotalEl.textContent = list.length;
+    if (brsActiveEl) brsActiveEl.textContent = active;
+    if (brsVcrEl) brsVcrEl.textContent = vcr;
+    if (brsIncomeEl) brsIncomeEl.textContent = "Rp " + Math.round(income).toLocaleString("id-ID");
+
+    const tb = document.getElementById("t-brs");
+    if (!tb) {
+      console.error("Element dengan ID 't-brs' tidak ditemukan");
+      return;
+    }
+
+    tb.innerHTML = list.length
+      ? list
+          .map((r) => {
+            const date = r.createdAt
+              ? new Date(r.createdAt).toLocaleString("id-ID", {
+                  dateStyle: "short",
+                  timeStyle: "short"
+                })
+              : "—";
+            return `<tr>
+        <td>
+          <div style="font-weight:600">${r.name || "—"}</div>
+          <div style="font-size:.75rem;color:var(--muted)">${r.username ? "@" + r.username.replace("@", "") : "—"}</div>
+        </td>
+        <td><code style="font-size:.8rem">${r.telegramId || "—"}</code></td>
+        <td style="text-align:right;font-weight:600;color:var(--green)">Rp ${Math.round(r.saldo || 0).toLocaleString("id-ID")}</td>
+        <td style="text-align:center">${r.totalVoucher || 0}</td>
+        <td style="text-align:right;color:var(--acc2)">Rp ${Math.round(r.totalIncome || 0).toLocaleString("id-ID")}</td>
+        <td><span class="badge ${r.status === "active" ? "b-gr" : "b-rd"}" style="cursor:pointer" onclick="toggleBrs('${r.id}')">${r.status === "active" ? "Active" : "Inactive"}</span></td>
+        <td style="font-size:.75rem;color:var(--muted)">${date}</td>
+        <td>
+          <div style="display:flex;gap:4px">
+            <button class="btn b-g b-sm" onclick="openTopupModal('${r.id}')" title="Topup Saldo"><i class="fa fa-plus-circle"></i></button>
+            <button class="btn b-s b-sm" onclick="showBrsLog('${r.id}','${r.name}')" title="Riwayat"><i class="fa fa-history"></i></button>
+            <button class="btn b-w b-sm" onclick="editBrsFn('${r.id}')"><i class="fa fa-pencil"></i></button>
+            <button class="btn b-d b-sm" onclick="deleteBrs('${r.id}')"><i class="fa fa-trash"></i></button>
+          </div>
+        </td>
+      </tr>`;
+          })
+          .join("")
+      : '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px"><i class="fa fa-users" style="font-size:1.5rem;display:block;margin-bottom:8px;opacity:.3"></i>Belum ada agen reseller</td></tr>';
+
+    console.log("Data berhasil dimuat:", list.length, "reseller");
+  } catch (error) {
+    console.error("Error loading bot resellers:", error);
+    alert("Gagal memuat data reseller");
+  }
 }
 
 function openBrsModal(data = null) {
