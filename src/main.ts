@@ -6,6 +6,7 @@ import * as FileStore from "session-file-store";
 import { Eta } from "eta"; // Import th
 import { NestExpressApplication } from "@nestjs/platform-express";
 import { join, resolve } from "path";
+import * as express from "express";
 
 const FileStoreSession = FileStore(session);
 
@@ -37,7 +38,9 @@ async function bootstrap() {
   app.useStaticAssets(resolve(__dirname, "..", "public"), {
     prefix: "/"
   });
-
+  // ✅ TAMBAHKAN INI — Naikkan limit JSON & URL-encoded
+  app.use(express.json({ limit: "50mb" }));
+  app.use(express.urlencoded({ limit: "50mb", extended: true }));
   app.use(cookieParser());
   app.use(
     session({
