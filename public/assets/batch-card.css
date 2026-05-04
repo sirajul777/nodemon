@@ -228,100 +228,108 @@
 .ar-pill.on::after {
   left: 19px;
 }
-
-/* ── "All used" badge on batch card ── */
-.batch-card.all-used {
-  opacity: 0.55;
-}
-.batch-card.all-used::after {
-  content: "✓ HABIS";
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: rgba(63, 185, 80, 0.15);
-  color: var(--green);
-  border: 1px solid rgba(63, 185, 80, 0.25);
-  border-radius: 6px;
-  padding: 2px 8px;
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-}
-
-/* ── Action buttons wrapper (DI BAWAH CARD) ── */
+/* ── Action buttons wrapper ── */
 .batch-del-wrapper {
   display: flex;
-  gap: 6px;
-  padding: 10px 14px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
   border-top: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.01);
   border-radius: 0 0 14px 14px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
 }
 
-.batch-del-btn {
-  padding: 7px 12px;
-  border-radius: 8px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
+.batch-btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* ── Base action button ── */
+.batch-action-btn {
+  display: flex;
   align-items: center;
-  gap: 5px;
-  transition: 0.15s;
-  white-space: nowrap;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text);
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
   border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  white-space: nowrap;
 }
 
-.batch-del-btn:hover {
+.batch-action-btn:hover {
   transform: translateY(-2px);
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
-.batch-del-btn:active {
+.batch-action-btn:active {
   transform: translateY(0);
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
-/* ── Warna per button ── */
-.batch-del-btn.sync-report {
-  background: rgba(63, 185, 80, 0.1);
+.batch-action-btn i {
+  font-size: 0.85rem;
+  width: 14px;
+  text-align: center;
+}
+
+/* ── Button variant: Sync Report (Green) ── */
+.batch-action-btn.btn-sync-report {
+  background: rgba(63, 185, 80, 0.08);
   color: var(--green);
-  border-color: rgba(63, 185, 80, 0.25);
+  border-color: rgba(63, 185, 80, 0.2);
 }
 
-.batch-del-btn.sync-report:hover {
-  background: rgba(63, 185, 80, 0.2);
-  border-color: rgba(63, 185, 80, 0.4);
+.batch-action-btn.btn-sync-report:hover {
+  background: rgba(63, 185, 80, 0.15);
+  border-color: rgba(63, 185, 80, 0.35);
+  box-shadow: 0 0 12px rgba(63, 185, 80, 0.2);
 }
 
-.batch-del-btn.sync-status {
-  background: rgba(56, 139, 253, 0.1);
+/* ── Button variant: Sync Status (Blue) ── */
+.batch-action-btn.btn-sync-status {
+  background: rgba(56, 139, 253, 0.08);
   color: #58a6ff;
-  border-color: rgba(56, 139, 253, 0.25);
+  border-color: rgba(56, 139, 253, 0.2);
 }
 
-.batch-del-btn.sync-status:hover {
-  background: rgba(56, 139, 253, 0.2);
-  border-color: rgba(56, 139, 253, 0.4);
+.batch-action-btn.btn-sync-status:hover {
+  background: rgba(56, 139, 253, 0.15);
+  border-color: rgba(56, 139, 253, 0.35);
+  box-shadow: 0 0 12px rgba(56, 139, 253, 0.2);
 }
 
-.batch-del-btn.delete-btn {
-  background: rgba(248, 81, 73, 0.1);
+/* ── Button variant: Delete (Red) — Full width ── */
+.batch-action-btn.btn-delete {
+  background: rgba(248, 81, 73, 0.08);
   color: var(--red);
-  border-color: rgba(248, 81, 73, 0.25);
+  border-color: rgba(248, 81, 73, 0.2);
+  width: 100%;
+  justify-content: center;
 }
 
-.batch-del-btn.delete-btn:hover {
-  background: rgba(248, 81, 73, 0.2);
-  border-color: rgba(248, 81, 73, 0.4);
+.batch-action-btn.btn-delete:hover {
+  background: rgba(248, 81, 73, 0.15);
+  border-color: rgba(248, 81, 73, 0.35);
+  box-shadow: 0 0 12px rgba(248, 81, 73, 0.2);
 }
 
-/* ── Hapus styling lama batch-del ── */
-.batch-del {
-  display: none !important;
+/* ── Responsive: Stack buttons di mobile ── */
+@media (max-width: 480px) {
+  .batch-btn-row {
+    grid-template-columns: 1fr;
+  }
+
+  .batch-action-btn {
+    font-size: 0.73rem;
+    padding: 8px 10px;
+  }
 }

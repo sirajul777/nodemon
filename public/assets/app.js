@@ -2403,7 +2403,7 @@ function buildBatchCard(b) {
         dateStyle: "medium",
         timeStyle: "short"
       })
-    : "—";
+    : "���";
 
   return `<div class="batch-card" onclick="openBatchDetail('${b.id}')" style="position:relative">
     <div class="batch-card-top" style="border-left:4px solid ${color}">
@@ -2433,22 +2433,27 @@ function buildBatchCard(b) {
       </div>
     </div>
     
-    <!-- ✅ TOMBOL ACTION — DI BAWAH CARD -->
+    <!-- ✅ TOMBOL ACTION — PERBAIKAN LAYOUT -->
     <div class="batch-del-wrapper">
-      <button class="batch-del-btn sync-report" 
-        onclick="event.stopPropagation();syncBatchToReport('${b.id}')" 
-        title="Sync ke Selling Report">
-        <i class="fa fa-upload"></i> Sync Report
-      </button>
-      <button class="batch-del-btn sync-status" 
-        onclick="event.stopPropagation();syncUsedFromMikrotik()" 
-        title="Sync Status Terpakai">
-        <i class="fa fa-refresh"></i> Sync Status
-      </button>
-      <button class="batch-del-btn delete-btn" 
+      <div class="batch-btn-row">
+        <button class="batch-action-btn btn-sync-report" 
+          onclick="event.stopPropagation();syncBatchToReport('${b.id}')" 
+          title="Sync ke Selling Report">
+          <i class="fa fa-upload"></i>
+          <span>Sync Report</span>
+        </button>
+        <button class="batch-action-btn btn-sync-status" 
+          onclick="event.stopPropagation();syncUsedFromMikrotik()" 
+          title="Sync Status Terpakai">
+          <i class="fa fa-refresh"></i>
+          <span>Sync Status</span>
+        </button>
+      </div>
+      <button class="batch-action-btn btn-delete" 
         onclick="event.stopPropagation();deleteBatch('${b.id}')" 
         title="Hapus batch">
-        <i class="fa fa-trash"></i> Hapus
+        <i class="fa fa-trash"></i>
+        <span>Hapus</span>
       </button>
     </div>
   </div>`;
