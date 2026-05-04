@@ -2066,13 +2066,13 @@ async function broadcastMsg() {
 // ════════════════════════════════════════════════
 async function req(path) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 25000); // 15s timeout
+  // const timeoutId = setTimeout(() => controller.abort(), 25000); // 15s timeout
   try {
     const r = await fetch(API + path, {
       credentials: "include",
       signal: controller.signal
     });
-    clearTimeout(timeoutId);
+    // clearTimeout(timeoutId);
     if (r.status === 401) {
       if (path !== "/auth/me")
         document.getElementById("ls").classList.remove("hide");
@@ -2080,7 +2080,7 @@ async function req(path) {
     }
     return await r.json();
   } catch (e) {
-    clearTimeout(timeoutId);
+    // clearTimeout(timeoutId);
     console.error("Request failed:", path, e);
     return null;
   }
@@ -4059,7 +4059,9 @@ async function loadBotResellers() {
     if (brsTotalEl) brsTotalEl.textContent = list.length;
     if (brsActiveEl) brsActiveEl.textContent = active;
     if (brsVcrEl) brsVcrEl.textContent = vcr;
-    if (brsIncomeEl) brsIncomeEl.textContent = "Rp " + Math.round(income).toLocaleString("id-ID");
+    if (brsIncomeEl)
+      brsIncomeEl.textContent =
+        "Rp " + Math.round(income).toLocaleString("id-ID");
 
     const tb = document.getElementById("t-brs");
     if (!tb) {
