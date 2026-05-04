@@ -4092,7 +4092,7 @@ async function loadBotResellers() {
         <td>
           <div style="display:flex;gap:4px">
             <button class="btn b-g b-sm" onclick="openTopupModal('${r.id}')" title="Topup Saldo"><i class="fa fa-plus-circle"></i></button>
-            <button class="btn b-s b-sm" onclick="showBrsLog('${r.id}','${r.name}')" title="Riwayat"><i class="fa fa-history"></i></button>
+            <button class="btn b-s b-sm" onclick="showRbDetail('${r.id}')" title="Riwayat"><i class="fa fa-history"></i></button>
             <button class="btn b-w b-sm" onclick="editBrsFn('${r.id}')"><i class="fa fa-pencil"></i></button>
             <button class="btn b-d b-sm" onclick="deleteBrs('${r.id}')"><i class="fa fa-trash"></i></button>
           </div>
