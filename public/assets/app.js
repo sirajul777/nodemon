@@ -2607,16 +2607,90 @@ async function markVoucherUsed(username) {
   }
 }
 
-// DENGAN INI
+// ══════════════════════════════════════════════════════════════════
+// BOTTOM SHEET HELPER FUNCTIONS
+// ══════════════════════════════════════════════════════════════════
+
+let sheetStack = []; // Stack untuk multiple sheets
+
+/**
+ * Tampilkan bottom sheet dengan konten HTML
+ */
+function openSheet(htmlContent, options = {}) {
+  const {
+    title = "",
+    closable = true,
+    onClose = null,
+    className = ""
+  } = options;
+
+  // Buat sheet element
+  const sheetId = `sheet-${Date.now()}`;
+  const sheet = document.createElement("div");
+  sheet.id = sheetId;
+  sheet.className = `bottom-sheet ${className}`;
+  sheet.innerHTML = `
+    <div class="sheet-backdrop"></div>
+    <div class="sheet-content">
+      <div class="sheet-header">
+        <div class="sheet-drag-handle"></div>
+        ${closable ? `<button class="sheet-close" onclick="closeSheet()"><i class="fa fa-times"></i></button>` : ""}
+      </div>
+      <div class="sheet-body">
+        ${htmlContent}
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(sheet);
+  sheetStack.push({ id: sheetId, onClose });
+
+  // Trigger animation
+  setTimeout(() => sheet.classList.add("show"), 10);
+
+  // Close on backdrop click
+  sheet.querySelector(".sheet-backdrop").addEventListener("click", () => {
+    closeSheet();
+  });
+}
+
+/**
+ * Tutup bottom sheet
+ */
+function closeSheet() {
+  if (sheetStack.length === 0) return;
+
+  const { id, onClose } = sheetStack.pop();
+  const sheet = document.getElementById(id);
+
+  if (sheet) {
+    sheet.classList.remove("show");
+    setTimeout(() => {
+      sheet.remove();
+      if (onClose) onClose();
+    }, 300);
+  }
+}
+
+/**
+ * Tutup semua sheets
+ */
+function closeAllSheets() {
+  while (sheetStack.length > 0) {
+    closeSheet();
+  }
+}
+
+// Update deleteBatch untuk lebih clean
 async function deleteBatch(batchId) {
-  // Tampil pilihan — hapus lokal saja atau sekalian di MikroTik
-  openSheet(`
+  openSheet(
+    `
     <div class="sheet-title">🗑️ Hapus Batch Voucher</div>
     <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">
       Pilih cara menghapus batch ini:
     </p>
     <div style="display:flex;flex-direction:column;gap:10px">
-      <button class="btn b-d" style="justify-content:flex-start;padding:14px;text-align:left" 
+      <button class="btn b-d" style="justify-content:flex-start;padding:14px;text-align:left;width:100%" 
         onclick="confirmDeleteBatch('${batchId}', true)">
         <div>
           <div style="font-weight:600"><i class="fa fa-trash"></i> Hapus + Hapus di MikroTik</div>
@@ -2625,7 +2699,7 @@ async function deleteBatch(batchId) {
           </div>
         </div>
       </button>
-      <button class="btn b-s" style="justify-content:flex-start;padding:14px;text-align:left"
+      <button class="btn b-s" style="justify-content:flex-start;padding:14px;text-align:left;width:100%"
         onclick="confirmDeleteBatch('${batchId}', false)">
         <div>
           <div style="font-weight:600"><i class="fa fa-times"></i> Hapus Lokal Saja</div>
@@ -2635,11 +2709,13 @@ async function deleteBatch(batchId) {
         </div>
       </button>
       <button class="btn b-ghost" onclick="closeSheet()" 
-        style="background:transparent;color:var(--muted)">
+        style="width:100%">
         Batal
       </button>
     </div>
-  `);
+  `,
+    { closable: true }
+  );
 }
 
 async function confirmDeleteBatch(batchId, deleteMikrotik) {
@@ -2654,9 +2730,9 @@ async function confirmDeleteBatch(batchId, deleteMikrotik) {
     hideL();
 
     if (d?.success) {
-      let msg = "Batch dihapus";
+      let msg = "✅ Batch dihapus";
       if (deleteMikrotik) {
-        msg += ` · ${d.deletedFromMikrotik} user dihapus dari MikroTik`;
+        msg += ` · ${d.deletedFromMikrotik || 0} user dihapus dari MikroTik`;
         if (d.failedFromMikrotik > 0) {
           msg += ` · ${d.failedFromMikrotik} gagal`;
         }
@@ -2664,17 +2740,17 @@ async function confirmDeleteBatch(batchId, deleteMikrotik) {
       toast(msg);
       // Kalau sedang di detail, kembali ke list dulu
       if (
-        document.getElementById("batch-detail-area").style.display !== "none"
+        document.getElementById("batch-detail-area")?.style.display !== "none"
       ) {
         closeBatchDetail();
       }
       loadBatchList();
     } else {
-      toast("Gagal hapus: " + (d?.error || "error"), true);
+      toast("❌ Gagal hapus: " + (d?.error || "error"), true);
     }
   } catch (e) {
     hideL();
-    toast("Error: " + e.message, true);
+    toast("❌ Error: " + e.message, true);
   }
 }
 
