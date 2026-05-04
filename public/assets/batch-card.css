@@ -248,35 +248,28 @@
   letter-spacing: 0.5px;
 }
 
-/* ── Action buttons wrapper ── */
+/* ── Action buttons wrapper (DI BAWAH CARD) ── */
 .batch-del-wrapper {
-  position: absolute;
-  top: 50%;
-  right: 12px;
-  transform: translateY(-50%);
   display: flex;
   gap: 6px;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  pointer-events: none;
-  z-index: 20;
-}
-
-.batch-card:hover .batch-del-wrapper {
-  opacity: 1;
-  pointer-events: auto;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 0 0 14px 14px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .batch-del-btn {
-  padding: 6px 10px;
+  padding: 7px 12px;
   border-radius: 8px;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 600;
   border: none;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   transition: 0.15s;
   white-space: nowrap;
   background: rgba(255, 255, 255, 0.08);
@@ -289,6 +282,12 @@
   background: rgba(255, 255, 255, 0.12);
 }
 
+.batch-del-btn:active {
+  transform: translateY(0);
+  opacity: 0.8;
+}
+
+/* ── Warna per button ── */
 .batch-del-btn.sync-report {
   background: rgba(63, 185, 80, 0.1);
   color: var(--green);
@@ -297,6 +296,7 @@
 
 .batch-del-btn.sync-report:hover {
   background: rgba(63, 185, 80, 0.2);
+  border-color: rgba(63, 185, 80, 0.4);
 }
 
 .batch-del-btn.sync-status {
@@ -307,6 +307,7 @@
 
 .batch-del-btn.sync-status:hover {
   background: rgba(56, 139, 253, 0.2);
+  border-color: rgba(56, 139, 253, 0.4);
 }
 
 .batch-del-btn.delete-btn {
@@ -317,9 +318,10 @@
 
 .batch-del-btn.delete-btn:hover {
   background: rgba(248, 81, 73, 0.2);
+  border-color: rgba(248, 81, 73, 0.4);
 }
 
-.batch-del-btn:active {
-  transform: translateY(0);
-  opacity: 0.8;
+/* ── Hapus styling lama batch-del ── */
+.batch-del {
+  display: none !important;
 }

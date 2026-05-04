@@ -2405,7 +2405,7 @@ function buildBatchCard(b) {
       })
     : "—";
 
-  return `<div class="batch-card" onclick="openBatchDetail('${b.id}')" style="position:relative;overflow:visible">
+  return `<div class="batch-card" onclick="openBatchDetail('${b.id}')" style="position:relative">
     <div class="batch-card-top" style="border-left:4px solid ${color}">
       <div class="batch-card-id">${b.id}</div>
       <div class="batch-card-profile">${b.profileName}</div>
@@ -2433,7 +2433,7 @@ function buildBatchCard(b) {
       </div>
     </div>
     
-    <!-- ✅ TOMBOL ACTION — DIPERBAIKI -->
+    <!-- ✅ TOMBOL ACTION — DI BAWAH CARD -->
     <div class="batch-del-wrapper">
       <button class="batch-del-btn sync-report" 
         onclick="event.stopPropagation();syncBatchToReport('${b.id}')" 
@@ -2453,7 +2453,6 @@ function buildBatchCard(b) {
     </div>
   </div>`;
 }
-
 async function openBatchDetail(batchId) {
   showL();
   const b = await req(`/batches/${CS}/${batchId}`);
