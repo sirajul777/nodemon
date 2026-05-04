@@ -9,22 +9,30 @@
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
-  overflow: hidden; cursor: pointer;
-  transition: 0.2s; position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: 0.2s;
+  position: relative;
 }
 .batch-card:hover {
-  border-color: rgba(56,139,253,0.4);
+  border-color: rgba(56, 139, 253, 0.4);
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
 /* Reveal delete button on hover */
 .batch-del {
-  position: absolute; bottom: 9px; right: 10px;
-  display: flex; gap: 4px;
-  opacity: 0; transition: 0.15s;
+  position: absolute;
+  bottom: 9px;
+  right: 10px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: 0.15s;
 }
-.batch-card:hover .batch-del { opacity: 1; }
+.batch-card:hover .batch-del {
+  opacity: 1;
+}
 
 /* ── Card top section ── */
 .batch-card-top {
@@ -32,45 +40,71 @@
   border-bottom: 1px solid var(--border);
 }
 .batch-card-id {
-  font-size: 0.7rem; font-weight: 700;
-  color: var(--muted); letter-spacing: 0.5px;
-  text-transform: uppercase; margin-bottom: 3px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 3px;
 }
 .batch-card-profile {
-  font-size: 1rem; font-weight: 800;
-  color: #fff; margin-bottom: 8px;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 8px;
 }
 .batch-card-meta {
-  display: flex; flex-direction: column; gap: 3px;
-  font-size: 0.75rem; color: var(--muted); margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 10px;
 }
 .batch-card-price {
-  display: flex; align-items: baseline;
-  gap: 8px; flex-wrap: wrap;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
 }
-.batch-card-price .unit  { font-size: 1.1rem; font-weight: 800; }
-.batch-card-price .total { font-size: 0.75rem; color: var(--muted); }
-.batch-card-price .fmt   {
+.batch-card-price .unit {
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+.batch-card-price .total {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.batch-card-price .fmt {
   font-size: 0.68rem;
-  background: rgba(255,255,255,0.07);
-  border-radius: 4px; padding: 1px 7px;
-  color: var(--muted); margin-left: auto;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 4px;
+  padding: 1px 7px;
+  color: var(--muted);
+  margin-left: auto;
 }
 
 /* ── Card bottom section ── */
-.batch-card-bot { padding: 12px 16px; }
+.batch-card-bot {
+  padding: 12px 16px;
+}
 .batch-card-bar {
   height: 5px;
-  background: rgba(255,255,255,0.06);
-  border-radius: 99px; overflow: hidden; margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 8px;
 }
 .batch-card-fill {
-  height: 100%; border-radius: 99px;
+  height: 100%;
+  border-radius: 99px;
   transition: width 0.5s ease;
 }
 .batch-card-stats {
-  display: flex; justify-content: space-between;
-  font-size: 0.72rem; color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--muted);
 }
 
 /* ── Generate voucher result grid ── */
@@ -78,65 +112,214 @@
 .vcr-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 8px; margin-top: 4px;
+  gap: 8px;
+  margin-top: 4px;
 }
 .vcr-card {
-  background: var(--card2); border-radius: 10px; padding: 12px;
+  background: var(--card2);
+  border-radius: 10px;
+  padding: 12px;
   border-top: 3px solid #388bfd; /* overridden inline per profile */
 }
-.vu { font-size: 1rem; font-weight: 800; font-family: monospace; letter-spacing: 0.5px; color: #fff; margin-bottom: 4px; }
-.vp { font-size: 0.8rem; color: var(--muted); font-family: monospace; margin-bottom: 6px; }
-.vp i { color: var(--yellow); margin-right: 3px; }
-.vpr { font-size: 0.72rem; color: var(--muted); border-top: 1px solid var(--border); padding-top: 6px; }
+.vu {
+  font-size: 1rem;
+  font-weight: 800;
+  font-family: monospace;
+  letter-spacing: 0.5px;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.vp {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-family: monospace;
+  margin-bottom: 6px;
+}
+.vp i {
+  color: var(--yellow);
+  margin-right: 3px;
+}
+.vpr {
+  font-size: 0.72rem;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+}
 
 /* Voucher type name in settings table */
-.vt-name { font-weight: 600; }
+.vt-name {
+  font-weight: 600;
+}
 
 /* ── Auto-remove: fade-out animation for batch card ── */
 @keyframes batchRemove {
-  0%   { opacity:1; transform:scale(1); max-height:300px; margin-bottom:12px; }
-  60%  { opacity:0; transform:scale(.94); }
-  100% { opacity:0; max-height:0;  margin-bottom:0; padding:0; border:0; overflow:hidden; }
+  0% {
+    opacity: 1;
+    transform: scale(1);
+    max-height: 300px;
+    margin-bottom: 12px;
+  }
+  60% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  100% {
+    opacity: 0;
+    max-height: 0;
+    margin-bottom: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+  }
 }
 .batch-card.removing {
-  animation: batchRemove .55s cubic-bezier(.4,0,.2,1) forwards;
+  animation: batchRemove 0.55s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   pointer-events: none;
 }
- 
+
 /* ── Auto-remove toggle switch ── */
 .ar-toggle-wrap {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 12px; border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 8px;
   border: 1px solid var(--border);
-  background: rgba(255,255,255,.03);
-  cursor: pointer; user-select: none;
-  font-size: .78rem; color: var(--muted);
-  transition: .2s;
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.78rem;
+  color: var(--muted);
+  transition: 0.2s;
 }
-.ar-toggle-wrap:hover { border-color: rgba(255,255,255,.15); color: var(--text); }
-.ar-toggle-wrap.active { border-color: rgba(63,185,80,.3); color: var(--green); background: rgba(63,185,80,.06); }
- 
+.ar-toggle-wrap:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--text);
+}
+.ar-toggle-wrap.active {
+  border-color: rgba(63, 185, 80, 0.3);
+  color: var(--green);
+  background: rgba(63, 185, 80, 0.06);
+}
+
 .ar-pill {
-  width: 34px; height: 18px; border-radius: 99px;
-  background: var(--border); position: relative;
-  transition: .2s; flex-shrink: 0;
+  width: 34px;
+  height: 18px;
+  border-radius: 99px;
+  background: var(--border);
+  position: relative;
+  transition: 0.2s;
+  flex-shrink: 0;
 }
-.ar-pill.on { background: var(--green); }
+.ar-pill.on {
+  background: var(--green);
+}
 .ar-pill::after {
-  content: ''; position: absolute;
-  top: 3px; left: 3px;
-  width: 12px; height: 12px; border-radius: 50%;
-  background: #fff; transition: .2s;
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  transition: 0.2s;
 }
-.ar-pill.on::after { left: 19px; }
- 
+.ar-pill.on::after {
+  left: 19px;
+}
+
 /* ── "All used" badge on batch card ── */
-.batch-card.all-used { opacity: .55; }
+.batch-card.all-used {
+  opacity: 0.55;
+}
 .batch-card.all-used::after {
-  content: '✓ HABIS';
-  position: absolute; top: 10px; right: 10px;
-  background: rgba(63,185,80,.15); color: var(--green);
-  border: 1px solid rgba(63,185,80,.25);
-  border-radius: 6px; padding: 2px 8px;
-  font-size: .65rem; font-weight: 800; letter-spacing: .5px;
+  content: "✓ HABIS";
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(63, 185, 80, 0.15);
+  color: var(--green);
+  border: 1px solid rgba(63, 185, 80, 0.25);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+/* ── Action buttons wrapper ── */
+.batch-del-wrapper {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.batch-card:hover .batch-del-wrapper {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.batch-del-btn {
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: 0.15s;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.batch-del-btn:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.batch-del-btn.sync-report {
+  background: rgba(63, 185, 80, 0.1);
+  color: var(--green);
+  border-color: rgba(63, 185, 80, 0.25);
+}
+
+.batch-del-btn.sync-report:hover {
+  background: rgba(63, 185, 80, 0.2);
+}
+
+.batch-del-btn.sync-status {
+  background: rgba(56, 139, 253, 0.1);
+  color: #58a6ff;
+  border-color: rgba(56, 139, 253, 0.25);
+}
+
+.batch-del-btn.sync-status:hover {
+  background: rgba(56, 139, 253, 0.2);
+}
+
+.batch-del-btn.delete-btn {
+  background: rgba(248, 81, 73, 0.1);
+  color: var(--red);
+  border-color: rgba(248, 81, 73, 0.25);
+}
+
+.batch-del-btn.delete-btn:hover {
+  background: rgba(248, 81, 73, 0.2);
+}
+
+.batch-del-btn:active {
+  transform: translateY(0);
+  opacity: 0.8;
 }

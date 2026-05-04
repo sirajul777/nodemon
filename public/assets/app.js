@@ -2405,7 +2405,7 @@ function buildBatchCard(b) {
       })
     : "—";
 
-  return `<div class="batch-card" onclick="openBatchDetail('${b.id}')">
+  return `<div class="batch-card" onclick="openBatchDetail('${b.id}')" style="position:relative;overflow:visible">
     <div class="batch-card-top" style="border-left:4px solid ${color}">
       <div class="batch-card-id">${b.id}</div>
       <div class="batch-card-profile">${b.profileName}</div>
@@ -2432,17 +2432,23 @@ function buildBatchCard(b) {
         <span style="color:var(--green);font-weight:600">${s.remaining || s.total || 0} tersisa</span>
       </div>
     </div>
-    <div style="position:absolute;bottom:9px;right:10px;display:flex;gap:4px;opacity:0;transition:.15s" class="batch-del">
-      <button class="btn b-d b-sm" onclick="event.stopPropagation();syncBatchToReport('${b.id}')" 
-        title="Sync ke Selling Report"
-        style="background:#3fb95018;color:var(--green);border:1px solid #3fb95030;padding:3px 8px">
-        <i class="fa fa-upload"></i>
+    
+    <!-- ✅ TOMBOL ACTION — DIPERBAIKI -->
+    <div class="batch-del-wrapper">
+      <button class="batch-del-btn sync-report" 
+        onclick="event.stopPropagation();syncBatchToReport('${b.id}')" 
+        title="Sync ke Selling Report">
+        <i class="fa fa-upload"></i> Sync Report
       </button>
-      <button class="btn bd b-sm" onclick="syncUsedFromMikrotik()" style="color:var(--cyan);border-color:var(--cyan)">
-        <i class="fa fa-refresh"></i> Sync Status Terpakai
+      <button class="batch-del-btn sync-status" 
+        onclick="event.stopPropagation();syncUsedFromMikrotik()" 
+        title="Sync Status Terpakai">
+        <i class="fa fa-refresh"></i> Sync Status
       </button>
-      <button class="btn b-d b-sm" onclick="event.stopPropagation();deleteBatch('${b.id}')" title="Hapus batch">
-        <i class="fa fa-trash"></i>
+      <button class="batch-del-btn delete-btn" 
+        onclick="event.stopPropagation();deleteBatch('${b.id}')" 
+        title="Hapus batch">
+        <i class="fa fa-trash"></i> Hapus
       </button>
     </div>
   </div>`;
