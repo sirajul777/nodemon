@@ -8,6 +8,7 @@ export interface MobileUserService {
   username: string;
   name: string;
   role: string;
+  allowedSessions: any;
   permissions: any;
 }
 @Injectable()
@@ -40,6 +41,7 @@ export class MobileAuthService {
         username,
         name: username,
         role: "admin",
+        allowedSessions: [],
         permissions: {
           viewDashboard: true,
           manageVoucher: true,

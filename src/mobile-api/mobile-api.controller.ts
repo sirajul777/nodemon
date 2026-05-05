@@ -91,7 +91,8 @@ export class MobileApiController {
         username: result.username,
         name: result.name,
         role: result.role,
-        permissions: result.permissions
+        permissions: result.permissions,
+        allowedSessions: result.allowedSessions
       }
     });
   }
