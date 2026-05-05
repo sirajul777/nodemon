@@ -1681,22 +1681,50 @@ export class TelegramService implements OnModuleInit {
   // ── Command Handlers ──────────────────────────────────
 
   private async handleHelp(chatId: string, isAdmin: boolean): Promise<void> {
+    const reseller = this.resellerSvc?.getByTelegramId(chatId);
+    const isReseller = !!reseller && reseller.status === "active";
+
     let text = `🤖 <b>MikHMon Hotspot Bot</b>\n\n`;
-    text += `📋 <b>Perintah:</b>\n\n`;
-    text += `🎟️ /beli — Beli voucher (pilih profile via tombol)\n`;
-    text += `📦 /generate — Generate batch voucher\n`;
-    text += `🔍 /cek [user] — Cek status user\n`;
-    text += `📋 /profil — Lihat daftar profile & harga\n\n`;
-    // Di handleHelp, tambah di bagian perintah reseller
-    text += `💰 /topup [jumlah] — Request topup saldo\n`;
-    text += `📋 /cektopup — Cek status request topup\n`;
-    if (isAdmin) {
-      text += `⚙️ <b>Admin:</b>\n`;
-      text += `/status — Info router\n/aktif — User aktif\n/rekap — Rekap hari ini\n/bulan — Rekap bulan ini\n/pppoe — PPPoE aktif\n/hapus [user] — Hapus user\n`;
-      text += `\n💼 <b>Reseller Admin:</b>\n`;
-      text += `/resellers — Daftar semua reseller\n`;
-      text += `/topup — Topup saldo \n`;
+
+    text += `📖 <b>Perintah Umum:</b>\n`;
+    text += `• /start — Memulai bot\n`;
+    text += `• /daftar — Daftar sebagai reseller baru\n`;
+    text += `• /help — Menampilkan menu bantuan\n\n`;
+
+    // Menu khusus Reseller (atau Admin)
+    if (isReseller || isAdmin) {
+      text += `💼 <b>Menu Reseller:</b>\n`;
+      text += `• /beli — Beli 1 voucher (pilih profile)\n`;
+      text += `• /saldo — Cek saldo & profil reseller\n`;
+      text += `• /topup — Request topup saldo ke admin\n`;
+      text += `• /cektopup — Cek status request topup\n`;
+      text += `• /riwayat — Riwayat pembelian terakhir\n`;
+      text += `• /profil — Daftar harga & profile voucher\n`;
+      text += `• /cek [user] — Cek status & detail voucher\n\n`;
     }
+
+    // Menu khusus Admin
+    if (isAdmin) {
+      text += `⚙️ <b>Menu Admin:</b>\n`;
+      text += `• /status — Info resource & identity router\n`;
+      text += `• /aktif — Daftar user hotspot yang sedang login\n`;
+      text += `• /today — Rekap penjualan hari ini\n`;
+      text += `• /bulan — Rekap penjualan bulan ini\n`;
+      text += `• /pppoe — Daftar user PPPoE yang aktif\n`;
+      text += `• /hapus [user] — Menghapus user hotspot\n`;
+      text += `• /generate — Batch generate banyak voucher\n\n`;
+
+      text += `👥 <b>Manajemen Reseller:</b>\n`;
+      text += `• /resellers — Daftar semua reseller terdaftar\n`;
+      text += `• /topup [id] [jumlah] — Topup saldo reseller manual\n\n`;
+    }
+
+    if (!isReseller && !isAdmin) {
+      text += `ℹ️ <i>Anda belum terdaftar. Silakan ketik /daftar untuk mulai menggunakan layanan reseller.</i>\n\n`;
+    }
+
+    text += `🕒 ${new Date().toLocaleString("id-ID")}`;
+
     await this.sendMessage(chatId, text);
   }
 
