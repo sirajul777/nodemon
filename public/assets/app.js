@@ -1304,7 +1304,7 @@ function openResellerModal(data = null) {
     : "Add Reseller";
   document.getElementById("mrs-err").textContent = "";
   document.getElementById("mrs-id").value = data?.id || "";
-  document.getElementById("mrs-id").disabled = !!data;
+  // document.getElementById("mrs-id").disabled = !!data;
   document.getElementById("mrs-nm").value = data?.name || "";
   document.getElementById("mrs-ph").value = data?.phone || "";
   document.getElementById("mrs-dc").value = data?.discount || 0;
