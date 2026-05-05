@@ -1964,104 +1964,171 @@ async function loadTgInfo() {
       : '<p style="padding:8px 0">Belum ada aktivitas.</p>';
   }
 }
+let editingBotId = null;
 
 function openAddBotModal() {
-  // Isi session dropdown
-  const sess = document.getElementById("tg-session");
-  document.getElementById("tg-token").value = "";
-  document.getElementById("tg-chatid").value = "";
-  document.getElementById("tg-allowed").value = "";
-  document.getElementById("tg-enabled").value = "true";
-  document.getElementById("tg-notif-daily").value = "true";
-  document.getElementById("tg-daily-time").value = "23:59";
-  document.getElementById("tg-notif-sale").value = "false";
+  editingBotId = null;
+  document.getElementById("mtg-ttl").textContent = "Tambah Bot";
+  document.getElementById("mtg-token").value = "";
+  document.getElementById("mtg-token-hint").textContent = "wajib diisi";
+  document.getElementById("mtg-chatid").value = "";
+  document.getElementById("mtg-allowed").value = "";
+  document.getElementById("mtg-enabled").value = "true";
+  document.getElementById("mtg-notif-daily").value = "true";
+  document.getElementById("mtg-daily-time").value = "23:59";
+  document.getElementById("mtg-notif-sale").value = "false";
+  document.getElementById("mtg-err").textContent = "";
+  document.getElementById("mtg-test-result").textContent = "";
+
+  // Populate session dropdown
+  const sel = document.getElementById("mtg-session");
+  sel.innerHTML = '<option value="">Pilih router...</option>';
+  document.querySelectorAll("#rtr-sel option").forEach((o) => {
+    if (o.value)
+      sel.innerHTML += `<option value="${o.value}">${o.textContent}</option>`;
+  });
+
   document.getElementById("m-tg-config").classList.add("show");
 }
 
 async function editBotConfig(id) {
+  editingBotId = id;
+  document.getElementById("mtg-ttl").textContent = "Edit Bot";
+  document.getElementById("mtg-token-hint").textContent =
+    "kosongkan jika tidak diganti";
+  document.getElementById("mtg-token").value = "";
+  document.getElementById("mtg-err").textContent = "";
+  document.getElementById("mtg-test-result").textContent = "";
+
+  // Populate session dropdown
+  const sel = document.getElementById("mtg-session");
+  sel.innerHTML = '<option value="">Pilih router...</option>';
+  document.querySelectorAll("#rtr-sel option").forEach((o) => {
+    if (o.value)
+      sel.innerHTML += `<option value="${o.value}">${o.textContent}</option>`;
+  });
+
   const cfg = await req(`/telegram/config/${id}`);
-  if (!cfg || cfg.error) return;
-  document.getElementById("tg-token").value = "";
-  document.getElementById("tg-chatid").value = cfg.chatId || "";
-  document.getElementById("tg-allowed").value = (cfg.allowedUsers || []).join(
+  if (!cfg || cfg.error) {
+    toast("Gagal load config", true);
+    return;
+  }
+
+  document.getElementById("mtg-session").value = cfg.sessionId || "";
+  document.getElementById("mtg-chatid").value = cfg.chatId || "";
+  document.getElementById("mtg-allowed").value = (cfg.allowedUsers || []).join(
     ","
   );
-  document.getElementById("tg-enabled").value =
+  document.getElementById("mtg-enabled").value =
     cfg.botEnabled !== false ? "true" : "false";
-  document.getElementById("tg-notif-daily").value =
+  document.getElementById("mtg-notif-daily").value =
     cfg.notifDaily !== false ? "true" : "false";
-  document.getElementById("tg-daily-time").value = cfg.dailyTime || "23:59";
-  document.getElementById("tg-notif-sale").value = cfg.notifSale
+  document.getElementById("mtg-daily-time").value = cfg.dailyTime || "23:59";
+  document.getElementById("mtg-notif-sale").value = cfg.notifSale
     ? "true"
     : "false";
-  if (document.getElementById("tg-session")) {
-    document.getElementById("tg-session").value = cfg.sessionId || "";
-  }
+
   document.getElementById("m-tg-config").classList.add("show");
 }
 
-async function deleteBotConfig(id) {
-  if (!confirm(`Hapus konfigurasi bot untuk "${id}"?`)) return;
-  const d = await fetch(`${API}/telegram/config/${id}`, {
-    method: "DELETE",
-    credentials: "include"
-  }).then((r) => r.json());
-  d?.success ? (toast("Bot dihapus"), loadTgInfo()) : toast("Gagal", true);
+async function testTgConfig() {
+  const token = document.getElementById("mtg-token").value.trim();
+  const chatId = document.getElementById("mtg-chatid").value.trim();
+  const sessId = document.getElementById("mtg-session").value;
+  const resEl = document.getElementById("mtg-test-result");
+
+  if (!token) {
+    resEl.style.color = "var(--red)";
+    resEl.textContent = "⚠️ Isi token dulu";
+    return;
+  }
+  if (!chatId) {
+    resEl.style.color = "var(--red)";
+    resEl.textContent = "⚠️ Isi Chat ID dulu";
+    return;
+  }
+
+  resEl.style.color = "var(--muted)";
+  resEl.textContent = "Testing...";
+
+  const d = await post("/telegram/test", { token, chatId, sessionId: sessId });
+  if (d?.success) {
+    resEl.style.color = "var(--green)";
+    resEl.textContent = "✓ Berhasil! Cek Telegram kamu.";
+  } else {
+    resEl.style.color = "var(--red)";
+    resEl.textContent = "✗ Gagal: " + (d?.error || "error");
+  }
 }
 
-async function saveTelegramConfig() {
-  const token = v("tg-token").trim();
-  const chatId = v("tg-chatid").trim();
-  const sessionId = v("tg-session");
-  if (!chatId) {
-    se("tg-err", "Chat ID wajib diisi");
-    return;
-  }
-  if (!sessionId) {
-    se("tg-err", "Pilih router session");
-    return;
-  }
-  se("tg-err", "");
-  const allowedRaw = v("tg-allowed").trim();
-  const body = {
-    ...(token ? { token } : {}),
-    chatId,
-    sessionId,
+async function saveTgConfig() {
+  const token = document.getElementById("mtg-token").value.trim();
+  const chatId = document.getElementById("mtg-chatid").value.trim();
+  const sessId = document.getElementById("mtg-session").value;
+  const errEl = document.getElementById("mtg-err");
 
+  if (!sessId) {
+    errEl.textContent = "Pilih router session";
+    return;
+  }
+  if (!chatId) {
+    errEl.textContent = "Chat ID wajib diisi";
+    return;
+  }
+  if (!editingBotId && !token) {
+    errEl.textContent = "Token wajib diisi untuk bot baru";
+    return;
+  }
+
+  errEl.textContent = "";
+
+  const allowedRaw = document.getElementById("mtg-allowed").value.trim();
+  const body = {
+    id: editingBotId || sessId, // id = sessionId untuk bot baru
+    sessionId: sessId,
+    chatId,
     allowedUsers: allowedRaw
       ? allowedRaw
           .split(",")
           .map((x) => x.trim())
           .filter(Boolean)
       : [],
-    notifSale: v("tg-notif-sale") === "true",
-    notifDaily: v("tg-notif-daily") === "true",
-    dailyTime: v("tg-daily-time"),
-    botEnabled: v("tg-enabled") === "true"
+    notifSale: document.getElementById("mtg-notif-sale").value === "true",
+    notifDaily: document.getElementById("mtg-notif-daily").value === "true",
+    dailyTime: document.getElementById("mtg-daily-time").value,
+    botEnabled: document.getElementById("mtg-enabled").value === "true",
+    ...(token ? { token } : {})
   };
+
+  showL();
   const d = await post("/telegram/config", body);
-  d?.success
-    ? (toast("✓ Config Telegram disimpan! Bot aktif."), loadTgInfo())
-    : se("tg-err", "Gagal menyimpan");
+  hideL();
+
+  if (d?.success) {
+    closeM("m-tg-config");
+    toast(
+      editingBotId
+        ? "✓ Bot diupdate & direstart!"
+        : "✓ Bot ditambahkan & diaktifkan!"
+    );
+    loadTgInfo();
+  } else {
+    errEl.textContent = d?.error || "Gagal menyimpan";
+  }
 }
 
-async function testTelegram() {
-  const cfg = await req("/telegram/config");
-  if (!cfg) return;
-  const token = cfg.token;
-  const chatId = v("tg-chatid").trim();
-  const sessionId = v("tg-session");
-  if (!chatId) {
-    se("tg-test-err", "Chat ID wajib");
+async function deleteBotConfig(id) {
+  if (!confirm(`Hapus bot untuk session "${id}"?\nBot akan berhenti polling.`))
     return;
-  }
-  se("tg-test-err", "");
   showL();
-  const d = await post("/telegram/test", { token, chatId, sessionId });
+  const d = await fetch(`${API}/telegram/config/${id}`, {
+    method: "DELETE",
+    credentials: "include"
+  }).then((r) => r.json());
   hideL();
   d?.success
-    ? toast("✓ Test berhasil dikirim!")
-    : se("tg-test-err", "Gagal: " + (d?.error || "error"));
+    ? (toast("Bot dihapus & dihentikan"), loadTgInfo())
+    : toast("Gagal", true);
 }
 
 async function toggleBot() {

@@ -1483,4 +1483,80 @@
         </div>
       </div>
     </div>
+
+    // bot telegram modal
+    <!-- Telegram Bot Config Modal -->
+    <div class="ov" id="m-tg-config"><div class="modal" style="width:520px">
+      <h3><i class="fa fa-telegram"></i> <span id="mtg-ttl">Tambah Bot</span></h3>
+
+      <div class="fg">
+        <label>Router Session <small style="color:var(--muted)">bot ini handle router mana</small></label>
+        <select id="mtg-session"><option value="">Pilih router...</option></select>
+      </div>
+
+      <div class="fg">
+        <label>Bot Token <small style="color:var(--muted)" id="mtg-token-hint">wajib diisi</small></label>
+        <input id="mtg-token" type="password" placeholder="1234567890:ABCdef..." autocomplete="off">
+      </div>
+
+      <div class="fg">
+        <label>Telegram ID Admin <small style="color:var(--muted)">penerima notif & approve topup</small></label>
+        <input id="mtg-chatid" placeholder="5510679225" type="number">
+      </div>
+
+      <div class="fg">
+        <label>User ID Diizinkan <small style="color:var(--muted)">pisah koma, kosong = semua reseller</small></label>
+        <input id="mtg-allowed" placeholder="123456,789012 (opsional)">
+      </div>
+
+      <div class="fg2">
+        <div class="fg">
+          <label>Notif Harian</label>
+          <select id="mtg-notif-daily">
+            <option value="true">Aktif</option>
+            <option value="false">Nonaktif</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Jam Laporan</label>
+          <input id="mtg-daily-time" type="time" value="23:59">
+        </div>
+      </div>
+
+      <div class="fg2">
+        <div class="fg">
+          <label>Notif Setiap Penjualan</label>
+          <select id="mtg-notif-sale">
+            <option value="false">Nonaktif</option>
+            <option value="true">Aktif</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Status Bot</label>
+          <select id="mtg-enabled">
+            <option value="true">Aktif</option>
+            <option value="false">Nonaktif</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Test koneksi -->
+      <div style="background:var(--card2);border-radius:8px;padding:10px 12px;margin-bottom:12px">
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:6px">
+          <i class="fa fa-plug"></i> Test koneksi sebelum simpan
+        </div>
+        <button class="btn b-s b-sm" onclick="testTgConfig()">
+          <i class="fa fa-paper-plane"></i> Test Token
+        </button>
+        <span id="mtg-test-result" style="font-size:.78rem;margin-left:8px"></span>
+      </div>
+
+      <div class="err" id="mtg-err"></div>
+      <div class="mfoot">
+        <button class="btn b-s" onclick="closeM('m-tg-config')">Batal</button>
+        <button class="btn b-p" onclick="saveTgConfig()">
+          <i class="fa fa-save"></i> Simpan & Aktifkan
+        </button>
+      </div>
+    </div>
 </div>
