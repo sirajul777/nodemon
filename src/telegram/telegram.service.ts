@@ -459,7 +459,8 @@ export class TelegramService implements OnModuleInit {
     if (!cfg) return;
 
     const isAdmin = chatId === cfg.chatId || cfg.allowedUsers?.includes(userId);
-    const isSeller = isAdmin; // same access level; can be extended later
+    const resellerData = this.resellerSvc?.getByTelegramId(userId);
+    const isSeller = resellerData && resellerData.status === "active";
 
     // Handle non-command text (e.g., user typed quantity during multi-step)
     if (!text.startsWith("/")) {
@@ -479,24 +480,49 @@ export class TelegramService implements OnModuleInit {
     const [cmd, ...args] = text.split(" ");
     const command = cmd.toLowerCase().split("@")[0];
 
-    // Auth check
-    const openCmds = [
-      "/start",
-      "/help",
-      "/cek",
+    // Daftar perintah yang boleh diakses siapa saja (tanpa daftar)
+    const openCmds = ["/start", "/help", "/daftar"];
+
+    // Daftar perintah khusus untuk yang SUDAH daftar (Reseller) atau Admin
+    const resellerCmds = [
+      "/beli",
       "/saldo",
-      "/daftar",
       "/riwayat",
       "/profil",
-      "/profile"
+      "/profile",
+      "/cek",
+      "/topup",
+      "/cektopup"
     ];
-    if (!openCmds.includes(command) && !isSeller) {
-      await this.sendMessage(
-        chatId,
-        "⛔ Akses ditolak.\n\nHubungi admin untuk mendapatkan akses bot ini."
-      );
-      return;
+
+    // --- LOGIKA FILTER AKSES ---
+    if (!isAdmin) {
+      // Jika bukan admin dan bukan reseller, tapi mencoba akses resellerCmds
+      if (resellerCmds.includes(command) && !isSeller) {
+        await this.sendMessage(
+          chatId,
+          "⛔ <b>Akses Ditolak</b>\n\nAnda belum terdaftar atau akun Anda nonaktif. Silakan ketik /daftar untuk mendaftar sebagai reseller."
+        );
+        return;
+      }
+
+      // Jika mencoba perintah admin
+      const adminCmds = [
+        "/status",
+        "/aktif",
+        "/rekap",
+        "/today",
+        "/bulan",
+        "/pppoe",
+        "/hapus",
+        "/resellers"
+      ];
+      if (adminCmds.includes(command)) {
+        await this.sendMessage(chatId, "🚫 Perintah ini hanya untuk Admin.");
+        return;
+      }
     }
+    // ---------------------------
 
     switch (command) {
       case "/start":
