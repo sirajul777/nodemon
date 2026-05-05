@@ -9,6 +9,7 @@ import { MobileAuthService } from "./mobile-api.service";
 @Module({
   imports: [BotResellerModule, BillingModule, MikrotikModule, ConfigModule],
   providers: [MobileAuthService],
-  controllers: [MobileApiController]
+  controllers: [MobileApiController],
+  exports: [MobileAuthService]
 })
 export class MobileApiModule {}

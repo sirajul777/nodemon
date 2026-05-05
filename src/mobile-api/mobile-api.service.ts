@@ -3,19 +3,12 @@ import { ConfigService } from "../config/config.service";
 
 // Lazy-inject UserService to avoid circular dependency
 let userServiceRef: any = null;
-export interface MobileUserService {
-  userId: string;
-  username: string;
-  name: string;
-  role: string;
-  allowedSessions: any;
-  permissions: any;
-}
+
 @Injectable()
 export class MobileAuthService {
   constructor(private configService: ConfigService) {}
 
-  setUserService(svc: MobileUserService) {
+  setUserService(svc: any) {
     userServiceRef = svc;
   }
 
@@ -26,7 +19,7 @@ export class MobileAuthService {
   async validateUserFull(
     username: string,
     password: string
-  ): Promise<MobileUserService | null> {
+  ): Promise<any | null> {
     // Try multi-user system
     if (userServiceRef) {
       try {
@@ -41,7 +34,6 @@ export class MobileAuthService {
         username,
         name: username,
         role: "admin",
-        allowedSessions: [],
         permissions: {
           viewDashboard: true,
           manageVoucher: true,

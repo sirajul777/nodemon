@@ -35,7 +35,6 @@ export class AuthService {
         name: username,
         role: "admin",
         active: true,
-        allowedSession: {},
         permissions: {
           viewDashboard: true,
           manageVoucher: true,

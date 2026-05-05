@@ -19,6 +19,7 @@ import { UserModule } from "./user-management/user.module";
 import { AuthService } from "./auth/auth.service";
 import { UserService } from "./user-management/user.service";
 import { AppController } from "./app.controller";
+import { MobileAuthService } from "./mobile-api/mobile-api.service";
 
 @Module({
   imports: [
@@ -47,11 +48,13 @@ import { AppController } from "./app.controller";
 export class AppModule implements OnModuleInit {
   constructor(
     private readonly authService: AuthService,
+    private readonly mobileAuth: MobileAuthService,
     private readonly userService: UserService
   ) {}
 
   onModuleInit() {
     // Wire UserService into AuthService (avoid circular dependency)
     this.authService.setUserService(this.userService);
+    this.mobileAuth.setUserService(this.userService);
   }
 }

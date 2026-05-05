@@ -27,7 +27,6 @@ export class AuthController {
     (req.session as any).userId = result.id;
     (req.session as any).userRole = result.role;
     (req.session as any).userPerms = result.permissions;
-    (req.session as any).allowedSession = result.allowedSession;
 
     req.session.save((err) => {
       if (err)
@@ -39,8 +38,7 @@ export class AuthController {
         username: body.username,
         name: result.name,
         role: result.role,
-        permissions: result.permissions,
-        allowedSession: result.allowedSession
+        permissions: result.permissions
       });
     });
   }
