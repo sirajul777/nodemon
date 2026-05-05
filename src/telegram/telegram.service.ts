@@ -2007,8 +2007,8 @@ export class TelegramService implements OnModuleInit {
     // Kalau ada angka langsung di args — proses langsung
     if (args[0] && !isNaN(parseInt(args[0]))) {
       const amount = parseInt(args[0]);
-      if (amount < 1000) {
-        await this.sendMessage(chatId, "❌ Minimal topup Rp 1.000");
+      if (amount < 50000) {
+        await this.sendMessage(chatId, "❌ Minimal topup Rp 50.000");
         return;
       }
       await this.processTopupRequest(

@@ -1454,10 +1454,13 @@
           <div class="fg">
             <label>Format Kode</label
             ><select id="mvt-fmt">
-              <option value="upper+digit">Huruf Kapital + Angka</option>
-              <option value="lower+digit">Huruf Kecil + Angka</option>
-              <option value="mixed+digit">Huruf Besar+Kecil + Angka</option>
-              <option value="digit">Angka saja</option>
+              <option value="lowerdigit">Small Letters + Digits</option>
+              <option value="upperdigit">Capital Letters + Digits</option>
+              <option value="mixeddigit">Mixed Letters + Digits</option>
+              <option value="digit">Digits only</option>
+              <option value="alphabet">Letters only</option>
+              <option value="lower">Small Letters only</option>
+              <option value="upper">Capital Letters only</option>
             </select>
           </div>
         </div>
