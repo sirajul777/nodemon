@@ -57,12 +57,12 @@ const CONFIG_FILE = path.join(process.cwd(), "telegram.json");
 @Injectable()
 export class TelegramService implements OnModuleInit {
   private readonly logger = new Logger(TelegramService.name);
+  private voucherTypes = []
   // private polling = false;
   // private lastUpdateId = 0;
   // private dailyTimer: NodeJS.Timeout | null = null;
   // private currentBotToken: string | null = null;
   constructor() {
-        this.voucherTypes = []; // Placeholder awal
         this.loadVoucherTypes(); // Panggil saat bot startup
     }
 
