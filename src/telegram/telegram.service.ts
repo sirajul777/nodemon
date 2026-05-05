@@ -57,14 +57,10 @@ const CONFIG_FILE = path.join(process.cwd(), "telegram.json");
 @Injectable()
 export class TelegramService implements OnModuleInit {
   private readonly logger = new Logger(TelegramService.name);
-  private voucherTypes = []
   // private polling = false;
   // private lastUpdateId = 0;
   // private dailyTimer: NodeJS.Timeout | null = null;
   // private currentBotToken: string | null = null;
-  constructor() {
-        this.loadVoucherTypes(); // Panggil saat bot startup
-    }
 
   // SESUDAH: map per bot
   private botStates = new Map<
@@ -82,6 +78,7 @@ export class TelegramService implements OnModuleInit {
   private configService: any = null;
 
   private vtService: VoucherTypeService | null = null;
+  private vtType: VoucherType | null = null;
   private resellerSvc: BotResellerService | null = null;
   private resellerTgSvc: BotResellerTelegramService | null = null;
 
@@ -135,16 +132,6 @@ export class TelegramService implements OnModuleInit {
     return this.botStates.get(id)!;
   }
 
-  loadVoucherTypes() {
-      try {
-          const data = fs.readFileSync('./data/voucher_types.json', 'utf8');
-          this.voucherTypes = JSON.parse(data);
-          console.log(`✅ Berhasil memuat ${this.voucherTypes.length} tipe voucher.`);
-      } catch (err) {
-          console.error("❌ Gagal memuat data voucher:", err);
-          this.voucherTypes = []; // Fallback ke array kosong jika file error
-      }
-  }
   // Load semua config bot
   getAllConfigs(): TelegramConfig[] {
     try {
@@ -1440,21 +1427,23 @@ export class TelegramService implements OnModuleInit {
         }
         const ol = this.parseOnLogin(profiles[0]["on-login"] || "");
         // 1. Ambil data dari JSON lokal berdasarkan profile
-        const vType = this.voucherTypes.find(v => v.profile === profileName);
-        
+        const vType = this.vtService
+          .getAll()
+          .find((v) => v.profile === profileName);
+
         // 2. Tentukan Username & Password berdasarkan setting di JSON
         let uname, upass;
         const uLen = vType.codeLength; // Mengambil angka 6
         const charType = vType.codeFormat; // Mengambil "upper+digit"
 
-        if (vType.userType === 'vc') {
-            // Mode Voucher (User = Pass)
-            uname = this.randomStr(uLen, charType);
-            upass = uname;
+        if (vType.userType === "vc") {
+          // Mode Voucher (User = Pass)
+          uname = this.randomStr(uLen, charType);
+          upass = uname;
         } else {
-            // Mode User & Password (UP)
-            uname = this.randomStr(uLen, charType);
-            upass = this.randomStr(uLen, charType);
+          // Mode User & Password (UP)
+          uname = this.randomStr(uLen, charType);
+          upass = this.randomStr(uLen, charType);
         }
         // SESUDAH
         const dateTag = new Date()
@@ -1463,10 +1452,10 @@ export class TelegramService implements OnModuleInit {
           .slice(0, 8);
         const cmd = `/ip/hotspot/user/add`;
         const params = {
-            name: uname,
-            password: upass,
-            profile: vType.profile, // Menggunakan profile dari JSON
-            comment: `up-${vType.price}-${chatId}` // Opsional: menyertakan harga[cite: 8]
+          name: uname,
+          password: upass,
+          profile: vType.profile, // Menggunakan profile dari JSON
+          comment: `up-${vType.price}-${chatId}` // Opsional: menyertakan harga[cite: 8]
         };
         if (ol.validity) params["limit-uptime"] = ol.validity;
         await client.run("/ip/hotspot/user/add", params);
@@ -2506,8 +2495,20 @@ export class TelegramService implements OnModuleInit {
 
   // ── Helpers ───────────────────────────────────────────
 
-  private randomStr(len: number): string {
-    const chars = "abcdefghjkmnprstuvwxyz23456789";
+  private randomStr(
+    len: number,
+    type: VoucherType["codeFormat"] = "lowerdigit"
+  ): string {
+    const chars_map = {
+      lower: "abcdefghjkmnprstuvwxyz",
+      upper: "ABCDEFGHJKMNPRSTUVWXYZ",
+      alphabet: "abcdefghjkmnprstuvwxyzABCDEFGHJKMNPRSTUVWXYZ",
+      digit: "23456789",
+      lowerdigit: "abcdefghjkmnprstuvwxyz23456789",
+      upperdigit: "ABCDEFGHJKMNPRSTUVWXYZ23456789",
+      mixeddigit: "abcdefghjkmnprstuvwxyzABCDEFGHJKMNPRSTUVWXYZ23456789"
+    };
+    const chars = chars_map[type] || chars_map.lowerdigit;
     return Array.from(
       { length: len },
       () => chars[Math.floor(Math.random() * chars.length)]
