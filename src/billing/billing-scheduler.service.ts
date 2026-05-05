@@ -23,7 +23,7 @@ export class BillingSchedulerService implements OnModuleInit {
   }
 
   async runDaily() {
-    const sessions: any = this.configSvc.getAllSessions || [];
+    const sessions: any = Object.values(this.configSvc.getSessions()) || [];
     for (const session of sessions) {
       try {
         await this.processSession(session.id);
