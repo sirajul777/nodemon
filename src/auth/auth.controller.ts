@@ -27,6 +27,7 @@ export class AuthController {
     (req.session as any).userId = result.id;
     (req.session as any).userRole = result.role;
     (req.session as any).userPerms = result.permissions;
+    (req.session as any).allowedSession = result.allowedSession;
 
     req.session.save((err) => {
       if (err)
