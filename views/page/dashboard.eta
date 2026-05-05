@@ -6,20 +6,22 @@
     <!-- Left column -->
     <div>
         <div class="stat-bar">
-        <div class="sbc c-green">
-            <div class="sbc-icon"><i class="fa fa-money"></i></div>
-            <div>
-            <div class="sbc-val" id="db-today-inc">—</div>
-            <div class="sbc-lbl">Revenue Hari Ini</div>
+            <div class="sbc c-green">
+                <div class="sbc-icon"><i class="fa fa-money"></i></div>
+                <div>
+                <div class="sbc-val" id="db-today-inc">—</div>
+                <div class="sbc-lbl">Revenue Hari Ini</div>
+                </div>
+            </div>
+            <div class="sbc c-cyan">
+                <div class="sbc-icon"><i class="fa fa-calendar"></i></div>
+                <div>
+                <div class="sbc-val" id="db-month-inc">—</div>
+                <div class="sbc-lbl">Revenue Bulan Ini</div>
+                </div>
             </div>
         </div>
-        <div class="sbc c-cyan">
-            <div class="sbc-icon"><i class="fa fa-calendar"></i></div>
-            <div>
-            <div class="sbc-val" id="db-month-inc">—</div>
-            <div class="sbc-lbl">Revenue Bulan Ini</div>
-            </div>
-        </div>
+        <div class="stat-bar">
         <div class="sbc c-blue">
             <div class="sbc-icon"><i class="fa fa-ticket"></i></div>
             <div>
