@@ -61,6 +61,10 @@ export class TelegramService implements OnModuleInit {
   // private lastUpdateId = 0;
   // private dailyTimer: NodeJS.Timeout | null = null;
   // private currentBotToken: string | null = null;
+  constructor() {
+        this.voucherTypes = []; // Placeholder awal
+        this.loadVoucherTypes(); // Panggil saat bot startup
+    }
 
   // SESUDAH: map per bot
   private botStates = new Map<
@@ -129,6 +133,17 @@ export class TelegramService implements OnModuleInit {
       });
     }
     return this.botStates.get(id)!;
+  }
+
+  loadVoucherTypes() {
+      try {
+          const data = fs.readFileSync('./data/voucher_types.json', 'utf8');
+          this.voucherTypes = JSON.parse(data);
+          console.log(`✅ Berhasil memuat ${this.voucherTypes.length} tipe voucher.`);
+      } catch (err) {
+          console.error("❌ Gagal memuat data voucher:", err);
+          this.voucherTypes = []; // Fallback ke array kosong jika file error
+      }
   }
   // Load semua config bot
   getAllConfigs(): TelegramConfig[] {
@@ -1424,18 +1439,34 @@ export class TelegramService implements OnModuleInit {
           return;
         }
         const ol = this.parseOnLogin(profiles[0]["on-login"] || "");
-        const uname = this.randomStr(5);
-        const upass = this.randomStr(5);
+        // 1. Ambil data dari JSON lokal berdasarkan profile
+        const vType = this.voucherTypes.find(v => v.profile === profileName);
+        
+        // 2. Tentukan Username & Password berdasarkan setting di JSON
+        let uname, upass;
+        const uLen = vType.codeLength; // Mengambil angka 6
+        const charType = vType.codeFormat; // Mengambil "upper+digit"
+
+        if (vType.userType === 'vc') {
+            // Mode Voucher (User = Pass)
+            uname = this.randomStr(uLen, charType);
+            upass = uname;
+        } else {
+            // Mode User & Password (UP)
+            uname = this.randomStr(uLen, charType);
+            upass = this.randomStr(uLen, charType);
+        }
         // SESUDAH
         const dateTag = new Date()
           .toLocaleDateString("id-ID")
           .replace(/\//g, ".")
           .slice(0, 8);
-        const params: Record<string, string> = {
-          name: uname,
-          password: upass,
-          profile: profileName,
-          comment: `up-${Date.now()}-${dateTag}-${username.toUpperCase()}`
+        const cmd = `/ip/hotspot/user/add`;
+        const params = {
+            name: uname,
+            password: upass,
+            profile: vType.profile, // Menggunakan profile dari JSON
+            comment: `up-${vType.price}-${chatId}` // Opsional: menyertakan harga[cite: 8]
         };
         if (ol.validity) params["limit-uptime"] = ol.validity;
         await client.run("/ip/hotspot/user/add", params);
