@@ -1,70 +1,93 @@
-import { Controller, Post, Body, Req, Res, Get } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { Request, Response } from 'express';
+import { Controller, Post, Body, Req, Res, Get } from "@nestjs/common";
+import { AuthService } from "./auth.service";
+import { Request, Response } from "express";
 
-@Controller('api/auth')
+@Controller("api/auth")
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  @Post('login')
-  async login(@Body() body: { username: string; password: string }, @Req() req: Request, @Res() res: Response) {
+  @Post("login")
+  async login(
+    @Body() body: { username: string; password: string },
+    @Req() req: Request,
+    @Res() res: Response
+  ) {
     // Try multi-user system first, then fall back to legacy single admin
-    const result = await this.authService.validateUserFull(body.username, body.password);
+    const result = await this.authService.validateUserFull(
+      body.username,
+      body.password
+    );
     if (!result) {
-      return res.status(401).json({ success: false, message: 'Username atau password salah' });
+      return res
+        .status(401)
+        .json({ success: false, message: "Username atau password salah" });
     }
 
-    (req.session as any).mikhmon    = body.username;
-    (req.session as any).userId     = result.id;
-    (req.session as any).userRole   = result.role;
-    (req.session as any).userPerms  = result.permissions;
+    (req.session as any).mikhmon = body.username;
+    (req.session as any).userId = result.id;
+    (req.session as any).userRole = result.role;
+    (req.session as any).userPerms = result.permissions;
 
     req.session.save((err) => {
-      if (err) return res.status(500).json({ success: false, message: 'Gagal simpan session' });
+      if (err)
+        return res
+          .status(500)
+          .json({ success: false, message: "Gagal simpan session" });
       return res.json({
-        success:     true,
-        username:    body.username,
-        name:        result.name,
-        role:        result.role,
+        success: true,
+        username: body.username,
+        name: result.name,
+        role: result.role,
         permissions: result.permissions,
+        allowedSession: result.allowedSession
       });
     });
   }
 
-  @Post('logout')
+  @Post("logout")
   logout(@Req() req: Request, @Res() res: Response) {
     req.session.destroy(() => {});
     return res.json({ success: true });
   }
 
-  @Get('me')
+  @Get("me")
   me(@Req() req: Request) {
     const user = (req.session as any).mikhmon;
-    console.log(`[Auth] Check session for user: ${user || 'GUEST'} (ID: ${req.sessionID})`);
+    console.log(
+      `[Auth] Check session for user: ${user || "GUEST"} (ID: ${req.sessionID})`
+    );
     if (!user) return { authenticated: false };
     return {
       authenticated: true,
-      username:      user,
-      role:          (req.session as any).userRole   || 'admin',
-      permissions:   (req.session as any).userPerms  || null,
+      username: user,
+      role: (req.session as any).userRole || "admin",
+      permissions: (req.session as any).userPerms || null
     };
   }
 
-  @Post('change-password')
+  @Post("change-password")
   changePassword(
     @Req() req: Request,
     @Res() res: Response,
-    @Body() body: { oldPassword: string; newPassword: string },
+    @Body() body: { oldPassword: string; newPassword: string }
   ) {
     const username = (req.session as any).mikhmon;
-    if (!username) return res.status(401).json({ error: 'Tidak terautentikasi' });
+    if (!username)
+      return res.status(401).json({ error: "Tidak terautentikasi" });
     if (!body.oldPassword || !body.newPassword)
-      return res.status(400).json({ error: 'oldPassword dan newPassword wajib diisi' });
+      return res
+        .status(400)
+        .json({ error: "oldPassword dan newPassword wajib diisi" });
     if (body.newPassword.length < 4)
-      return res.status(400).json({ error: 'Password minimal 4 karakter' });
+      return res.status(400).json({ error: "Password minimal 4 karakter" });
 
-    const ok = this.authService.changePassword(username, body.oldPassword, body.newPassword);
-    if (ok) return res.json({ success: true, message: 'Password berhasil diubah' });
-    return res.status(400).json({ error: 'Password lama tidak sesuai' });
+    const ok = this.authService.changePassword(
+      username,
+      body.oldPassword,
+      body.newPassword
+    );
+    if (ok)
+      return res.json({ success: true, message: "Password berhasil diubah" });
+    return res.status(400).json({ error: "Password lama tidak sesuai" });
   }
 }
