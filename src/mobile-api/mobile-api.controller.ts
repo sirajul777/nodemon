@@ -1,31 +1,47 @@
 import {
-  Controller, Get, Post, Body, Param, Query,
-  Headers, UseGuards, Req, HttpCode, BadRequestException,
-} from '@nestjs/common';
-import { MobileAuthGuard, MobileTokenService } from './mobile-auth.guard';
-import { BotResellerService } from '../reseller-bot/bot-reseller.service';
-import { BillingService } from '../billing/billing.service';
-import { MikrotikService } from '../mikrotik/mikrotik.service';
-import { ConfigService } from '../config/config.service';
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  Headers,
+  UseGuards,
+  Req,
+  HttpCode,
+  BadRequestException
+} from "@nestjs/common";
+import { MobileAuthGuard, MobileTokenService } from "./mobile-auth.guard";
+import { BotResellerService } from "../reseller-bot/bot-reseller.service";
+import { BillingService } from "../billing/billing.service";
+import { MikrotikService } from "../mikrotik/mikrotik.service";
+import { ConfigService } from "../config/config.service";
+import { MobileAuthService } from "./mobile-api.service";
 
 // ── Helper ────────────────────────────────────────────────────────────────────
-const OK  = (data: any)   => ({ success: true, ...data });
+const OK = (data: any) => ({ success: true, ...data });
 const ERR = (msg: string) => ({ success: false, error: msg });
 
 // ── Mobile API Controller ─────────────────────────────────────────────────────
-@Controller('mobile/v1')
+@Controller("mobile/v1")
 export class MobileApiController {
   constructor(
     private readonly resellerSvc: BotResellerService,
-    private readonly billingSvc:  BillingService,
+    private readonly billingSvc: BillingService,
     private readonly mikrotikSvc: MikrotikService,
-    private readonly configSvc:   ConfigService,
+    private readonly configSvc: ConfigService,
+    private readonly authSvc: MobileAuthService
   ) {}
 
   private conn(sessionId: string) {
     const s = this.configSvc.getDecryptedSession(sessionId);
-    if (!s) throw new BadRequestException('Session tidak ditemukan');
-    return { ip: s.ip, user: s.user, password: s.password, port: s.port || 8728 };
+    if (!s) throw new BadRequestException("Session tidak ditemukan");
+    return {
+      ip: s.ip,
+      user: s.user,
+      password: s.password,
+      port: s.port || 8728
+    };
   }
 
   // ══════════════════════════════════════════════════════════════════════════════
@@ -38,81 +54,84 @@ export class MobileApiController {
    * Reseller login — generate token baru
    */
   // Tambah endpoint login baru pakai username/password
-@Post('auth/login')
-@HttpCode(200)
-async loginWithPassword(
-  @Body() body: { username: string; password: string; serverUrl?: string }
-) {
-  if (!body.username || !body.password) 
-    return ERR('Username dan password wajib diisi');
+  @Post("auth/login")
+  @HttpCode(200)
+  async loginWithPassword(
+    @Body() body: { username: string; password: string; serverUrl?: string }
+  ) {
+    if (!body.username || !body.password)
+      return ERR("Username dan password wajib diisi");
 
-  // Validasi via AuthService
-  const result = this.authSvc.validateUserFull(body.username, body.password);
-  if (!result) return ERR('Username atau password salah');
+    // Validasi via AuthService
+    const result = await this.authSvc.validateUserFull(
+      body.username,
+      body.password
+    );
+    if (!result) return ERR("Username atau password salah");
 
-  // Hanya izinkan role reseller dan collector
-  if (!['reseller', 'collector', 'admin'].includes(result.role)) {
-    return ERR('Akun ini tidak memiliki akses mobile');
+    // Hanya izinkan role reseller dan collector
+    if (!["reseller", "collector", "admin"].includes(result.role)) {
+      return ERR("Akun ini tidak memiliki akses mobile");
+    }
+
+    // Generate JWT token
+    const token = MobileTokenService.generate(
+      result.userId,
+      result.username,
+      result.name,
+      result.role,
+      result.permissions
+    );
+
+    return OK({
+      token: token.token,
+      expiresAt: token.expiresAt,
+      user: {
+        id: result.userId,
+        username: result.username,
+        name: result.name,
+        role: result.role,
+        permissions: result.permissions
+      }
+    });
   }
-
-  // Generate JWT token
-  const token = MobileUserTokenService.generate(
-    result.id,
-    result.username,
-    result.name,
-    result.role,
-    result.permissions,
-  );
-
-  return OK({
-    token:       token.token,
-    expiresAt:   token.expiresAt,
-    user: {
-      id:          result.id,
-      username:    result.username,
-      name:        result.name,
-      role:        result.role,
-      permissions: result.permissions,
-    },
-  });
-}
 
   /**
    * POST /mobile/v1/auth/logout
    */
-  @Post('auth/logout')
+  @Post("auth/logout")
   @UseGuards(MobileAuthGuard)
   @HttpCode(200)
-  logout(@Headers('authorization') auth: string) {
-    const token = auth?.replace('Bearer ', '');
+  logout(@Headers("authorization") auth: string) {
+    const token = auth?.replace("Bearer ", "");
     MobileTokenService.revoke(token);
-    return OK({ message: 'Logout berhasil' });
+    return OK({ message: "Logout berhasil" });
   }
 
   /**
    * GET /mobile/v1/auth/me
    */
-  @Get('auth/me')
+  @Get("auth/me")
   @UseGuards(MobileAuthGuard)
   me(@Req() req: any) {
     const mt = req.mobileToken;
     const reseller = this.resellerSvc.getById(mt.resellerId);
-    if (!reseller) return ERR('Reseller tidak ditemukan');
+    if (!reseller) return ERR("Reseller tidak ditemukan");
     return OK({
       reseller: {
-        id:           reseller.id,
-        name:         reseller.name,
-        username:     reseller.username,
-        telegramId:   reseller.telegramId,
-        saldo:        reseller.saldo,
-        discount:     reseller.discount,
-        markup:       reseller.markup,
+        id: reseller.id,
+        name: reseller.name,
+        username: reseller.username,
+        telegramId: reseller.telegramId,
+        saldo: reseller.saldo,
+        discount: reseller.discount,
+        markup: reseller.markup,
         totalVoucher: reseller.totalVoucher,
-        totalIncome:  reseller.totalIncome,
-        status:       reseller.status,
+        totalIncome: reseller.totalIncome,
+        status: reseller.status
       },
-      session:   mt.sessionId,
-      expiresAt: mt.expiresAt,
+      session: mt.sessionId,
+      expiresAt: mt.expiresAt
     });
   }
 
@@ -123,24 +142,24 @@ async loginWithPassword(
   /**
    * GET /mobile/v1/saldo
    */
-  @Get('saldo')
+  @Get("saldo")
   @UseGuards(MobileAuthGuard)
   getSaldo(@Req() req: any) {
     const reseller = this.resellerSvc.getById(req.mobileToken.resellerId);
-    if (!reseller) return ERR('Reseller tidak ditemukan');
+    if (!reseller) return ERR("Reseller tidak ditemukan");
     const logs = this.resellerSvc.loadLogs(reseller.id).slice(0, 50);
     return OK({
-      saldo:        reseller.saldo,
+      saldo: reseller.saldo,
       totalVoucher: reseller.totalVoucher,
-      totalIncome:  reseller.totalIncome,
-      logs: logs.map(l => ({
-        type:          l.type,
-        amount:        l.amount,
-        note:          l.note,
-        at:            l.at,
+      totalIncome: reseller.totalIncome,
+      logs: logs.map((l) => ({
+        type: l.type,
+        amount: l.amount,
+        note: l.note,
+        at: l.at,
         balanceBefore: l.balanceBefore,
-        balanceAfter:  l.balanceAfter,
-      })),
+        balanceAfter: l.balanceAfter
+      }))
     });
   }
 
@@ -152,37 +171,47 @@ async loginWithPassword(
    * GET /mobile/v1/voucher/profiles
    * Daftar profile dengan harga reseller
    */
-  @Get('voucher/profiles')
+  @Get("voucher/profiles")
   @UseGuards(MobileAuthGuard)
   async getProfiles(@Req() req: any) {
-    const mt       = req.mobileToken;
+    const mt = req.mobileToken;
     const reseller = this.resellerSvc.getById(mt.resellerId);
-    if (!reseller) return ERR('Reseller tidak ditemukan');
+    if (!reseller) return ERR("Reseller tidak ditemukan");
 
-    const conn   = this.conn(mt.sessionId);
-    const client = await this.mikrotikSvc.createClient(conn.ip, conn.user, conn.password, conn.port);
+    const conn = this.conn(mt.sessionId);
+    const client = await this.mikrotikSvc.createClient(
+      conn.ip,
+      conn.user,
+      conn.password,
+      conn.port
+    );
     try {
-      const profiles = await client.run('/ip/hotspot/user/profile/print');
-      const result = profiles.map(p => {
-        const ol = this.parseOnLogin(p['on-login'] || '');
-        if (!ol.price && !ol.sprice) return null;
-        const basePrice = ol.sprice || ol.price;
-        const resellerPrice = reseller.discount > 0
-          ? Math.round(basePrice * (1 - reseller.discount / 100))
-          : basePrice;
-        return {
-          name:         p.name,
-          rateLimit:    p['rate-limit'] || '',
-          price:        basePrice,
-          resellerPrice,
-          discount:     reseller.discount,
-          validity:     ol.validity,
-          expmode:      ol.expmode,
-          sharedUsers:  p['shared-users'] || '1',
-        };
-      }).filter(Boolean);
+      const profiles = await client.run("/ip/hotspot/user/profile/print");
+      const result = profiles
+        .map((p) => {
+          const ol = this.parseOnLogin(p["on-login"] || "");
+          if (!ol.price && !ol.sprice) return null;
+          const basePrice = ol.sprice || ol.price;
+          const resellerPrice =
+            reseller.discount > 0
+              ? Math.round(basePrice * (1 - reseller.discount / 100))
+              : basePrice;
+          return {
+            name: p.name,
+            rateLimit: p["rate-limit"] || "",
+            price: basePrice,
+            resellerPrice,
+            discount: reseller.discount,
+            validity: ol.validity,
+            expmode: ol.expmode,
+            sharedUsers: p["shared-users"] || "1"
+          };
+        })
+        .filter(Boolean);
       return OK({ profiles: result });
-    } finally { client.close(); }
+    } finally {
+      client.close();
+    }
   }
 
   /**
@@ -190,63 +219,81 @@ async loginWithPassword(
    * Beli 1 voucher — potong saldo reseller
    * Body: { profileName }
    */
-  @Post('voucher/buy')
+  @Post("voucher/buy")
   @UseGuards(MobileAuthGuard)
   @HttpCode(200)
   async buyVoucher(@Req() req: any, @Body() body: { profileName: string }) {
-    const mt       = req.mobileToken;
+    const mt = req.mobileToken;
     const reseller = this.resellerSvc.getById(mt.resellerId);
-    if (!reseller) return ERR('Reseller tidak ditemukan');
-    if (!body.profileName) return ERR('profileName wajib diisi');
+    if (!reseller) return ERR("Reseller tidak ditemukan");
+    if (!body.profileName) return ERR("profileName wajib diisi");
 
-    const conn   = this.conn(mt.sessionId);
-    const client = await this.mikrotikSvc.createClient(conn.ip, conn.user, conn.password, conn.port);
+    const conn = this.conn(mt.sessionId);
+    const client = await this.mikrotikSvc.createClient(
+      conn.ip,
+      conn.user,
+      conn.password,
+      conn.port
+    );
     try {
-      const profiles = await client.run('/ip/hotspot/user/profile/print', { '?name': body.profileName });
-      if (!profiles[0]) return ERR(`Profile "${body.profileName}" tidak ditemukan`);
-      const ol    = this.parseOnLogin(profiles[0]['on-login'] || '');
+      const profiles = await client.run("/ip/hotspot/user/profile/print", {
+        "?name": body.profileName
+      });
+      if (!profiles[0])
+        return ERR(`Profile "${body.profileName}" tidak ditemukan`);
+      const ol = this.parseOnLogin(profiles[0]["on-login"] || "");
       const price = ol.price || 0;
       const sprice = ol.sprice || 0;
-      const resellerPrice = reseller.discount > 0
-        ? Math.round(sprice * (1 - reseller.discount / 100))
-        : price;
+      const resellerPrice =
+        reseller.discount > 0
+          ? Math.round(sprice * (1 - reseller.discount / 100))
+          : price;
 
       // Cek saldo
       if (reseller.saldo < resellerPrice) {
         return ERR(
-          `Saldo tidak cukup. Saldo: Rp ${Math.round(reseller.saldo).toLocaleString('id-ID')}, ` +
-          `Harga: Rp ${resellerPrice.toLocaleString('id-ID')}`
+          `Saldo tidak cukup. Saldo: Rp ${Math.round(reseller.saldo).toLocaleString("id-ID")}, ` +
+            `Harga: Rp ${resellerPrice.toLocaleString("id-ID")}`
         );
       }
 
       // Generate username & password
       const uname = this.randomStr(5);
-      const upass  = this.randomStr(5);
-      const comment = `up-${Date.now()}-${new Date().toLocaleDateString('id-ID').replace(/\//g,'.').slice(0,8)}-${reseller.name.toUpperCase().replace(/\s+/g,'')}`;
+      const upass = this.randomStr(5);
+      const comment = `up-${Date.now()}-${new Date().toLocaleDateString("id-ID").replace(/\//g, ".").slice(0, 8)}-${reseller.name.toUpperCase().replace(/\s+/g, "")}`;
       const params: Record<string, string> = {
-        name: uname, password: upass, profile: body.profileName, comment,
+        name: uname,
+        password: upass,
+        profile: body.profileName,
+        comment
       };
-      if (ol.validity) params['limit-uptime'] = ol.validity;
-      await client.run('/ip/hotspot/user/add', params);
+      if (ol.validity) params["limit-uptime"] = ol.validity;
+      await client.run("/ip/hotspot/user/add", params);
 
       // Potong saldo
-      this.resellerSvc.deductSaldo(reseller.telegramId, resellerPrice, `Beli ${body.profileName} (${uname})`);
+      this.resellerSvc.deductSaldo(
+        reseller.telegramId,
+        resellerPrice,
+        `Beli ${body.profileName} (${uname})`
+      );
       const updated = this.resellerSvc.getById(reseller.id);
 
       return OK({
         voucher: {
-          username:    uname,
-          password:    upass,
-          profile:     body.profileName,
-          validity:    ol.validity || '',
-          rateLimit:   profiles[0]['rate-limit'] || '',
-          price:       sprice,
-          comment,
+          username: uname,
+          password: upass,
+          profile: body.profileName,
+          validity: ol.validity || "",
+          rateLimit: profiles[0]["rate-limit"] || "",
+          price: sprice,
+          comment
         },
         saldoSebelum: reseller.saldo,
-        saldoSesudah: updated?.saldo || 0,
+        saldoSesudah: updated?.saldo || 0
       });
-    } finally { client.close(); }
+    } finally {
+      client.close();
+    }
   }
 
   /**
@@ -254,44 +301,58 @@ async loginWithPassword(
    * Generate batch voucher — potong saldo reseller
    * Body: { profileName, quantity }
    */
-  @Post('voucher/generate')
+  @Post("voucher/generate")
   @UseGuards(MobileAuthGuard)
   @HttpCode(200)
-  async generateVouchers(@Req() req: any, @Body() body: { profileName: string; quantity: number }) {
-    const mt       = req.mobileToken;
+  async generateVouchers(
+    @Req() req: any,
+    @Body() body: { profileName: string; quantity: number }
+  ) {
+    const mt = req.mobileToken;
     const reseller = this.resellerSvc.getById(mt.resellerId);
-    if (!reseller) return ERR('Reseller tidak ditemukan');
+    if (!reseller) return ERR("Reseller tidak ditemukan");
 
     const qty = Math.min(Number(body.quantity) || 1, 100);
-    if (!body.profileName) return ERR('profileName wajib diisi');
+    if (!body.profileName) return ERR("profileName wajib diisi");
 
-    const conn   = this.conn(mt.sessionId);
-    const client = await this.mikrotikSvc.createClient(conn.ip, conn.user, conn.password, conn.port);
+    const conn = this.conn(mt.sessionId);
+    const client = await this.mikrotikSvc.createClient(
+      conn.ip,
+      conn.user,
+      conn.password,
+      conn.port
+    );
     try {
-      const profiles = await client.run('/ip/hotspot/user/profile/print', { '?name': body.profileName });
+      const profiles = await client.run("/ip/hotspot/user/profile/print", {
+        "?name": body.profileName
+      });
       if (!profiles[0]) return ERR(`Profile tidak ditemukan`);
-      const ol    = this.parseOnLogin(profiles[0]['on-login'] || '');
+      const ol = this.parseOnLogin(profiles[0]["on-login"] || "");
       const price = ol.price || 0;
       const sprice = ol.sprice || 0;
-      const resellerPrice = reseller.discount > 0
-        ? Math.round(sprice * (1 - reseller.discount / 100))
-        : price;
+      const resellerPrice =
+        reseller.discount > 0
+          ? Math.round(sprice * (1 - reseller.discount / 100))
+          : price;
       const totalCost = resellerPrice * qty;
 
       if (reseller.saldo < totalCost) {
         return ERR(
           `Saldo tidak cukup untuk ${qty} voucher. ` +
-          `Dibutuhkan: Rp ${totalCost.toLocaleString('id-ID')}, ` +
-          `Saldo: Rp ${Math.round(reseller.saldo).toLocaleString('id-ID')}`
+            `Dibutuhkan: Rp ${totalCost.toLocaleString("id-ID")}, ` +
+            `Saldo: Rp ${Math.round(reseller.saldo).toLocaleString("id-ID")}`
         );
       }
 
       // Generate
-      const existing = await client.run('/ip/hotspot/user/print');
+      const existing = await client.run("/ip/hotspot/user/print");
       const existingNames = new Set(existing.map((u: any) => u.name));
       const vouchers: any[] = [];
-      const tag = reseller.name.toUpperCase().replace(/\s+/g,'');
-      const dateTag = new Date().toLocaleDateString('id-ID').replace(/\//g,'.').slice(0,8);
+      const tag = reseller.name.toUpperCase().replace(/\s+/g, "");
+      const dateTag = new Date()
+        .toLocaleDateString("id-ID")
+        .replace(/\//g, ".")
+        .slice(0, 8);
       let attempts = 0;
 
       while (vouchers.length < qty && attempts < qty * 10) {
@@ -302,32 +363,44 @@ async loginWithPassword(
         existingNames.add(uname);
         const comment = `up-${Date.now()}-${dateTag}-${tag}`;
         const params: Record<string, string> = {
-          name: uname, password: upass, profile: body.profileName, comment,
+          name: uname,
+          password: upass,
+          profile: body.profileName,
+          comment
         };
-        if (ol.validity) params['limit-uptime'] = ol.validity;
+        if (ol.validity) params["limit-uptime"] = ol.validity;
         try {
-          await client.run('/ip/hotspot/user/add', params);
-          vouchers.push({ username: uname, password: upass, profile: body.profileName, validity: ol.validity || '', comment });
+          await client.run("/ip/hotspot/user/add", params);
+          vouchers.push({
+            username: uname,
+            password: upass,
+            profile: body.profileName,
+            validity: ol.validity || "",
+            comment
+          });
         } catch {}
       }
 
       // Potong saldo
       const actualCost = resellerPrice * vouchers.length;
       this.resellerSvc.deductSaldo(
-        reseller.telegramId, actualCost,
-        `Generate ${vouchers.length}x ${body.profileName}`,
+        reseller.telegramId,
+        actualCost,
+        `Generate ${vouchers.length}x ${body.profileName}`
       );
       const updated = this.resellerSvc.getById(reseller.id);
 
       return OK({
         vouchers,
-        generated:   vouchers.length,
-        priceEach:   resellerPrice,
-        totalCost:   actualCost,
+        generated: vouchers.length,
+        priceEach: resellerPrice,
+        totalCost: actualCost,
         saldoSebelum: reseller.saldo,
-        saldoSesudah: updated?.saldo || 0,
+        saldoSesudah: updated?.saldo || 0
       });
-    } finally { client.close(); }
+    } finally {
+      client.close();
+    }
   }
 
   // ══════════════════════════════════════════════════════════════════════════════
@@ -338,52 +411,54 @@ async loginWithPassword(
    * GET /mobile/v1/billing/customers
    * Daftar pelanggan reseller ini (filter by telegramId)
    */
-  @Get('billing/customers')
+  @Get("billing/customers")
   @UseGuards(MobileAuthGuard)
   getBillingCustomers(@Req() req: any) {
     const mt = req.mobileToken;
     // All customers for this session
     const customers = this.billingSvc.loadCustomers(mt.sessionId);
-    return OK({ customers: customers.map(c => ({
-      id:          c.id,
-      name:        c.name,
-      phone:       c.phone,
-      type:        c.type,
-      profile:     c.profile,
-      price:       c.price,
-      billDate:    c.billDate,
-      status:      c.status,
-      mikrotikUser:c.mikrotikUser,
-    }))});
+    return OK({
+      customers: customers.map((c) => ({
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        type: c.type,
+        profile: c.profile,
+        price: c.price,
+        billDate: c.billDate,
+        status: c.status,
+        mikrotikUser: c.mikrotikUser
+      }))
+    });
   }
 
   /**
    * GET /mobile/v1/billing/invoices
    * Daftar tagihan (semua atau per pelanggan)
    */
-  @Get('billing/invoices')
+  @Get("billing/invoices")
   @UseGuards(MobileAuthGuard)
   getBillingInvoices(
     @Req() req: any,
-    @Query('customerId') customerId?: string,
-    @Query('status') status?: string,
+    @Query("customerId") customerId?: string,
+    @Query("status") status?: string
   ) {
     const mt = req.mobileToken;
     let invs = this.billingSvc.loadInvoices(mt.sessionId, customerId);
-    if (status) invs = invs.filter(i => i.status === status);
+    if (status) invs = invs.filter((i) => i.status === status);
     return OK({
-      invoices: invs.slice(0, 100).map(i => ({
-        id:           i.id,
-        customerId:   i.customerId,
+      invoices: invs.slice(0, 100).map((i) => ({
+        id: i.id,
+        customerId: i.customerId,
         customerName: i.customerName,
-        type:         i.type,
-        period:       i.period,
-        amount:       i.amount,
-        dueDate:      i.dueDate,
-        status:       i.status,
-        paidAt:       i.paidAt || null,
-        daysLeft:     this.billingSvc.getDaysUntilDue(i.dueDate),
-      })),
+        type: i.type,
+        period: i.period,
+        amount: i.amount,
+        dueDate: i.dueDate,
+        status: i.status,
+        paidAt: i.paidAt || null,
+        daysLeft: this.billingSvc.getDaysUntilDue(i.dueDate)
+      }))
     });
   }
 
@@ -391,23 +466,27 @@ async loginWithPassword(
    * POST /mobile/v1/billing/invoices/:id/pay
    * Tandai lunas
    */
-  @Post('billing/invoices/:id/pay')
+  @Post("billing/invoices/:id/pay")
   @UseGuards(MobileAuthGuard)
   @HttpCode(200)
-  payInvoice(@Req() req: any, @Param('id') id: string, @Body() body: { note?: string }) {
-    const mt  = req.mobileToken;
+  payInvoice(
+    @Req() req: any,
+    @Param("id") id: string,
+    @Body() body: { note?: string }
+  ) {
+    const mt = req.mobileToken;
     const inv = this.billingSvc.payInvoice(id, mt.resellerName, body.note);
-    return inv ? OK({ invoice: inv }) : ERR('Invoice tidak ditemukan');
+    return inv ? OK({ invoice: inv }) : ERR("Invoice tidak ditemukan");
   }
 
   /**
    * GET /mobile/v1/billing/summary
    * Ringkasan billing bulan ini
    */
-  @Get('billing/summary')
+  @Get("billing/summary")
   @UseGuards(MobileAuthGuard)
   getBillingSummary(@Req() req: any) {
-    const mt    = req.mobileToken;
+    const mt = req.mobileToken;
     const stats = this.billingSvc.getStats(mt.sessionId);
     return OK({ stats });
   }
@@ -419,59 +498,62 @@ async loginWithPassword(
   /**
    * GET /mobile/v1/dashboard
    */
-  @Get('dashboard')
+  @Get("dashboard")
   @UseGuards(MobileAuthGuard)
   async getDashboard(@Req() req: any) {
-    const mt       = req.mobileToken;
+    const mt = req.mobileToken;
     const reseller = this.resellerSvc.getById(mt.resellerId);
-    if (!reseller) return ERR('Reseller tidak ditemukan');
+    if (!reseller) return ERR("Reseller tidak ditemukan");
 
-    const billStats  = this.billingSvc.getStats(mt.sessionId);
+    const billStats = this.billingSvc.getStats(mt.sessionId);
     const recentLogs = this.resellerSvc.loadLogs(reseller.id).slice(0, 5);
 
     return OK({
       reseller: {
-        name:         reseller.name,
-        saldo:        reseller.saldo,
+        name: reseller.name,
+        saldo: reseller.saldo,
         totalVoucher: reseller.totalVoucher,
-        totalIncome:  reseller.totalIncome,
-        discount:     reseller.discount,
+        totalIncome: reseller.totalIncome,
+        discount: reseller.discount
       },
       billing: {
         totalCustomers: billStats.total,
-        active:         billStats.active,
-        unpaidCount:    billStats.unpaidCount,
-        unpaidAmount:   billStats.unpaidAmount,
-        paidThisMonth:  billStats.paidThisMonth,
-        incomeThisMonth:billStats.incomeThisMonth,
+        active: billStats.active,
+        unpaidCount: billStats.unpaidCount,
+        unpaidAmount: billStats.unpaidAmount,
+        paidThisMonth: billStats.paidThisMonth,
+        incomeThisMonth: billStats.incomeThisMonth
       },
-      recentActivity: recentLogs.map(l => ({
-        type:   l.type,
+      recentActivity: recentLogs.map((l) => ({
+        type: l.type,
         amount: l.amount,
-        note:   l.note,
-        at:     l.at,
-      })),
+        note: l.note,
+        at: l.at
+      }))
     });
   }
 
   // ── Private helpers ──────────────────────────────────────────────────────────
 
   private parseOnLogin(onLogin: string) {
-    const empty = { expmode: '', price: 0, validity: '', sprice: 0 };
+    const empty = { expmode: "", price: 0, validity: "", sprice: 0 };
     if (!onLogin) return empty;
     const match = onLogin.match(/:put \("([^"]*)"\)/);
     if (!match) return empty;
-    const p = match[1].split(',');
+    const p = match[1].split(",");
     return {
-      expmode:  (p[1] || '').trim(),
-      price:    parseFloat(p[2]) || 0,
-      validity: (p[3] || '').trim(),
-      sprice:   parseFloat(p[4]) || 0,
+      expmode: (p[1] || "").trim(),
+      price: parseFloat(p[2]) || 0,
+      validity: (p[3] || "").trim(),
+      sprice: parseFloat(p[4]) || 0
     };
   }
 
   private randomStr(len: number): string {
-    const chars = 'abcdefghjkmnprstuvwxyz23456789';
-    return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    const chars = "abcdefghjkmnprstuvwxyz23456789";
+    return Array.from(
+      { length: len },
+      () => chars[Math.floor(Math.random() * chars.length)]
+    ).join("");
   }
 }
