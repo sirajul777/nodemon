@@ -1484,7 +1484,6 @@
       </div>
     </div>
 
-    // bot telegram modal
     <!-- Telegram Bot Config Modal -->
     <div class="ov" id="m-tg-config"><div class="modal" style="width:520px">
       <h3><i class="fa fa-telegram"></i> <span id="mtg-ttl">Tambah Bot</span></h3>

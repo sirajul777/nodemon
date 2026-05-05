@@ -40,7 +40,7 @@
     </div>
 
     <!-- Pengaturan Bot -->
-    // <div class="card">
+    <!-- <div class="card">
     //     <div class="card-hd">
     //     <i class="fa fa-cog"></i> Pengaturan Bot
     //     </div>
@@ -142,7 +142,7 @@
     //     <i class="fa fa-save"></i> Simpan Pengaturan
     //     </button>
     //     <div class="err" id="tg-err" style="margin-top: 8px"></div>
-    // </div>
+    </div>  -->
 
     <!-- Broadcast -->
     <div class="card">
