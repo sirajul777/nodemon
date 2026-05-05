@@ -22,16 +22,13 @@ export class BillingSchedulerService implements OnModuleInit {
     setInterval(() => this.runDaily(), 60 * 60 * 1000);
   }
 
-  // Di billing-scheduler.service_2.ts
   async runDaily() {
-    const sessions: any = this.configSvc.getSessions() || []; // Pastikan memanggil sebagai fungsi ()
-
+    const sessions: any = this.configSvc.getAllSessions || [];
     for (const session of sessions) {
-      // Lakukan perulangan untuk setiap session[cite: 8]
       try {
         await this.processSession(session.id);
       } catch (e) {
-        this.logger.error(`Billing error for ${session.id}: ${e}`);
+        this.logger.error(`Billing error for ${sessions.id}: ${e}`);
       }
     }
   }
