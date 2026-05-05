@@ -37,36 +37,45 @@ export class MobileApiController {
    * Body: { telegramId, pin? }
    * Reseller login — generate token baru
    */
-  @Post('auth/login')
-  @HttpCode(200)
-  async login(@Body() body: { telegramId: string; pin?: string}) {
-    if (!body.telegramId) return ERR('telegramId wajib diisi');
-    const reseller = this.resellerSvc.getByTelegramId(body.telegramId);
-    if (!reseller) return ERR('Akun reseller tidak ditemukan. Hubungi admin.');
-    if (reseller.status !== 'active') return ERR('Akun reseller tidak aktif.');
-    // Get default session from config
-    const sessions = this.configSvc.getAllSessions ? this.configSvc.getAllSessions() : Object.values((this.configSvc as any).getSessions?.() || {});
-    const session  = sessions[reseller.sessionId];
-    if (!sessions) return ERR('Router belum dikonfigurasi.');
+  // Tambah endpoint login baru pakai username/password
+@Post('auth/login')
+@HttpCode(200)
+async loginWithPassword(
+  @Body() body: { username: string; password: string; serverUrl?: string }
+) {
+  if (!body.username || !body.password) 
+    return ERR('Username dan password wajib diisi');
 
-    const token = MobileTokenService.generate(
-      reseller.id, reseller.name, body.telegramId, session.id,
-    );
-    return OK({
-      token: token.token,
-      expiresAt: token.expiresAt,
-      reseller: {
-        id:        reseller.id,
-        name:      reseller.name,
-        username:  reseller.username,
-        telegramId:reseller.telegramId,
-        saldo:     reseller.saldo,
-        discount:  reseller.discount,
-        totalVoucher: reseller.totalVoucher,
-        status:    reseller.status,
-      },
-    });
+  // Validasi via AuthService
+  const result = this.authSvc.validateUserFull(body.username, body.password);
+  if (!result) return ERR('Username atau password salah');
+
+  // Hanya izinkan role reseller dan collector
+  if (!['reseller', 'collector', 'admin'].includes(result.role)) {
+    return ERR('Akun ini tidak memiliki akses mobile');
   }
+
+  // Generate JWT token
+  const token = MobileUserTokenService.generate(
+    result.id,
+    result.username,
+    result.name,
+    result.role,
+    result.permissions,
+  );
+
+  return OK({
+    token:       token.token,
+    expiresAt:   token.expiresAt,
+    user: {
+      id:          result.id,
+      username:    result.username,
+      name:        result.name,
+      role:        result.role,
+      permissions: result.permissions,
+    },
+  });
+}
 
   /**
    * POST /mobile/v1/auth/logout
