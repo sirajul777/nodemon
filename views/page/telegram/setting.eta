@@ -1,79 +1,18 @@
 <div class="page" id="page-tg-tools">
     <div class="g2">
     <!-- Info Bot -->
-    <div class="card">
-        <div class="card-hd" style="justify-content: space-between">
-        <span><i class="fa fa-telegram"></i> Info Bot</span>
-        <button class="btn b-s b-sm" onclick="loadTgInfo()">
-            <i class="fa fa-refresh"></i>
-        </button>
-        </div>
-        <div class="tg-row">
-        <span class="lbl">Nama Bot</span
-        ><span class="val" id="tg-bot-name">—</span>
-        </div>
-        <div class="tg-row">
-        <span class="lbl">Username</span
-        ><span
-            class="val"
-            id="tg-bot-username"
-            style="color: var(--acc2)"
-            >—</span
-        >
-        </div>
-        <div class="tg-row">
-        <span class="lbl">Router</span
-        ><span class="val" id="tg-bot-router">—</span>
-        </div>
-        <div class="tg-row">
-        <span class="lbl">Mode</span
-        ><span class="val"
-            ><span class="tg-badge polling"
-            ><i class="fa fa-circle"></i> Long Polling</span
-            ></span
-        >
-        </div>
-        <div class="tg-row">
-        <span class="lbl">Telegram ID Admin</span
-        ><span
-            class="val"
-            id="tg-admin-id"
-            style="font-family: monospace"
-            >—</span
-        >
-        </div>
-        <div class="tg-row">
-        <span class="lbl">Status</span
-        ><span class="val" id="tg-status-badge"
-            ><span class="tg-badge stopped">● Stopped</span></span
-        >
-        </div>
-        <div style="margin-top: 14px; display: flex; gap: 8px">
-        <button
-            class="btn"
-            id="tg-toggle-btn"
-            onclick="toggleBot()"
-            style="
-            flex: 1;
-            justify-content: center;
-            padding: 9px;
-            background: #f8514918;
-            color: var(--red);
-            border: 1px solid #f8514940;
-            "
-        >
-            <i class="fa fa-stop-circle"></i> Stop Bot
-        </button>
-        <button
-            class="btn b-s"
-            style="flex-shrink: 0; padding: 9px 12px"
-            onclick="loadTgInfo()"
-            title="Refresh"
-        >
-            <i class="fa fa-refresh"></i>
-        </button>
-        </div>
-    </div>
+    <!-- Ganti card Info Bot menjadi daftar multi bot -->
+<div class="card">
+  <div class="card-hd">
+    <i class="fa fa-telegram"></i> Daftar Bot Aktif
+    <button class="btn b-p b-sm ml" onclick="openAddBotModal()">
+      <i class="fa fa-plus"></i> Tambah Bot
+    </button>
+  </div>
+  <div id="bot-list">
+    <div style="text-align:center;color:var(--muted);padding:20px">Loading...</div>
+  </div>
+</div>
 
     <!-- Test Koneksi (moved here) -->
     <div class="card">

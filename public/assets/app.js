@@ -1904,78 +1904,109 @@ async function loadLive() {
 let botRunning = false;
 
 async function loadTgInfo() {
-  const [cfg, logs] = await Promise.all([
+  const [configs, logs] = await Promise.all([
     req("/telegram/config"),
     req("/telegram/logs")
   ]);
-  if (!cfg) return;
 
-  // Restore token from config (masked on GET, so just show placeholder)
+  // Render daftar bot
+  const botList = document.getElementById("bot-list");
+  const cfgArr = Array.isArray(configs) ? configs : configs ? [configs] : [];
+
+  botList.innerHTML = cfgArr.length
+    ? cfgArr
+        .map(
+          (cfg) => `
+    <div class="nas-card" style="margin-bottom:8px">
+      <div class="nas-header">
+        <div>
+          <div class="nas-name">
+            Bot — <span style="color:var(--acc2)">${cfg.sessionId || cfg.id}</span>
+          </div>
+          <div class="nas-ip">Admin ID: ${cfg.chatId || "—"}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="badge ${cfg.botEnabled && cfg.hasToken ? "b-gr" : "b-rd"}">
+            ${cfg.botEnabled && cfg.hasToken ? "● Running" : "● Stopped"}
+          </span>
+          <button class="btn b-w b-sm" onclick="editBotConfig('${cfg.id}')">
+            <i class="fa fa-pencil"></i>
+          </button>
+          <button class="btn b-d b-sm" onclick="deleteBotConfig('${cfg.id}')">
+            <i class="fa fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  `
+        )
+        .join("")
+    : `
+    <div style="text-align:center;color:var(--muted);padding:20px">
+      Belum ada bot. Klik <b>Tambah Bot</b>.
+    </div>`;
+
+  // Log
+  const logEl = document.getElementById("tg-log");
+  if (logEl) {
+    logEl.innerHTML = (logs || []).length
+      ? [...(logs || [])]
+          .reverse()
+          .slice(0, 30)
+          .map(
+            (l) =>
+              `<div style="padding:3px 0;border-bottom:1px solid var(--border)">
+            <span style="color:var(--muted);font-size:.7rem">${l.time}</span>
+            <b style="margin:0 5px">${l.from}</b>${l.message}
+          </div>`
+          )
+          .join("")
+      : '<p style="padding:8px 0">Belum ada aktivitas.</p>';
+  }
+}
+
+function openAddBotModal() {
+  // Isi session dropdown
+  const sess = document.getElementById("tg-session");
+  document.getElementById("tg-token").value = "";
+  document.getElementById("tg-chatid").value = "";
+  document.getElementById("tg-allowed").value = "";
+  document.getElementById("tg-enabled").value = "true";
+  document.getElementById("tg-notif-daily").value = "true";
+  document.getElementById("tg-daily-time").value = "23:59";
+  document.getElementById("tg-notif-sale").value = "false";
+  document.getElementById("m-tg-config").classList.add("show");
+}
+
+async function editBotConfig(id) {
+  const cfg = await req(`/telegram/config/${id}`);
+  if (!cfg || cfg.error) return;
   document.getElementById("tg-token").value = "";
   document.getElementById("tg-chatid").value = cfg.chatId || "";
-  const tgSel = document.getElementById("tg-session");
-  if (tgSel && cfg.sessionId) tgSel.value = cfg.sessionId;
-
   document.getElementById("tg-allowed").value = (cfg.allowedUsers || []).join(
     ","
   );
+  document.getElementById("tg-enabled").value =
+    cfg.botEnabled !== false ? "true" : "false";
   document.getElementById("tg-notif-daily").value =
     cfg.notifDaily !== false ? "true" : "false";
   document.getElementById("tg-daily-time").value = cfg.dailyTime || "23:59";
   document.getElementById("tg-notif-sale").value = cfg.notifSale
     ? "true"
     : "false";
-  document.getElementById("tg-enabled").value =
-    cfg.botEnabled !== false ? "true" : "false";
-
-  // Bot info
-  botRunning = cfg.botEnabled !== false && !!cfg.token;
-  document.getElementById("tg-bot-router").textContent = cfg.sessionId || "—";
-  document.getElementById("tg-admin-id").textContent = cfg.chatId || "—";
-  // Fetch real bot info from Telegram
-  if (cfg.token && !cfg.token.includes("...")) {
-    fetchBotInfo(cfg.token);
-  } else if (cfg.token) {
-    document.getElementById("tg-bot-name").textContent = "Terkonfigurasi";
-    document.getElementById("tg-bot-username").textContent =
-      "(token tersimpan)";
-  } else {
-    document.getElementById("tg-bot-name").textContent = "—";
-    document.getElementById("tg-bot-username").textContent = "—";
+  if (document.getElementById("tg-session")) {
+    document.getElementById("tg-session").value = cfg.sessionId || "";
   }
+  document.getElementById("m-tg-config").classList.add("show");
+}
 
-  const statusBadge = document.getElementById("tg-status-badge");
-  const toggleBtn = document.getElementById("tg-toggle-btn");
-  if (botRunning) {
-    statusBadge.innerHTML =
-      '<span class="tg-badge running"><i class="fa fa-circle"></i> Running</span>';
-    toggleBtn.style.background = "#f8514918";
-    toggleBtn.style.color = "var(--red)";
-    toggleBtn.style.border = "1px solid #f8514940";
-    toggleBtn.innerHTML = '<i class="fa fa-stop-circle"></i> Stop Bot';
-  } else {
-    statusBadge.innerHTML = '<span class="tg-badge stopped">● Stopped</span>';
-    toggleBtn.style.background = "#3fb95018";
-    toggleBtn.style.color = "var(--green)";
-    toggleBtn.style.border = "1px solid #3fb95040";
-    toggleBtn.innerHTML = '<i class="fa fa-play-circle"></i> Start Bot';
-  }
-
-  // Logs
-  const logEl = document.getElementById("tg-log");
-  logEl.innerHTML = (logs || []).length
-    ? [...(logs || [])]
-        .reverse()
-        .slice(0, 30)
-        .map(
-          (l) =>
-            `<div style="padding:3px 0;border-bottom:1px solid var(--border)">
-          <span style="color:var(--muted);font-size:.7rem">${l.time}</span>
-          <b style="margin:0 5px">${l.from}</b>${l.message}
-        </div>`
-        )
-        .join("")
-    : '<p style="padding:8px 0">Belum ada aktivitas.</p>';
+async function deleteBotConfig(id) {
+  if (!confirm(`Hapus konfigurasi bot untuk "${id}"?`)) return;
+  const d = await fetch(`${API}/telegram/config/${id}`, {
+    method: "DELETE",
+    credentials: "include"
+  }).then((r) => r.json());
+  d?.success ? (toast("Bot dihapus"), loadTgInfo()) : toast("Gagal", true);
 }
 
 async function saveTelegramConfig() {
