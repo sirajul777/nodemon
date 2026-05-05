@@ -38,6 +38,7 @@ export class AuthController {
         username: body.username,
         name: result.name,
         role: result.role,
+        allowedSessions: result.allowedSessions,
         permissions: result.permissions
       });
     });
