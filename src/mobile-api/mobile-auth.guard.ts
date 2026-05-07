@@ -6,7 +6,7 @@ import {
 } from "@nestjs/common";
 import * as path from "path";
 import * as fs from "fs";
-import crypto from "crypto";
+import * as crypto from "crypto";
 
 // Tambah interface
 export interface MobileUserToken {
