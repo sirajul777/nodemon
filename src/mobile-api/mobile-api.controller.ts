@@ -76,7 +76,7 @@ export class MobileApiController {
 
     // Generate JWT token
     const token = MobileTokenService.generate(
-      result.userId,
+      result.id,
       result.username,
       result.name,
       result.role,
@@ -88,7 +88,7 @@ export class MobileApiController {
       token: token.token,
       expiresAt: token.expiresAt,
       user: {
-        id: result.userId,
+        id: result.id,
         username: result.username,
         name: result.name,
         role: result.role,
