@@ -468,7 +468,7 @@ export class MobileApiController {
    * POST /mobile/v1/billing/invoices/:id/pay
    * Tandai lunas
    */
-  @Post("billing/invoices/:id/pay")
+  @Post("billing//invoices/:id/pay")
   @UseGuards(MobileAuthGuard)
   @HttpCode(200)
   payInvoice(

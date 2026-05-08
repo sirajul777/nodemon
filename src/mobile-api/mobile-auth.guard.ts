@@ -132,6 +132,7 @@ export class MobileAuthGuard implements CanActivate {
 
     // Anda juga bisa menyimpan metadata token jika diperlukan
     req.mobileToken = decodedToken;
+    console.log(decodedToken);
 
     return true;
   }
