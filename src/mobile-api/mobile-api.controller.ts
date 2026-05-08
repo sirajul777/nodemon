@@ -80,7 +80,8 @@ export class MobileApiController {
       result.username,
       result.name,
       result.role,
-      result.permissions
+      result.permissions,
+      result.allowedSessions
     );
 
     return OK({
@@ -502,11 +503,11 @@ export class MobileApiController {
   @Get("dashboard")
   @UseGuards(MobileAuthGuard)
   async getDashboard(@Req() req: any) {
-    const mt = req.user.id;
-    const reseller = this.resellerSvc.getById(mt.resellerId);
+    const mt = req.mobileToken;
+    const reseller = this.resellerSvc.getById(mt.userId);
     if (!reseller) return ERR("Reseller tidak ditemukan");
 
-    const billStats = this.billingSvc.getStats(mt.sessionId);
+    const billStats = this.billingSvc.getStats(mt.allowedSessions);
     const recentLogs = this.resellerSvc.loadLogs(reseller.id).slice(0, 5);
 
     return OK({

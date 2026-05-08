@@ -16,6 +16,7 @@ export interface MobileUserToken {
   name: string;
   role: string;
   permissions: any;
+  allowedSessions: any;
   createdAt: string;
   expiresAt: string;
   lastUsed: string;
@@ -33,7 +34,8 @@ export class MobileTokenService {
     username: string,
     name: string,
     role: string,
-    permissions: any
+    permissions: any,
+    allowedSessions: any
   ): MobileUserToken {
     const token = crypto.randomBytes(32).toString("hex");
     const now = new Date();
@@ -47,6 +49,7 @@ export class MobileTokenService {
       name,
       role,
       permissions,
+      allowedSessions,
       createdAt: now.toISOString(),
       expiresAt: exp.toISOString(),
       lastUsed: now.toISOString()
