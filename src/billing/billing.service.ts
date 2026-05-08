@@ -464,4 +464,59 @@ export class BillingService {
     );
     return true;
   }
+  getUnpaidStats() {
+    const invoices = this.loadInvoices();
+    const unpaid = invoices.filter(
+      (i) => i.status === "unpaid" || i.status === "overdue"
+    );
+    return {
+      count: unpaid.length,
+      total: unpaid.reduce((sum, i) => sum + i.amount, 0)
+    };
+  }
+
+  getUnsettledAmount(collectorId: string): number {
+    const invoices = this.loadInvoices();
+    // Hitung invoice yang sudah dibayar ke kolektor ini tapi belum disetor (unsettled)
+    // Kita asumsikan invoice 'paid' yang belum masuk ke settlement yang 'verified'
+    const paidToMe = invoices.filter(
+      (i) => i.paidBy === collectorId && i.status === "paid"
+    );
+
+    const settlements = this.loadSettlements().filter(
+      (s) => s.collectorId === collectorId && s.status === "verified"
+    );
+    const totalPaid = paidToMe.reduce((sum, i) => sum + i.amount, 0);
+    const totalSettled = settlements.reduce((sum, s) => sum + s.amount, 0);
+
+    return totalPaid - totalSettled;
+  }
+
+  getSettlementHistory(collectorId: string): Settlement[] {
+    return this.loadSettlements().filter((s) => s.collectorId === collectorId);
+  }
+
+  createSettlementReport(data: {
+    collectorId: string;
+    collectorName: string;
+    amount: number;
+    date: string;
+  }): Settlement {
+    const all = this.loadSettlements();
+    const settle: Settlement = {
+      id: `SET-${Date.now()}`,
+      collectorId: data.collectorId,
+      collectorName: data.collectorName,
+      sessionId: "MANUAL", // Setoran manual biasanya gabungan antar session
+      amount: data.amount,
+      status: "pending",
+      createdAt: data.date
+    };
+    all.unshift(settle);
+    fs.writeFileSync(
+      this.file("settlements.json"),
+      JSON.stringify(all, null, 2)
+    );
+    return settle;
+  }
 }
