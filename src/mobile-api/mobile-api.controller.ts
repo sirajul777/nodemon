@@ -60,6 +60,7 @@ export class MobileApiController {
     );
 
     return {
+      success: true,
       token: token.token,
       user: {
         id: result.id,
