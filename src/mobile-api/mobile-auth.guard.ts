@@ -95,28 +95,41 @@ export class MobileTokenService {
 // Guard baru yang support kedua jenis token (reseller & user)
 @Injectable()
 export class MobileAuthGuard implements CanActivate {
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest();
+
+    // 1. Ambil token dari header
     const auth = req.headers["authorization"] || "";
     const token = auth.startsWith("Bearer ") ? auth.slice(7) : auth;
-    if (!token) throw new UnauthorizedException("Token tidak ditemukan");
 
-    // Coba token reseller dulu
-    const resellerToken = MobileTokenService.verify(token);
-    if (resellerToken) {
-      req.mobileToken = resellerToken;
-      req.tokenType = "reseller";
-      return true;
+    if (!token) {
+      throw new UnauthorizedException(
+        "Sesi tidak ditemukan, silakan login kembali"
+      );
     }
 
-    // Coba token user (reseller/collector login dengan username/password)
-    const userToken = MobileTokenService.verify(token);
-    if (userToken) {
-      req.mobileToken = userToken;
-      req.tokenType = "user";
-      return true;
+    // 2. Verifikasi token menggunakan Service
+    // Karena logic verify Anda sudah mengembalikan objek MobileUserToken,
+    // kita cukup panggil satu kali saja.
+    const decodedToken = MobileTokenService.verify(token);
+
+    if (!decodedToken) {
+      throw new UnauthorizedException("Sesi telah berakhir atau tidak valid");
     }
 
-    throw new UnauthorizedException("Token tidak valid atau sudah expired");
+    // 3. Tempelkan data ke objek Request
+    // Ini kuncinya agar Controller bisa tahu SIAPA yang sedang login.
+    req.user = {
+      id: decodedToken.userId,
+      username: decodedToken.username,
+      name: decodedToken.name,
+      role: decodedToken.role,
+      permissions: decodedToken.permissions
+    };
+
+    // Anda juga bisa menyimpan metadata token jika diperlukan
+    req.mobileToken = decodedToken;
+
+    return true;
   }
 }

@@ -502,7 +502,7 @@ export class MobileApiController {
   @Get("dashboard")
   @UseGuards(MobileAuthGuard)
   async getDashboard(@Req() req: any) {
-    const mt = req.mobileToken;
+    const mt = req.user.id;
     const reseller = this.resellerSvc.getById(mt.resellerId);
     if (!reseller) return ERR("Reseller tidak ditemukan");
 
