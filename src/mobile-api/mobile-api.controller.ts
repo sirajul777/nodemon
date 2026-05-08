@@ -59,7 +59,7 @@ export class MobileApiController {
       result.allowedSessions[0]
     );
 
-    return res.json({
+    return OK({
       success: true,
       username: body.username,
       name: result.name,
