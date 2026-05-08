@@ -59,13 +59,13 @@ export class MobileApiController {
       result.allowedSessions[0]
     );
 
-    return OK({
-      token: token.token,
-      user: {
-        id: result.id,
-        name: result.name,
-        role: result.role
-      }
+    return res.json({
+      success: true,
+      username: body.username,
+      name: result.name,
+      role: result.role,
+      allowedSessions: result.allowedSessions,
+      permissions: result.permissions
     });
   }
 
