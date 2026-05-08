@@ -16,7 +16,7 @@ export interface MobileUserToken {
   name: string;
   role: string;
   permissions: any;
-  allowedSessions: any;
+  sessionId: any;
   createdAt: string;
   expiresAt: string;
   lastUsed: string;
@@ -49,7 +49,7 @@ export class MobileTokenService {
       name,
       role,
       permissions,
-      allowedSessions,
+      sessionId: allowedSessions[0],
       createdAt: now.toISOString(),
       expiresAt: exp.toISOString(),
       lastUsed: now.toISOString()

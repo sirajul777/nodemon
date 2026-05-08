@@ -507,7 +507,7 @@ export class MobileApiController {
     const reseller = this.resellerSvc.getById(mt.userId);
     if (!reseller) return ERR("Reseller tidak ditemukan");
 
-    const billStats = this.billingSvc.getStats(mt.allowedSessions);
+    const billStats = this.billingSvc.getStats(mt.sessionId);
     const recentLogs = this.resellerSvc.loadLogs(reseller.id).slice(0, 5);
 
     return OK({
