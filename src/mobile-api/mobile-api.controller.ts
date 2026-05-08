@@ -59,14 +59,14 @@ export class MobileApiController {
       result.allowedSessions[0]
     );
 
-    return OK({
+    return {
       token: token.token,
       user: {
         id: result.id,
         name: result.name,
         role: result.role
       }
-    });
+    };
   }
 
   // ══════════════════════════════════════════════════════════════════════════════
