@@ -50,22 +50,27 @@ export class MobileApiController {
       return ERR("Akun Anda tidak memiliki akses sebagai petugas lapangan");
     }
 
+    // Generate JWT token
     const token = MobileTokenService.generate(
       result.id,
       result.username,
       result.name,
       result.role,
       result.permissions,
-      result.allowedSessions[0]
+      result.allowedSessions
     );
 
     return OK({
-      success: true,
-      username: body.username,
-      name: result.name,
-      role: result.role,
-      allowedSessions: result.allowedSessions,
-      permissions: result.permissions
+      token: token.token,
+      expiresAt: token.expiresAt,
+      user: {
+        id: result.id,
+        username: result.username,
+        name: result.name,
+        role: result.role,
+        permissions: result.permissions,
+        allowedSessions: result.allowedSessions
+      }
     });
   }
 
