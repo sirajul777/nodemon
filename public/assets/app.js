@@ -183,7 +183,6 @@ function startClock() {
     "Nov",
     "Des"
   ];
-
   function tick() {
     const now = new Date();
     const hh = String(now.getHours()).padStart(2, "0");
@@ -203,7 +202,7 @@ function startClock() {
 async function checkAuth() {
   try {
     const d = await req("/auth/me");
-    if (d ? .authenticated) {
+    if (d?.authenticated) {
       document.getElementById("ls").classList.add("hide");
       const dispName = d.username || "Admin";
       document.getElementById("tb-un").textContent = dispName;
@@ -225,12 +224,8 @@ async function checkAuth() {
         await fetch(`${API}/session/router`, {
           method: "POST",
           credentials: "include",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            sessionId: CS
-          })
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: CS })
         });
       }
 
@@ -296,13 +291,8 @@ async function doLogin() {
   const d = await fetch(`${API}/auth/login`, {
     method: "POST",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      username: u,
-      password: p
-    })
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: u, password: p })
   }).then((r) => r.json());
 
   if (d.success) {
@@ -315,11 +305,11 @@ async function doLogin() {
 
     await loadSessions();
     const lastPg =
-      d.role === "collector" ?
-      "billing" :
-      d.role === "reseller" ?
-      "batch" :
-      "dashboard";
+      d.role === "collector"
+        ? "billing"
+        : d.role === "reseller"
+          ? "batch"
+          : "dashboard";
     go(lastPg);
   } else {
     document.getElementById("le").textContent = d.message || "Login gagal";
@@ -384,8 +374,8 @@ function go(pg) {
   document
     .querySelectorAll("nav a")
     .forEach((a) => a.classList.remove("active"));
-  document.getElementById("page-" + pg) ? .classList.add("active");
-  document.getElementById("nav-" + pg) ? .classList.add("active");
+  document.getElementById("page-" + pg)?.classList.add("active");
+  document.getElementById("nav-" + pg)?.classList.add("active");
   document.getElementById("pg-title").textContent = PN[pg] || pg;
 
   // Tutup sidebar di mobile setelah pilih menu
@@ -407,8 +397,8 @@ function go(pg) {
 function loadPage(pg) {
   if (!pg)
     pg = [...document.querySelectorAll(".page.active")]
-    .map((p) => p.id.replace("page-", ""))
-    .pop();
+      .map((p) => p.id.replace("page-", ""))
+      .pop();
   if (pg === "sessions") {
     loadSessions();
     return;
@@ -508,12 +498,8 @@ async function switchRouter(id) {
   await fetch(`${API}/session/router`, {
     method: "POST",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      sessionId: id
-    })
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sessionId: id })
   });
   go("dashboard");
 }
@@ -553,10 +539,10 @@ async function loadSessions(isPg = false) {
 function renderSessions(subset) {
   se(
     "t-sess",
-    subset.length ?
-    subset
-    .map(
-      (s) => `<tr>
+    subset.length
+      ? subset
+          .map(
+            (s) => `<tr>
         <td><b>${s.name}</b><br><small style="color:var(--muted)">${s.id}</small></td>
         <td>${s.ip}</td><td>${s.port || 8728}</td><td>${s.currency}</td>
         <td><span class="badge ${s.livereport === "enable" ? "b-gr" : "b-rd"}\">${s.livereport}</span></td>
@@ -565,33 +551,32 @@ function renderSessions(subset) {
           <button class="btn b-w b-sm" onclick="editSessionFn('${s.id}')"><i class="fa fa-pencil"></i></button>
           <button class="btn b-d b-sm" onclick="delSession('${s.id}')"><i class="fa fa-trash"></i></button>
         </div></td></tr>`
-    )
-    .join("") :
-    '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:18px">Belum ada router</td></tr>',
+          )
+          .join("")
+      : '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:18px">Belum ada router</td></tr>',
     "innerHTML"
   );
 }
 let editSessData = null;
-
 function openSessionModal(data = null) {
   editSessData = data;
-  document.getElementById("ms-ttl").textContent = data ?
-    "Edit Router" :
-    "Add Router";
+  document.getElementById("ms-ttl").textContent = data
+    ? "Edit Router"
+    : "Add Router";
   document.getElementById("ms-err").textContent = "";
-  document.getElementById("ms-id").value = data ? .id || "";
+  document.getElementById("ms-id").value = data?.id || "";
   document.getElementById("ms-id").disabled = !!data;
-  document.getElementById("ms-nm").value = data ? .name || "";
-  document.getElementById("ms-ip").value = data ? .ip || "";
-  document.getElementById("ms-pt").value = data ? .port || 8728;
-  document.getElementById("ms-us").value = data ? .user || "admin";
+  document.getElementById("ms-nm").value = data?.name || "";
+  document.getElementById("ms-ip").value = data?.ip || "";
+  document.getElementById("ms-pt").value = data?.port || 8728;
+  document.getElementById("ms-us").value = data?.user || "admin";
   document.getElementById("ms-pw").value = "";
-  document.getElementById("ms-pw").placeholder = data ?
-    "Kosongkan = tidak ganti" :
-    "password";
+  document.getElementById("ms-pw").placeholder = data
+    ? "Kosongkan = tidak ganti"
+    : "password";
   document.getElementById("ms-ph").textContent = data ? "(opsional)" : "";
-  document.getElementById("ms-cr").value = data ? .currency || "Rp";
-  document.getElementById("ms-lv").value = data ? .livereport || "enable";
+  document.getElementById("ms-cr").value = data?.currency || "Rp";
+  document.getElementById("ms-lv").value = data?.livereport || "enable";
   document.getElementById("m-sess").classList.add("show");
 }
 async function editSessionFn(id) {
@@ -622,7 +607,7 @@ async function saveSession() {
     livereport: v("ms-lv")
   };
   const d = await post("/sessions", body);
-  if (d ? .success) {
+  if (d?.success) {
     closeM("m-sess");
     loadSessions();
     toast(editSessData ? "Router diupdate!" : "Router ditambahkan!");
@@ -638,9 +623,9 @@ async function testConn(id) {
   showL();
   const d = await req(`/mikrotik/${id}/connect/test`);
   hideL();
-  d ? .success ?
-    toast(`✓ Connected — ${d.identity} | ROS ${d.rosVersion}`) :
-    toast(`✗ ${d?.error || "Gagal"}`, true);
+  d?.success
+    ? toast(`✓ Connected — ${d.identity} | ROS ${d.rosVersion}`)
+    : toast(`✗ ${d?.error || "Gagal"}`, true);
 }
 
 // Auto sync voucher used dari MikroTik — dipanggil silent di background
@@ -650,14 +635,12 @@ async function autoSyncBatchUsed() {
     const d = await fetch(`${API}/batches/${CS}/auto-sync-used`, {
       method: "POST",
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({})
     }).then((r) => r.json());
 
     // Hanya tampil notif jika ada yang berubah
-    if (d ? .success && d.updated > 0) {
+    if (d?.success && d.updated > 0) {
       toast(`🔄 ${d.updated} voucher batch ditandai terpakai`);
       // ── AUTO-REMOVE: silent scan setelah auto-sync ──
       // Jalankan di background, jangan ganggu dashboard
@@ -691,29 +674,29 @@ async function loadDashboard() {
     if (!dash) return;
 
     // Stat bar
-    const isIndo = live ? .isIndo;
+    const isIndo = live?.isIndo;
     const fmt = (n) =>
-      isIndo ?
-      live ? .currency + " " + Math.round(n).toLocaleString("id-ID") :
-      live ? .currency + " " + Number(n).toFixed(2);
+      isIndo
+        ? live?.currency + " " + Math.round(n).toLocaleString("id-ID")
+        : live?.currency + " " + Number(n).toFixed(2);
     document.getElementById("db-today-inc").textContent = fmt(
-      live ? .today ? .income || 0
+      live?.today?.income || 0
     );
     document.getElementById("db-month-inc").textContent = fmt(
-      live ? .month ? .income || 0
+      live?.month?.income || 0
     );
     document.getElementById("db-today-vcr").textContent =
-      live ? .today ? .vouchers ? ? "—";
+      live?.today?.vouchers ?? "—";
     document.getElementById("db-month-vcr").textContent =
-      live ? .month ? .vouchers ? ? "—";
+      live?.month?.vouchers ?? "—";
     // document.getElementById('db-hs-online').textContent = dash.hotspot?.active ?? '—';
     // document.getElementById('db-ppp-online').textContent = (pppActive||[]).length;
 
     // HS + PPPoE panels
     document.getElementById("db-hs-total").textContent =
-      dash.hotspot ? .total ? ? "—";
+      dash.hotspot?.total ?? "—";
     document.getElementById("db-hs-active2").textContent =
-      dash.hotspot ? .active ? ? "—";
+      dash.hotspot?.active ?? "—";
     document.getElementById("db-ppp-total").textContent = (
       pppSecrets || []
     ).length;
@@ -760,11 +743,7 @@ async function loadDashboard() {
       const m = l.message || "";
       let type = "hs";
       if (m.includes("ppp") || m.includes("pppoe")) type = "ppp";
-      return {
-        time: l.time,
-        msg: m,
-        type
-      };
+      return { time: l.time, msg: m, type };
     });
 
     autoSyncBatchUsed();
@@ -778,9 +757,9 @@ async function loadDashboard() {
 
 function renderLog() {
   const filtered =
-    logFilter === "all" ?
-    dashLogs :
-    dashLogs.filter((l) => l.type === logFilter);
+    logFilter === "all"
+      ? dashLogs
+      : dashLogs.filter((l) => l.type === logFilter);
   const el = document.getElementById("log-list");
   const hsCt = dashLogs.filter((l) => l.type === "hs").length;
   const pppCt = dashLogs.filter((l) => l.type === "ppp").length;
@@ -789,30 +768,30 @@ function renderLog() {
   document.getElementById("lc-hs").textContent = hsCt;
   document.getElementById("lc-ppp").textContent = pppCt;
 
-  el.innerHTML = filtered.length ?
-    filtered
-    .map((l) => {
-      const msg = l.msg.toLowerCase();
-      const isAuth = msg.includes("login") || msg.includes("authorized");
-      const isLogout = msg.includes("logout");
-      const isErr =
-        msg.includes("error") ||
-        msg.includes("failed") ||
-        msg.includes("critical");
-      const isWarn = msg.includes("warning") || msg.includes("timeout");
+  el.innerHTML = filtered.length
+    ? filtered
+        .map((l) => {
+          const msg = l.msg.toLowerCase();
+          const isAuth = msg.includes("login") || msg.includes("authorized");
+          const isLogout = msg.includes("logout");
+          const isErr =
+            msg.includes("error") ||
+            msg.includes("failed") ||
+            msg.includes("critical");
+          const isWarn = msg.includes("warning") || msg.includes("timeout");
 
-      const color = isErr ?
-        "red" :
-        isWarn ?
-        "yellow" :
-        isLogout ?
-        "orange" :
-        isAuth ?
-        "green" :
-        "blue";
-      const icon = l.type === "hs" ? "fa-wifi" : "fa-plug";
+          const color = isErr
+            ? "red"
+            : isWarn
+              ? "yellow"
+              : isLogout
+                ? "orange"
+                : isAuth
+                  ? "green"
+                  : "blue";
+          const icon = l.type === "hs" ? "fa-wifi" : "fa-plug";
 
-      return `<div class="log-item">
+          return `<div class="log-item">
           <div class="log-dot" style="background:var(--${color});box-shadow:0 0 8px var(--${color})"></div>
           <div class="log-body">
             <div class="log-title">
@@ -822,9 +801,9 @@ function renderLog() {
           </div>
           <div class="log-time">${l.time}</div>
         </div>`;
-    })
-    .join("") :
-    '<div style="text-align:center;color:var(--muted);padding:40px"><i class="fa fa-inbox" style="font-size:2rem;opacity:.2"></i><br>Tidak ada log</div>';
+        })
+        .join("")
+    : '<div style="text-align:center;color:var(--muted);padding:40px"><i class="fa fa-inbox" style="font-size:2rem;opacity:.2"></i><br>Tidak ada log</div>';
 }
 
 function filterLog(type, btn) {
@@ -858,14 +837,14 @@ async function loadHsActive(isPg = false) {
 function renderHsActive(subset) {
   se(
     "t-ha",
-    subset.length ?
-    subset
-    .map(
-      (u) =>
-      `<tr><td>${u.user || "—"}</td><td>${u.address || "—"}</td><td>${u["mac-address"] || "—"}</td><td>${u.uptime || "—"}</td><td>${u["session-time-left"] || "—"}</td></tr>`
-    )
-    .join("") :
-    '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>',
+    subset.length
+      ? subset
+          .map(
+            (u) =>
+              `<tr><td>${u.user || "—"}</td><td>${u.address || "—"}</td><td>${u["mac-address"] || "—"}</td><td>${u.uptime || "—"}</td><td>${u["session-time-left"] || "—"}</td></tr>`
+          )
+          .join("")
+      : '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>',
     "innerHTML"
   );
 }
@@ -873,7 +852,7 @@ async function loadHsUsers(isPg = false) {
   if (!CS) return;
   if (!isPg) {
     showL();
-    const prof = document.getElementById("uprof") ? .value || "all";
+    const prof = document.getElementById("uprof")?.value || "all";
     const [users, profs] = await Promise.all([
       req(`/mikrotik/${CS}/hotspot/users?profile=${prof}`),
       req(`/mikrotik/${CS}/hotspot/profiles`)
@@ -883,7 +862,7 @@ async function loadHsUsers(isPg = false) {
     psel.innerHTML = '<option value="all">All Profiles</option>';
     (profs || []).forEach(
       (p) =>
-      (psel.innerHTML += `<option value="${p.name}" ${p.name === cur ? "selected" : ""}>${p.name}</option>`)
+        (psel.innerHTML += `<option value="${p.name}" ${p.name === cur ? "selected" : ""}>${p.name}</option>`)
     );
 
     PG["t-hu"].data = users || [];
@@ -904,10 +883,10 @@ async function loadHsUsers(isPg = false) {
 function renderHsUsers(subset) {
   se(
     "t-hu",
-    subset.length ?
-    subset
-    .map(
-      (u) => `<tr>
+    subset.length
+      ? subset
+          .map(
+            (u) => `<tr>
     <td><input type="checkbox" class="hu-chk" data-name="${u.name}" onclick="updateHsSel()"></td>
     <td>${u.name || "—"}</td>
     <td><span class="badge b-bl">${u.profile || "—"}</span></td>
@@ -915,9 +894,9 @@ function renderHsUsers(subset) {
     <td>${u["limit-uptime"] || "—"}</td>
     <td><button class="btn b-d b-sm" onclick="removeHsUser('${u.name}')"><i class="fa fa-trash"></i></button></td>
   </tr>`
-    )
-    .join("") :
-    '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>',
+          )
+          .join("")
+      : '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>',
     "innerHTML"
   );
 }
@@ -955,12 +934,8 @@ async function bulkDelHs() {
     const d = await fetch(`${API}/mikrotik/${CS}/hotspot/users/bulk-delete`, {
       method: "POST",
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        names
-      })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ names })
     }).then((r) => r.json());
 
     if (d.success) {
@@ -983,15 +958,15 @@ async function loadHsProfiles() {
   const d = await req(`/mikrotik/${CS}/hotspot/profiles`);
   hideL();
   if (!d || d.error) {
-    toast("Gagal load: " + (d ? .error || "error"), true);
+    toast("Gagal load: " + (d?.error || "error"), true);
     return;
   }
   se(
     "t-hsp",
-    d.length ?
-    d
-    .map(
-      (p) => `<tr>
+    d.length
+      ? d
+          .map(
+            (p) => `<tr>
     <td><div style="display:flex;align-items:center;gap:7px">
       <div style="width:12px;height:12px;border-radius:3px;background:${p.profileColor || p.color || "#1f6feb"};flex-shrink:0;border:1px solid #fff2"></div>
       <b>${p.name}</b>
@@ -1006,35 +981,34 @@ async function loadHsProfiles() {
       <button class="btn b-w b-sm" onclick="editHsProfileFn('${p.name}')"><i class="fa fa-pencil"></i></button>
       <button class="btn b-d b-sm" onclick="delHsProfile('${p.name}')"><i class="fa fa-trash"></i></button>
     </div></td></tr>`
-    )
-    .join("") :
-    '<tr><td colspan="8" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>',
+          )
+          .join("")
+      : '<tr><td colspan="8" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>',
     "innerHTML"
   );
 }
-
 function openHsProfileModal(data = null) {
   editHsProf = data ? data.name : null;
-  document.getElementById("mhp-ttl").textContent = data ?
-    "Edit HS Profile" :
-    "Add HS Profile";
+  document.getElementById("mhp-ttl").textContent = data
+    ? "Edit HS Profile"
+    : "Add HS Profile";
   document.getElementById("mhp-err").textContent = "";
-  document.getElementById("mhp-nm").value = data ? .name || "";
+  document.getElementById("mhp-nm").value = data?.name || "";
   document.getElementById("mhp-nm").disabled = !!data;
-  document.getElementById("mhp-rl").value = data ? . ["rate-limit"] || "";
-  document.getElementById("mhp-su").value = data ? . ["shared-users"] || "1";
-  document.getElementById("mhp-st").value = data ? . ["session-timeout"] || "";
-  document.getElementById("mhp-it").value = data ? . ["idle-timeout"] || "";
-  document.getElementById("mhp-ap").value = data ? . ["address-pool"] || "";
-  document.getElementById("mhp-em").value = data ? .expmode || "remc";
-  document.getElementById("mhp-vl").value = data ? .validity || "";
-  document.getElementById("mhp-pr").value = data ? .price || 0;
-  document.getElementById("mhp-sp").value = data ? .sprice || 0;
-  document.getElementById("mhp-lu").value = data ? .lockUser || "";
-  const col = data ? .profileColor || data ? .color || "#1f6feb";
+  document.getElementById("mhp-rl").value = data?.["rate-limit"] || "";
+  document.getElementById("mhp-su").value = data?.["shared-users"] || "1";
+  document.getElementById("mhp-st").value = data?.["session-timeout"] || "";
+  document.getElementById("mhp-it").value = data?.["idle-timeout"] || "";
+  document.getElementById("mhp-ap").value = data?.["address-pool"] || "";
+  document.getElementById("mhp-em").value = data?.expmode || "remc";
+  document.getElementById("mhp-vl").value = data?.validity || "";
+  document.getElementById("mhp-pr").value = data?.price || 0;
+  document.getElementById("mhp-sp").value = data?.sprice || 0;
+  document.getElementById("mhp-lu").value = data?.lockUser || "";
+  const col = data?.profileColor || data?.color || "#1f6feb";
   document.getElementById("mhp-color").value = col;
   document.getElementById("mhp-color-hex").value = col;
-  document.getElementById("mhp-caption").value = data ? .caption || "";
+  document.getElementById("mhp-caption").value = data?.caption || "";
   document.getElementById("m-hsp").classList.add("show");
 }
 async function editHsProfileFn(name) {
@@ -1065,22 +1039,20 @@ async function saveHsProfile() {
     caption: v("mhp-caption")
   };
   showL();
-  const d = editHsProf ?
-    await fetch(`${API}/mikrotik/${CS}/hotspot/profiles/${editHsProf}`, {
-      method: "PUT",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
-    }).then((r) => r.json()) :
-    await post(`/mikrotik/${CS}/hotspot/profiles`, body);
+  const d = editHsProf
+    ? await fetch(`${API}/mikrotik/${CS}/hotspot/profiles/${editHsProf}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }).then((r) => r.json())
+    : await post(`/mikrotik/${CS}/hotspot/profiles`, body);
   hideL();
-  if (d ? .success) {
+  if (d?.success) {
     closeM("m-hsp");
     loadHsProfiles();
     toast(editHsProf ? "Profile diupdate!" : "Profile ditambahkan!");
-  } else se("mhp-err", d ? .error || "Gagal");
+  } else se("mhp-err", d?.error || "Gagal");
 }
 async function delHsProfile(name) {
   if (!confirm(`Hapus profile "${name}"?`)) return;
@@ -1090,9 +1062,9 @@ async function delHsProfile(name) {
     credentials: "include"
   }).then((r) => r.json());
   hideL();
-  d.success ?
-    (loadHsProfiles(), toast("Profile dihapus")) :
-    toast("Gagal: " + d.error, true);
+  d.success
+    ? (loadHsProfiles(), toast("Profile dihapus"))
+    : toast("Gagal: " + d.error, true);
 }
 
 // ════════════════════════════════════════════════
@@ -1117,14 +1089,14 @@ async function loadPppActive(isPg = false) {
 function renderPppActive(subset) {
   se(
     "t-pa",
-    subset.length ?
-    subset
-    .map(
-      (u) =>
-      `<tr><td><b>${u.name || "—"}</b></td><td>${u.service || "—"}</td><td>${u["caller-id"] || "—"}</td><td>${u.address || "—"}</td><td>${u.uptime || "—"}</td><td><button class="btn b-d b-sm" onclick="disconnectPpp('${u[".id"]}')"><i class="fa fa-times"></i> DC</button></td></tr>`
-    )
-    .join("") :
-    '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>',
+    subset.length
+      ? subset
+          .map(
+            (u) =>
+              `<tr><td><b>${u.name || "—"}</b></td><td>${u.service || "—"}</td><td>${u["caller-id"] || "—"}</td><td>${u.address || "—"}</td><td>${u.uptime || "—"}</td><td><button class="btn b-d b-sm" onclick="disconnectPpp('${u[".id"]}')"><i class="fa fa-times"></i> DC</button></td></tr>`
+          )
+          .join("")
+      : '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>',
     "innerHTML"
   );
 }
@@ -1141,7 +1113,7 @@ async function loadPppUsers(isPg = false) {
   if (!CS) return;
   if (!isPg) {
     showL();
-    const prof = document.getElementById("ppp-prof-filter") ? .value || "all";
+    const prof = document.getElementById("ppp-prof-filter")?.value || "all";
     const [users, profs] = await Promise.all([
       req(`/pppoe/${CS}/secrets${prof !== "all" ? "?profile=" + prof : ""}`),
       req(`/pppoe/${CS}/profiles`)
@@ -1151,7 +1123,7 @@ async function loadPppUsers(isPg = false) {
     psel.innerHTML = '<option value="all">All Profiles</option>';
     (profs || []).forEach(
       (p) =>
-      (psel.innerHTML += `<option value="${p.name}" ${p.name === cur ? "selected" : ""}>${p.name}</option>`)
+        (psel.innerHTML += `<option value="${p.name}" ${p.name === cur ? "selected" : ""}>${p.name}</option>`)
     );
 
     PG["t-ps"].data = users || [];
@@ -1167,30 +1139,30 @@ async function loadPppUsers(isPg = false) {
 function renderPppUsers(subset) {
   se(
     "t-ps",
-    subset.length ?
-    subset
-    .map(
-      (u) =>
-      `<tr><td><b>${u.name || "—"}</b></td><td><span class="badge b-bl">${u.profile || "—"}</span></td><td>${u.service || "—"}</td><td>${u["local-address"] || "—"}</td><td>${u["remote-address"] || "—"}</td><td style="color:var(--muted)">${u.comment || ""}</td><td><span class="badge ${u.disabled === "true" ? "b-rd" : "b-gr"}">${u.disabled === "true" ? "Disabled" : "Active"}</span></td><td><div style="display:flex;gap:4px"><button class="btn b-w b-sm" onclick="editPppUserFn('${u.name}')"><i class="fa fa-pencil"></i></button>${u.disabled === "true" ? `<button class="btn b-g b-sm" onclick="togglePppUser('${u.name}',false)"><i class="fa fa-check"></i></button>` : `<button class="btn b-s b-sm" onclick="togglePppUser('${u.name}',true)"><i class="fa fa-ban"></i></button>`}<button class="btn b-d b-sm" onclick="delPppUser('${u.name}')"><i class="fa fa-trash"></i></button></div></td></tr>`
-    )
-    .join("") :
-    '<tr><td colspan="8" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>',
+    subset.length
+      ? subset
+          .map(
+            (u) =>
+              `<tr><td><b>${u.name || "—"}</b></td><td><span class="badge b-bl">${u.profile || "—"}</span></td><td>${u.service || "—"}</td><td>${u["local-address"] || "—"}</td><td>${u["remote-address"] || "—"}</td><td style="color:var(--muted)">${u.comment || ""}</td><td><span class="badge ${u.disabled === "true" ? "b-rd" : "b-gr"}">${u.disabled === "true" ? "Disabled" : "Active"}</span></td><td><div style="display:flex;gap:4px"><button class="btn b-w b-sm" onclick="editPppUserFn('${u.name}')"><i class="fa fa-pencil"></i></button>${u.disabled === "true" ? `<button class="btn b-g b-sm" onclick="togglePppUser('${u.name}',false)"><i class="fa fa-check"></i></button>` : `<button class="btn b-s b-sm" onclick="togglePppUser('${u.name}',true)"><i class="fa fa-ban"></i></button>`}<button class="btn b-d b-sm" onclick="delPppUser('${u.name}')"><i class="fa fa-trash"></i></button></div></td></tr>`
+          )
+          .join("")
+      : '<tr><td colspan="8" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>',
     "innerHTML"
   );
 }
 async function openPppUserModal(data = null) {
   editPppUser = data ? data.name : null;
-  document.getElementById("mpu-ttl").textContent = data ?
-    "Edit PPPoE User" :
-    "Add PPPoE User";
+  document.getElementById("mpu-ttl").textContent = data
+    ? "Edit PPPoE User"
+    : "Add PPPoE User";
   document.getElementById("mpu-err").textContent = "";
-  document.getElementById("mpu-nm").value = data ? .name || "";
+  document.getElementById("mpu-nm").value = data?.name || "";
   document.getElementById("mpu-nm").disabled = !!data;
   document.getElementById("mpu-pw").value = "";
-  document.getElementById("mpu-sv").value = data ? .service || "pppoe";
-  document.getElementById("mpu-la").value = data ? . ["local-address"] || "";
-  document.getElementById("mpu-ra").value = data ? . ["remote-address"] || "";
-  document.getElementById("mpu-cm").value = data ? .comment || "";
+  document.getElementById("mpu-sv").value = data?.service || "pppoe";
+  document.getElementById("mpu-la").value = data?.["local-address"] || "";
+  document.getElementById("mpu-ra").value = data?.["remote-address"] || "";
+  document.getElementById("mpu-cm").value = data?.comment || "";
 
   const profs = (await req(`/pppoe/${CS}/profiles`)) || [];
   const psel = document.getElementById("mpu-pr");
@@ -1198,7 +1170,7 @@ async function openPppUserModal(data = null) {
 
   // Tampilkan hanya profile yang AKTIF, kecuali jika data lama memang menggunakan profile itu
   profs.forEach((p) => {
-    if (p.active !== false || p.name === data ? .profile) {
+    if (p.active !== false || p.name === data?.profile) {
       psel.innerHTML += `<option value="${p.name}" ${p.name === (data?.profile || "default") ? "selected" : ""}>${p.name}${p.active === false ? " (Nonaktif)" : ""}</option>`;
     }
   });
@@ -1232,30 +1204,26 @@ async function savePppUser() {
   };
   if (pw) body.password = pw;
   showL();
-  const d = editPppUser ?
-    await fetch(`${API}/pppoe/${CS}/secrets/${editPppUser}`, {
-      method: "PUT",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
-    }).then((r) => r.json()) :
-    await post(`/pppoe/${CS}/secrets`, body);
+  const d = editPppUser
+    ? await fetch(`${API}/pppoe/${CS}/secrets/${editPppUser}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }).then((r) => r.json())
+    : await post(`/pppoe/${CS}/secrets`, body);
   hideL();
-  if (d ? .success) {
+  if (d?.success) {
     closeM("m-pu");
     loadPppUsers();
     toast(editPppUser ? "User diupdate!" : "User ditambahkan!");
-  } else se("mpu-err", d ? .error || "Gagal");
+  } else se("mpu-err", d?.error || "Gagal");
 }
 async function togglePppUser(name, disable) {
   showL();
   await fetch(
-    `${API}/pppoe/${CS}/secrets/${name}/${disable ? "disable" : "enable"}`, {
-      method: "POST",
-      credentials: "include"
-    }
+    `${API}/pppoe/${CS}/secrets/${name}/${disable ? "disable" : "enable"}`,
+    { method: "POST", credentials: "include" }
   );
   hideL();
   loadPppUsers();
@@ -1275,36 +1243,35 @@ async function loadPppProfiles() {
   const d = (await req(`/pppoe/${CS}/profiles`)) || [];
   se(
     "t-pp",
-    d.length ?
-    d
-    .map(
-      (p) =>
-      `<tr><td><b>${p.name}</b></td><td><span class="badge b-bl">${p["rate-limit"] || "—"}</span></td><td>${p["address-pool"] || "—"}</td><td>${p["session-timeout"] || "—"}</td><td>${p["only-one"] || "—"}</td><td><span class="badge ${p.active !== false ? "b-gr" : "b-rd"}">${p.active !== false ? "Aktif" : "Nonaktif"}</span></td><td><div style="display:flex;gap:4px"><button class="btn b-w b-sm" onclick="editPppProfileFn('${p.name}')"><i class="fa fa-pencil"></i></button><button class="btn b-d b-sm" onclick="delPppProfile('${p.name}')"><i class="fa fa-trash"></i></button></div></td></tr>`
-    )
-    .join("") :
-    '<tr><td colspan="7" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>',
+    d.length
+      ? d
+          .map(
+            (p) =>
+              `<tr><td><b>${p.name}</b></td><td><span class="badge b-bl">${p["rate-limit"] || "—"}</span></td><td>${p["address-pool"] || "—"}</td><td>${p["session-timeout"] || "—"}</td><td>${p["only-one"] || "—"}</td><td><span class="badge ${p.active !== false ? "b-gr" : "b-rd"}">${p.active !== false ? "Aktif" : "Nonaktif"}</span></td><td><div style="display:flex;gap:4px"><button class="btn b-w b-sm" onclick="editPppProfileFn('${p.name}')"><i class="fa fa-pencil"></i></button><button class="btn b-d b-sm" onclick="delPppProfile('${p.name}')"><i class="fa fa-trash"></i></button></div></td></tr>`
+          )
+          .join("")
+      : '<tr><td colspan="7" style="text-align:center;color:var(--muted)">Tidak ada</td></tr>',
     "innerHTML"
   );
   hideL();
 }
-
 function openPppProfileModal(data = null) {
   editPppProf = data ? data.name : null;
-  document.getElementById("mpp-ttl").textContent = data ?
-    "Edit PPPoE Profile" :
-    "Add PPPoE Profile";
+  document.getElementById("mpp-ttl").textContent = data
+    ? "Edit PPPoE Profile"
+    : "Add PPPoE Profile";
   document.getElementById("mpp-err").textContent = "";
-  document.getElementById("mpp-nm").value = data ? .name || "";
+  document.getElementById("mpp-nm").value = data?.name || "";
   document.getElementById("mpp-nm").disabled = !!data;
-  document.getElementById("mpp-rl").value = data ? . ["rate-limit"] || "";
-  document.getElementById("mpp-ap").value = data ? . ["address-pool"] || "";
-  document.getElementById("mpp-la").value = data ? . ["local-address"] || "";
-  document.getElementById("mpp-st").value = data ? . ["session-timeout"] || "";
-  document.getElementById("mpp-it").value = data ? . ["idle-timeout"] || "";
-  document.getElementById("mpp-oo").value = data ? . ["only-one"] || "default";
-  document.getElementById("mpp-cm").value = data ? .comment || "";
+  document.getElementById("mpp-rl").value = data?.["rate-limit"] || "";
+  document.getElementById("mpp-ap").value = data?.["address-pool"] || "";
+  document.getElementById("mpp-la").value = data?.["local-address"] || "";
+  document.getElementById("mpp-st").value = data?.["session-timeout"] || "";
+  document.getElementById("mpp-it").value = data?.["idle-timeout"] || "";
+  document.getElementById("mpp-oo").value = data?.["only-one"] || "default";
+  document.getElementById("mpp-cm").value = data?.comment || "";
   const statusEl = document.getElementById("mpp-act");
-  if (statusEl) statusEl.value = String(data ? .active !== false);
+  if (statusEl) statusEl.value = String(data?.active !== false);
   document.getElementById("m-pp").classList.add("show");
 }
 async function editPppProfileFn(name) {
@@ -1331,22 +1298,20 @@ async function savePppProfile() {
     active: v("mpp-act") === "true"
   };
   showL();
-  const d = editPppProf ?
-    await fetch(`${API}/pppoe/${CS}/profiles/${editPppProf}`, {
-      method: "PUT",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
-    }).then((r) => r.json()) :
-    await post(`/pppoe/${CS}/profiles`, body);
+  const d = editPppProf
+    ? await fetch(`${API}/pppoe/${CS}/profiles/${editPppProf}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }).then((r) => r.json())
+    : await post(`/pppoe/${CS}/profiles`, body);
   hideL();
-  if (d ? .success) {
+  if (d?.success) {
     closeM("m-pp");
     loadPppProfiles();
     toast(editPppProf ? "Profile diupdate!" : "Profile ditambahkan!");
-  } else se("mpp-err", d ? .error || "Gagal");
+  } else se("mpp-err", d?.error || "Gagal");
 }
 async function delPppProfile(name) {
   if (!confirm(`Hapus "${name}"?`)) return;
@@ -1377,31 +1342,30 @@ async function loadResellers(isPg = false) {
 function renderResellers(subset) {
   se(
     "t-rs",
-    subset.length ?
-    subset
-    .map(
-      (r) =>
-      `<tr><td><b>${r.name}</b></td><td><span class="badge b-pu">${r.id}</span></td><td>${r.phone || "—"}</td><td>${r.discount || 0}%</td><td><div style="display:flex;gap:4px"><button class="btn b-w b-sm" onclick="editRsFn('${r.id}')"><i class="fa fa-pencil"></i></button><button class="btn b-d b-sm" onclick="delRs('${r.id}')"><i class="fa fa-trash"></i></button></div></td></tr>`
-    )
-    .join("") :
-    '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:18px">Belum ada reseller</td></tr>',
+    subset.length
+      ? subset
+          .map(
+            (r) =>
+              `<tr><td><b>${r.name}</b></td><td><span class="badge b-pu">${r.id}</span></td><td>${r.phone || "—"}</td><td>${r.discount || 0}%</td><td><div style="display:flex;gap:4px"><button class="btn b-w b-sm" onclick="editRsFn('${r.id}')"><i class="fa fa-pencil"></i></button><button class="btn b-d b-sm" onclick="delRs('${r.id}')"><i class="fa fa-trash"></i></button></div></td></tr>`
+          )
+          .join("")
+      : '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:18px">Belum ada reseller</td></tr>',
     "innerHTML"
   );
 }
-
 function openResellerModal(data = null) {
-  editRs = data ? .id || null;
-  document.getElementById("mrs-ttl").textContent = data ?
-    "Edit Reseller" :
-    "Add Reseller";
+  editRs = data?.id || null;
+  document.getElementById("mrs-ttl").textContent = data
+    ? "Edit Reseller"
+    : "Add Reseller";
   document.getElementById("mrs-err").textContent = "";
-  document.getElementById("mrs-id").value = data ? .id || "";
+  document.getElementById("mrs-id").value = data?.id || "";
   // document.getElementById("mrs-id").disabled = !!data;
-  document.getElementById("mrs-nm").value = data ? .name || "";
-  document.getElementById("mrs-ph").value = data ? .phone || "";
-  document.getElementById("mrs-dc").value = data ? .discount || 0;
-  document.getElementById("mrs-ad").value = data ? .address || "";
-  document.getElementById("mrs-rt").value = data ? .router || CS || "";
+  document.getElementById("mrs-nm").value = data?.name || "";
+  document.getElementById("mrs-ph").value = data?.phone || "";
+  document.getElementById("mrs-dc").value = data?.discount || 0;
+  document.getElementById("mrs-ad").value = data?.address || "";
+  document.getElementById("mrs-rt").value = data?.router || CS || "";
   document.getElementById("m-rs").classList.add("show");
 }
 async function editRsFn(id) {
@@ -1424,7 +1388,7 @@ async function saveReseller() {
     router: v("mrs-rt")
   };
   const d = await post("/resellers", body);
-  if (d ? .id) {
+  if (d?.id) {
     closeM("m-rs");
     loadResellers();
     toast(editRs ? "Reseller diupdate!" : "Reseller ditambahkan!");
@@ -1449,21 +1413,21 @@ async function initBatch() {
   const psel = document.getElementById("bv-prof");
   psel.innerHTML =
     (profs || [])
-    .map(
-      (p) =>
-      `<option value="${p.name}" data-val="${p.validity || ""}">${p.name}${p.validity ? " (" + p.validity + ")" : ""}${p.price ? " Rp" + Number(p.price).toLocaleString("id-ID") : ""}</option>`
-    )
-    .join("") || "<option>Tidak ada</option>";
+      .map(
+        (p) =>
+          `<option value="${p.name}" data-val="${p.validity || ""}">${p.name}${p.validity ? " (" + p.validity + ")" : ""}${p.price ? " Rp" + Number(p.price).toLocaleString("id-ID") : ""}</option>`
+      )
+      .join("") || "<option>Tidak ada</option>";
   psel.onchange = () => {
     const o = psel.options[psel.selectedIndex];
-    document.getElementById("bv-val").value = o ? .dataset.val || "";
+    document.getElementById("bv-val").value = o?.dataset.val || "";
   };
   psel.dispatchEvent(new Event("change"));
   const rsel = document.getElementById("bv-rs");
   rsel.innerHTML = '<option value="">— Tanpa Reseller —</option>';
   (rs || []).forEach(
     (r) =>
-    (rsel.innerHTML += `<option value="${r.id}">${r.name} (${r.id})</option>`)
+      (rsel.innerHTML += `<option value="${r.id}">${r.name} (${r.id})</option>`)
   );
 }
 
@@ -1485,7 +1449,7 @@ async function saveBatchToServer(
   const validity = genBody.limitUptime || pmeta.validity || "";
   const caption = pmeta.caption || profileName;
   const batchId = `BATCH-${Date.now()}`;
-  const createdBy = document.getElementById("tb-un") ? .textContent || "Admin";
+  const createdBy = document.getElementById("tb-un")?.textContent || "Admin";
 
   const batch = {
     id: batchId,
@@ -1500,7 +1464,7 @@ async function saveBatchToServer(
     createdBy,
     createdAt: new Date().toISOString(),
     resellerId: genBody.resellerId || "",
-    resellerName: reseller ? .name || genBody.resellerName || "",
+    resellerName: reseller?.name || genBody.resellerName || "",
     vouchers: rawVouchers.map((vcr) => ({
       username: vcr.username,
       password: vcr.password,
@@ -1520,13 +1484,11 @@ async function saveBatchToServer(
     const res = await fetch(`${API}/batches/${CS}`, {
       method: "POST",
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(batch)
     });
     const saved = await res.json();
-    if (saved ? .id) {
+    if (saved?.id) {
       toast(`💾 Batch tersimpan: ${saved.id} (${rawVouchers.length} voucher)`);
       await checkAndAutoRemoveByProfile(profileName);
     } else {
@@ -1574,7 +1536,7 @@ async function generateVouchers(asCsv = false) {
     charType,
     limitUptime,
     resellerId: rsId || undefined,
-    resellerName: reseller ? .name || undefined
+    resellerName: reseller?.name || undefined
   };
 
   se("bv-err", "");
@@ -1588,9 +1550,7 @@ async function generateVouchers(asCsv = false) {
       const r = await fetch(`${API}/voucher/generate/csv`, {
         method: "POST",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body)
       });
       const blob = await r.blob();
@@ -1603,8 +1563,8 @@ async function generateVouchers(asCsv = false) {
     }
 
     const d = await post("/voucher/generate", body);
-    if (!d ? .success) {
-      se("bv-err", d ? .message || "Gagal generate");
+    if (!d?.success) {
+      se("bv-err", d?.message || "Gagal generate");
       return;
     }
 
@@ -1677,32 +1637,32 @@ async function loadVoucherSettings() {
   const d = (await req("/voucher-types")) || [];
   se(
     "t-vt",
-    d.length ?
-    d
-    .map(
-      (vt) =>
-      `<tr><td class="vt-name">${vt.name}</td><td style="color:var(--green);font-weight:600">Rp ${Number(vt.price).toLocaleString("id-ID")}</td><td><span class="badge b-bl">${vt.profile}</span></td><td>${vt.duration || "—"}</td><td style="color:var(--muted);font-size:.76rem">${vt.codeLength}char · ${CFMT[vt.codeFormat] || vt.codeFormat}</td><td>${vt.maxPerOrder}</td><td><span class="badge ${vt.active ? "b-gr" : "b-rd"}" style="cursor:pointer" onclick="toggleVt('${vt.id}')">${vt.active ? "Aktif" : "Nonaktif"}</span></td><td><div style="display:flex;gap:4px"><button class="btn b-w b-sm" onclick="editVtFn('${vt.id}')"><i class="fa fa-pencil"></i></button><button class="btn b-d b-sm" onclick="deleteVt('${vt.id}')"><i class="fa fa-trash"></i></button></div></td></tr>`
-    )
-    .join("") :
-    '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">Belum ada tipe voucher</td></tr>',
+    d.length
+      ? d
+          .map(
+            (vt) =>
+              `<tr><td class="vt-name">${vt.name}</td><td style="color:var(--green);font-weight:600">Rp ${Number(vt.price).toLocaleString("id-ID")}</td><td><span class="badge b-bl">${vt.profile}</span></td><td>${vt.duration || "—"}</td><td style="color:var(--muted);font-size:.76rem">${vt.codeLength}char · ${CFMT[vt.codeFormat] || vt.codeFormat}</td><td>${vt.maxPerOrder}</td><td><span class="badge ${vt.active ? "b-gr" : "b-rd"}" style="cursor:pointer" onclick="toggleVt('${vt.id}')">${vt.active ? "Aktif" : "Nonaktif"}</span></td><td><div style="display:flex;gap:4px"><button class="btn b-w b-sm" onclick="editVtFn('${vt.id}')"><i class="fa fa-pencil"></i></button><button class="btn b-d b-sm" onclick="deleteVt('${vt.id}')"><i class="fa fa-trash"></i></button></div></td></tr>`
+          )
+          .join("")
+      : '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">Belum ada tipe voucher</td></tr>',
     "innerHTML"
   );
 }
 async function openVtModal(data = null) {
-  editVtId = data ? .id || null;
-  document.getElementById("mvt-ttl").textContent = data ?
-    "Edit Tipe Voucher" :
-    "Tambah Tipe Voucher";
+  editVtId = data?.id || null;
+  document.getElementById("mvt-ttl").textContent = data
+    ? "Edit Tipe Voucher"
+    : "Tambah Tipe Voucher";
   document.getElementById("mvt-err").textContent = "";
-  document.getElementById("mvt-nm").value = data ? .name || "";
-  document.getElementById("mvt-pr").value = data ? .price || 1000;
-  document.getElementById("mvt-dur").value = data ? .duration || "";
-  document.getElementById("mvt-len").value = data ? .codeLength || 6;
-  document.getElementById("mvt-fmt").value = data ? .codeFormat || "upper+digit";
-  document.getElementById("mvt-max").value = data ? .maxPerOrder || 10;
+  document.getElementById("mvt-nm").value = data?.name || "";
+  document.getElementById("mvt-pr").value = data?.price || 1000;
+  document.getElementById("mvt-dur").value = data?.duration || "";
+  document.getElementById("mvt-len").value = data?.codeLength || 6;
+  document.getElementById("mvt-fmt").value = data?.codeFormat || "upper+digit";
+  document.getElementById("mvt-max").value = data?.maxPerOrder || 10;
   document.getElementById("mvt-act").value =
-    data ? .active !== false ? "true" : "false";
-  document.getElementById("mvt-type").value = data ? .userType || "";
+    data?.active !== false ? "true" : "false";
+  document.getElementById("mvt-type").value = data?.userType || "";
   const psel = document.getElementById("mvt-prof");
   psel.innerHTML = '<option value="">Loading...</option>';
 
@@ -1711,11 +1671,11 @@ async function openVtModal(data = null) {
     const profs = (await req(`/mikrotik/${CS}/hotspot/profiles`)) || [];
     psel.innerHTML = '<option value="">Pilih profile...</option>';
     profs.forEach((p) => {
-      const isSel = p.name === data ? .profile;
+      const isSel = p.name === data?.profile;
       psel.innerHTML += `<option value="${p.name}" ${isSel ? "selected" : ""}>${p.name}${p.validity ? " (" + p.validity + ")" : ""}${p.price ? " Rp" + Number(p.price).toLocaleString("id-ID") : ""}</option>`;
     });
     // Jika profile yang tersimpan di database tidak ada di MikroTik (mungkin dihapus manual di Winbox)
-    if (data ? .profile && !profs.find((p) => p.name === data.profile)) {
+    if (data?.profile && !profs.find((p) => p.name === data.profile)) {
       psel.innerHTML += `<option value="${data.profile}" selected>${data.profile} (Tidak ada di MikroTik!)</option>`;
     }
   } else {
@@ -1752,22 +1712,20 @@ async function saveVt() {
     active: v("mvt-act") === "true"
   };
   showL();
-  const d = editVtId ?
-    await fetch(`${API}/voucher-types/${editVtId}`, {
-      method: "PUT",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
-    }).then((r) => r.json()) :
-    await post("/voucher-types", body);
+  const d = editVtId
+    ? await fetch(`${API}/voucher-types/${editVtId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }).then((r) => r.json())
+    : await post("/voucher-types", body);
   hideL();
-  if (d ? .id || d ? .name) {
+  if (d?.id || d?.name) {
     closeM("m-vt");
     loadVoucherSettings();
     toast(editVtId ? "Tipe diupdate!" : "Tipe ditambahkan!");
-  } else se("mvt-err", d ? .error || "Gagal");
+  } else se("mvt-err", d?.error || "Gagal");
 }
 async function deleteVt(id) {
   if (!confirm("Hapus?")) return;
@@ -1782,7 +1740,7 @@ async function toggleVt(id) {
     method: "PATCH",
     credentials: "include"
   }).then((r) => r.json());
-  if (d ? .success) {
+  if (d?.success) {
     loadVoucherSettings();
     toast(d.active ? "Diaktifkan" : "Dinonaktifkan");
   }
@@ -1802,7 +1760,7 @@ async function initSelling() {
       dEl.innerHTML += `<option value="${String(d).padStart(2, "0")}">${String(d).padStart(2, "0")}</option>`;
     MS.forEach(
       (m, i) =>
-      (mEl.innerHTML += `<option value="${m}" ${i === now.getMonth() ? "selected" : ""}>${MF[i]}</option>`)
+        (mEl.innerHTML += `<option value="${m}" ${i === now.getMonth() ? "selected" : ""}>${MF[i]}</option>`)
     );
     for (let y = 2018; y <= now.getFullYear(); y++)
       yEl.innerHTML += `<option value="${y}" ${y === now.getFullYear() ? "selected" : ""}>${y}</option>`;
@@ -1813,16 +1771,13 @@ async function initSelling() {
   rsel.innerHTML = '<option value="">All Reseller</option>';
   rs.forEach(
     (r) =>
-    (rsel.innerHTML += `<option value="${r.id}">${r.name} (${r.id})</option>`)
+      (rsel.innerHTML += `<option value="${r.id}">${r.name} (${r.id})</option>`)
   );
   loadSelling();
 }
 async function loadSelling(isPg = false) {
   if (!CS) return;
-  let s = {
-    currency: "Rp",
-    isIndo: true
-  };
+  let s = { currency: "Rp", isIndo: true };
   if (!isPg) {
     showL();
     const day = v("sr-d"),
@@ -1859,9 +1814,9 @@ async function loadSelling(isPg = false) {
   const mx = Math.max(...rslGrps.map((r) => r.total), 1);
   se(
     "rsl-grp",
-    rslGrps.length ?
-    `<table><thead><tr><th>Reseller</th><th>Vouchers</th><th style="text-align:right">Total Income</th><th style="min-width:130px">Progress</th></tr></thead><tbody>${rslGrps.map((r) => `<tr><td><span class="badge b-pu">${r.tag}</span></td><td>${r.vouchers}</td><td style="text-align:right;color:var(--green);font-weight:600">${fmtC(r.total, s.currency, s.isIndo)}</td><td><div style="background:var(--border);border-radius:3px;height:6px;overflow:hidden"><div style="height:100%;width:${Math.round((r.total / mx) * 100)}%;background:var(--acc2);border-radius:3px"></div></div></td></tr>`).join("")}</tbody></table>` :
-    '<p style="color:var(--muted);padding:16px 0">Tidak ada data</p>',
+    rslGrps.length
+      ? `<table><thead><tr><th>Reseller</th><th>Vouchers</th><th style="text-align:right">Total Income</th><th style="min-width:130px">Progress</th></tr></thead><tbody>${rslGrps.map((r) => `<tr><td><span class="badge b-pu">${r.tag}</span></td><td>${r.vouchers}</td><td style="text-align:right;color:var(--green);font-weight:600">${fmtC(r.total, s.currency, s.isIndo)}</td><td><div style="background:var(--border);border-radius:3px;height:6px;overflow:hidden"><div style="height:100%;width:${Math.round((r.total / mx) * 100)}%;background:var(--acc2);border-radius:3px"></div></div></td></tr>`).join("")}</tbody></table>`
+      : '<p style="color:var(--muted);padding:16px 0">Tidak ada data</p>',
     "innerHTML"
   );
 }
@@ -1870,18 +1825,17 @@ function renderSelling(subset) {
   const s = PG["t-sel"].extra;
   se(
     "t-sel",
-    subset.length ?
-    subset
-    .map(
-      (r, i) =>
-      `<tr><td>${(PG["t-sel"].page - 1) * PG["t-sel"].limit + i + 1}</td><td>${r.date}</td><td>${r.time}</td><td>${r.username}</td><td><span class="badge b-bl">${r.profile}</span></td><td><span class="badge b-pu">${r.resellerTag}</span></td><td style="text-align:right">${s.isIndo ? r.price.toLocaleString("id-ID") : r.price.toFixed(2)}</td></tr>`
-    )
-    .join("") :
-    '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:18px">Tidak ada data</td></tr>',
+    subset.length
+      ? subset
+          .map(
+            (r, i) =>
+              `<tr><td>${(PG["t-sel"].page - 1) * PG["t-sel"].limit + i + 1}</td><td>${r.date}</td><td>${r.time}</td><td>${r.username}</td><td><span class="badge b-bl">${r.profile}</span></td><td><span class="badge b-pu">${r.resellerTag}</span></td><td style="text-align:right">${s.isIndo ? r.price.toLocaleString("id-ID") : r.price.toFixed(2)}</td></tr>`
+          )
+          .join("")
+      : '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:18px">Tidak ada data</td></tr>',
     "innerHTML"
   );
 }
-
 function switchTab(t) {
   document
     .querySelectorAll(".tab")
@@ -1890,7 +1844,6 @@ function switchTab(t) {
   document.getElementById("pnl-det").style.display = t === "det" ? "" : "none";
   document.getElementById("pnl-rsl").style.display = t === "rsl" ? "" : "none";
 }
-
 function exportCSV() {
   if (!selData.length) {
     toast("Tidak ada data", true);
@@ -1921,18 +1874,17 @@ function exportCSV() {
 // RESUME REPORT
 // ════════════════════════════════════════════════
 let rrInited = false;
-
 function initResume() {
   if (!rrInited) {
     const now = new Date();
     MS.forEach(
       (m, i) =>
-      (document.getElementById("rr-m").innerHTML +=
-        `<option value="${m}" ${i === now.getMonth() ? "selected" : ""}>${MF[i]}</option>`)
+        (document.getElementById("rr-m").innerHTML +=
+          `<option value="${m}" ${i === now.getMonth() ? "selected" : ""}>${MF[i]}</option>`)
     );
     for (let y = 2018; y <= now.getFullYear(); y++)
       document.getElementById("rr-y").innerHTML +=
-      `<option value="${y}" ${y === now.getFullYear() ? "selected" : ""}>${y}</option>`;
+        `<option value="${y}" ${y === now.getFullYear() ? "selected" : ""}>${y}</option>`;
     rrInited = true;
   }
   loadResume();
@@ -1955,43 +1907,25 @@ async function loadResume() {
     type: "line",
     data: {
       labels: daily.map((d) => d.date + " " + (s.month || "")),
-      datasets: [{
-        label: "Income",
-        data: daily.map((d) => d.total),
-        borderColor: "#388bfd",
-        backgroundColor: "#388bfd18",
-        fill: true,
-        tension: 0.4,
-        pointBackgroundColor: "#388bfd",
-        pointRadius: 3
-      }]
+      datasets: [
+        {
+          label: "Income",
+          data: daily.map((d) => d.total),
+          borderColor: "#388bfd",
+          backgroundColor: "#388bfd18",
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: "#388bfd",
+          pointRadius: 3
+        }
+      ]
     },
     options: {
       responsive: true,
-      plugins: {
-        legend: {
-          labels: {
-            color: "#8b949e"
-          }
-        }
-      },
+      plugins: { legend: { labels: { color: "#8b949e" } } },
       scales: {
-        x: {
-          ticks: {
-            color: "#8b949e"
-          },
-          grid: {
-            color: "#21262d"
-          }
-        },
-        y: {
-          ticks: {
-            color: "#8b949e"
-          },
-          grid: {
-            color: "#21262d"
-          }
-        }
+        x: { ticks: { color: "#8b949e" }, grid: { color: "#21262d" } },
+        y: { ticks: { color: "#8b949e" }, grid: { color: "#21262d" } }
       }
     }
   });
@@ -2005,15 +1939,15 @@ async function loadLive() {
   if (!CS) return;
   showL();
   const d = (await req(`/report/${CS}/live`)) || {};
-  document.getElementById("lr-tv").textContent = d.today ? .vouchers ? ? "—";
+  document.getElementById("lr-tv").textContent = d.today?.vouchers ?? "—";
   document.getElementById("lr-ti").textContent = fmtC(
-    d.today ? .income || 0,
+    d.today?.income || 0,
     d.currency,
     d.isIndo
   );
-  document.getElementById("lr-mv").textContent = d.month ? .vouchers ? ? "—";
+  document.getElementById("lr-mv").textContent = d.month?.vouchers ?? "—";
   document.getElementById("lr-mi").textContent = fmtC(
-    d.month ? .income || 0,
+    d.month?.income || 0,
     d.currency,
     d.isIndo
   );
@@ -2035,10 +1969,10 @@ async function loadTgInfo() {
   const botList = document.getElementById("bot-list");
   const cfgArr = Array.isArray(configs) ? configs : configs ? [configs] : [];
 
-  botList.innerHTML = cfgArr.length ?
-    cfgArr
-    .map(
-      (cfg) => `
+  botList.innerHTML = cfgArr.length
+    ? cfgArr
+        .map(
+          (cfg) => `
     <div class="nas-card" style="margin-bottom:8px">
       <div class="nas-header">
         <div>
@@ -2061,9 +1995,9 @@ async function loadTgInfo() {
       </div>
     </div>
   `
-    )
-    .join("") :
-    `
+        )
+        .join("")
+    : `
     <div style="text-align:center;color:var(--muted);padding:20px">
       Belum ada bot. Klik <b>Tambah Bot</b>.
     </div>`;
@@ -2071,18 +2005,19 @@ async function loadTgInfo() {
   // Log
   const logEl = document.getElementById("tg-log");
   if (logEl) {
-    logEl.innerHTML = (logs || []).length ? [...(logs || [])]
-      .reverse()
-      .slice(0, 30)
-      .map(
-        (l) =>
-        `<div style="padding:3px 0;border-bottom:1px solid var(--border)">
+    logEl.innerHTML = (logs || []).length
+      ? [...(logs || [])]
+          .reverse()
+          .slice(0, 30)
+          .map(
+            (l) =>
+              `<div style="padding:3px 0;border-bottom:1px solid var(--border)">
             <span style="color:var(--muted);font-size:.7rem">${l.time}</span>
             <b style="margin:0 5px">${l.from}</b>${l.message}
           </div>`
-      )
-      .join("") :
-      '<p style="padding:8px 0">Belum ada aktivitas.</p>';
+          )
+          .join("")
+      : '<p style="padding:8px 0">Belum ada aktivitas.</p>';
   }
 }
 let editingBotId = null;
@@ -2145,9 +2080,9 @@ async function editBotConfig(id) {
   document.getElementById("mtg-notif-daily").value =
     cfg.notifDaily !== false ? "true" : "false";
   document.getElementById("mtg-daily-time").value = cfg.dailyTime || "23:59";
-  document.getElementById("mtg-notif-sale").value = cfg.notifSale ?
-    "true" :
-    "false";
+  document.getElementById("mtg-notif-sale").value = cfg.notifSale
+    ? "true"
+    : "false";
 
   document.getElementById("m-tg-config").classList.add("show");
 }
@@ -2172,17 +2107,13 @@ async function testTgConfig() {
   resEl.style.color = "var(--muted)";
   resEl.textContent = "Testing...";
 
-  const d = await post("/telegram/test", {
-    token,
-    chatId,
-    sessionId: sessId
-  });
-  if (d ? .success) {
+  const d = await post("/telegram/test", { token, chatId, sessionId: sessId });
+  if (d?.success) {
     resEl.style.color = "var(--green)";
     resEl.textContent = "✓ Berhasil! Cek Telegram kamu.";
   } else {
     resEl.style.color = "var(--red)";
-    resEl.textContent = "✗ Gagal: " + (d ? .error || "error");
+    resEl.textContent = "✗ Gagal: " + (d?.error || "error");
   }
 }
 
@@ -2212,34 +2143,33 @@ async function saveTgConfig() {
     id: editingBotId || sessId, // id = sessionId untuk bot baru
     sessionId: sessId,
     chatId,
-    allowedUsers: allowedRaw ?
-      allowedRaw
-      .split(",")
-      .map((x) => x.trim())
-      .filter(Boolean) : [],
+    allowedUsers: allowedRaw
+      ? allowedRaw
+          .split(",")
+          .map((x) => x.trim())
+          .filter(Boolean)
+      : [],
     notifSale: document.getElementById("mtg-notif-sale").value === "true",
     notifDaily: document.getElementById("mtg-notif-daily").value === "true",
     dailyTime: document.getElementById("mtg-daily-time").value,
     botEnabled: document.getElementById("mtg-enabled").value === "true",
-    ...(token ? {
-      token
-    } : {})
+    ...(token ? { token } : {})
   };
 
   showL();
   const d = await post("/telegram/config", body);
   hideL();
 
-  if (d ? .success) {
+  if (d?.success) {
     closeM("m-tg-config");
     toast(
-      editingBotId ?
-      "✓ Bot diupdate & direstart!" :
-      "✓ Bot ditambahkan & diaktifkan!"
+      editingBotId
+        ? "✓ Bot diupdate & direstart!"
+        : "✓ Bot ditambahkan & diaktifkan!"
     );
     loadTgInfo();
   } else {
-    errEl.textContent = d ? .error || "Gagal menyimpan";
+    errEl.textContent = d?.error || "Gagal menyimpan";
   }
 }
 
@@ -2252,9 +2182,9 @@ async function deleteBotConfig(id) {
     credentials: "include"
   }).then((r) => r.json());
   hideL();
-  d ? .success ?
-    (toast("Bot dihapus & dihentikan"), loadTgInfo()) :
-    toast("Gagal", true);
+  d?.success
+    ? (toast("Bot dihapus & dihentikan"), loadTgInfo())
+    : toast("Gagal", true);
 }
 
 async function toggleBot() {
@@ -2315,9 +2245,7 @@ async function post(path, body) {
     return await fetch(API + path, {
       method: "POST",
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
     }).then((r) => r.json());
   } catch (e) {
@@ -2336,23 +2264,19 @@ async function del(path) {
     return null;
   }
 }
-
 function v(id) {
-  return document.getElementById(id) ? .value || "";
+  return document.getElementById(id)?.value || "";
 }
-
 function se(id, val, prop = "innerHTML") {
   const el = document.getElementById(id);
   if (el) el[prop] = val;
 }
-
 function fmtC(n, cur, isIndo) {
   if (!cur) return String(Math.round(n));
-  return isIndo ?
-    cur + " " + Math.round(n).toLocaleString("id-ID") :
-    cur + " " + Number(n).toFixed(2);
+  return isIndo
+    ? cur + " " + Math.round(n).toLocaleString("id-ID")
+    : cur + " " + Number(n).toFixed(2);
 }
-
 function fmtB(b) {
   const n = parseInt(b);
   if (!n) return "—";
@@ -2360,31 +2284,26 @@ function fmtB(b) {
   if (n > 1e6) return (n / 1e6).toFixed(1) + " MB";
   return (n / 1e3).toFixed(0) + " KB";
 }
-
 function filterTbl(tbId, inId) {
   const q = v(inId).toLowerCase();
   document
     .querySelectorAll(`#${tbId} tr`)
     .forEach(
       (r) =>
-      (r.style.display = r.textContent.toLowerCase().includes(q) ?
-        "" :
-        "none")
+        (r.style.display = r.textContent.toLowerCase().includes(q)
+          ? ""
+          : "none")
     );
 }
-
 function closeM(id) {
   document.getElementById(id).classList.remove("show");
 }
-
 function showL() {
   document.getElementById("ld").classList.add("show");
 }
-
 function hideL() {
   document.getElementById("ld").classList.remove("show");
 }
-
 function toast(msg, isErr = false) {
   const el = document.createElement("div");
   el.className = "ti";
@@ -2424,7 +2343,7 @@ async function importFromMikrotik() {
   // Fetch profiles
   try {
     const d = await req(`/batches/${CS}/import/profiles`);
-    if (!d ? .success || !d.profiles ? .length) {
+    if (!d?.success || !d.profiles?.length) {
       document.getElementById("imp-profiles-list").innerHTML =
         '<div style="color:var(--muted);padding:16px">Tidak ada profile dengan harga yang dikonfigurasi.<br>Atur harga di menu <b>User Profiles</b> terlebih dahulu.</div>';
       return;
@@ -2444,11 +2363,11 @@ function renderImportProfiles() {
   el.innerHTML = impProfiles
     .map((p) => {
       const checked = impSelected.has(p.name);
-      const priceStr = p.sprice ?
-        "Rp " + Number(p.sprice).toLocaleString("id-ID") :
-        p.price ?
-        "Rp " + Number(p.price).toLocaleString("id-ID") :
-        "—";
+      const priceStr = p.sprice
+        ? "Rp " + Number(p.sprice).toLocaleString("id-ID")
+        : p.price
+          ? "Rp " + Number(p.price).toLocaleString("id-ID")
+          : "—";
       return `<label style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:7px;cursor:pointer;border:1px solid ${checked ? "var(--acc2)" : "var(--border)"};margin-bottom:6px;background:${checked ? "var(--acc2)10" : "transparent"};transition:.12s">
       <input type="checkbox" ${checked ? "checked" : ""} onchange="toggleImpProfile('${p.name}',this.checked)" style="width:auto;accent-color:var(--acc2)">
       <div style="width:10px;height:10px;border-radius:50%;background:${p.profileColor || "#1f6feb"};flex-shrink:0"></div>
@@ -2498,7 +2417,7 @@ async function startImport() {
   list.innerHTML = toImport
     .map(
       (p) =>
-      `<div id="imp-row-${p.name.replace(/[^a-zA-Z0-9]/g, "_")}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;margin-bottom:4px;background:var(--card2);font-size:.82rem">
+        `<div id="imp-row-${p.name.replace(/[^a-zA-Z0-9]/g, "_")}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;margin-bottom:4px;background:var(--card2);font-size:.82rem">
       <div style="width:10px;height:10px;border-radius:50%;background:${p.profileColor || "#1f6feb"};flex-shrink:0"></div>
       <div style="flex:1"><b>${p.name}</b> <span style="color:var(--muted)">(${p.userCount} user)</span></div>
       <div id="imp-status-${p.name.replace(/[^a-zA-Z0-9]/g, "_")}" style="color:var(--muted)"><i class="fa fa-clock-o"></i> Menunggu</div>
@@ -2511,7 +2430,7 @@ async function startImport() {
     totalAvail = 0,
     errors = 0;
   const total = toImport.length;
-  const createdBy = document.getElementById("tb-un") ? .textContent || "Admin";
+  const createdBy = document.getElementById("tb-un")?.textContent || "Admin";
 
   for (const p of toImport) {
     const safeId = p.name.replace(/[^a-zA-Z0-9]/g, "_");
@@ -2519,15 +2438,13 @@ async function startImport() {
     const rowEl = document.getElementById(`imp-row-${safeId}`);
     if (statusEl)
       statusEl.innerHTML =
-      '<i class="fa fa-spinner fa-spin" style="color:var(--acc2)"></i> Importing...';
+        '<i class="fa fa-spinner fa-spin" style="color:var(--acc2)"></i> Importing...';
 
     try {
       const d = await fetch(`${API}/batches/${CS}/import/profile`, {
         method: "POST",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           profileName: p.name,
           createdBy,
@@ -2535,7 +2452,7 @@ async function startImport() {
         })
       }).then((r) => r.json());
 
-      if (d ? .success) {
+      if (d?.success) {
         totalVcr += d.imported || 0;
         totalAvail += d.available || 0;
         if (statusEl)
@@ -2561,19 +2478,16 @@ async function startImport() {
       `${done} / ${total} selesai`;
     document.getElementById("imp-progress-pct").textContent = pct + "%";
     // Scroll to current row
-    if (rowEl) rowEl.scrollIntoView({
-      behavior: "smooth",
-      block: "nearest"
-    });
+    if (rowEl) rowEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
   const sumEl = document.getElementById("imp-summary");
   if (sumEl)
     sumEl.innerHTML =
-    `<span style="color:var(--green)"><i class="fa fa-check-circle"></i> Selesai: <b>${totalVcr}</b> voucher diimport, <b>${totalAvail}</b> tersedia</span>` +
-    (errors ?
-      ` · <span style="color:var(--red)">${errors} error</span>` :
-      "");
+      `<span style="color:var(--green)"><i class="fa fa-check-circle"></i> Selesai: <b>${totalVcr}</b> voucher diimport, <b>${totalAvail}</b> tersedia</span>` +
+      (errors
+        ? ` · <span style="color:var(--red)">${errors} error</span>`
+        : "");
   document.getElementById("imp-done-btn").style.display = "";
 }
 
@@ -2592,7 +2506,7 @@ async function loadBatchList() {
     grid.innerHTML = `<div style="color:var(--muted);padding:20px;grid-column:1/-1"><i class="fa fa-spinner fa-spin"></i> Memuat data...</div>`;
 
   const profileFilter =
-    document.getElementById("batch-filter-profile") ? .value || "";
+    document.getElementById("batch-filter-profile")?.value || "";
   const batches = (await req(`/batches/${CS}`)) || [];
   allBatches = batches;
 
@@ -2604,13 +2518,13 @@ async function loadBatchList() {
     psel.innerHTML = '<option value="">Semua Package</option>';
     profiles.forEach(
       (p) =>
-      (psel.innerHTML += `<option value="${p}" ${p === cur ? "selected" : ""}>${p}</option>`)
+        (psel.innerHTML += `<option value="${p}" ${p === cur ? "selected" : ""}>${p}</option>`)
     );
   }
 
-  const filtered = profileFilter ?
-    batches.filter((b) => b.profileName === profileFilter) :
-    batches;
+  const filtered = profileFilter
+    ? batches.filter((b) => b.profileName === profileFilter)
+    : batches;
   const countLbl = document.getElementById("batch-count-label");
   if (countLbl) countLbl.textContent = `${filtered.length} batch tersedia`;
 
@@ -2632,18 +2546,18 @@ function buildBatchCard(b) {
   const s = b.stats || {};
   const pct = s.total ? Math.round((s.used / s.total) * 100) : 0;
   const color = b.profileColor || "#1f6feb";
-  const priceStr = b.price ?
-    "Rp " + Number(b.price).toLocaleString("id-ID") :
-    "—";
-  const totalStr = b.totalPrice ?
-    "Rp " + Number(b.totalPrice).toLocaleString("id-ID") :
-    "—";
-  const date = b.createdAt ?
-    new Date(b.createdAt).toLocaleString("id-ID", {
-      dateStyle: "medium",
-      timeStyle: "short"
-    }) :
-    "���";
+  const priceStr = b.price
+    ? "Rp " + Number(b.price).toLocaleString("id-ID")
+    : "—";
+  const totalStr = b.totalPrice
+    ? "Rp " + Number(b.totalPrice).toLocaleString("id-ID")
+    : "—";
+  const date = b.createdAt
+    ? new Date(b.createdAt).toLocaleString("id-ID", {
+        dateStyle: "medium",
+        timeStyle: "short"
+      })
+    : "���";
 
   return `<div class="batch-card" onclick="openBatchDetail('${b.id}')" style="position:relative">
     <div class="batch-card-top" style="border-left:4px solid ${color}">
@@ -2713,18 +2627,18 @@ async function openBatchDetail(batchId) {
   document.getElementById("batch-cards-area").style.display = "none";
   document.getElementById("batch-detail-area").style.display = "block";
 
-  const priceStr = b.price ?
-    "Rp " + Number(b.price).toLocaleString("id-ID") :
-    "—";
-  const totalStr = b.totalPrice ?
-    "Rp " + Number(b.totalPrice).toLocaleString("id-ID") :
-    "—";
-  const date = b.createdAt ?
-    new Date(b.createdAt).toLocaleString("id-ID", {
-      dateStyle: "long",
-      timeStyle: "short"
-    }) :
-    "—";
+  const priceStr = b.price
+    ? "Rp " + Number(b.price).toLocaleString("id-ID")
+    : "—";
+  const totalStr = b.totalPrice
+    ? "Rp " + Number(b.totalPrice).toLocaleString("id-ID")
+    : "—";
+  const date = b.createdAt
+    ? new Date(b.createdAt).toLocaleString("id-ID", {
+        dateStyle: "long",
+        timeStyle: "short"
+      })
+    : "—";
   const s = b.stats || {};
 
   document.getElementById("bd-title").textContent = b.id;
@@ -2755,12 +2669,12 @@ function filterBatchVouchers(f) {
     const el = document.getElementById("bdf-" + k);
     if (el)
       el.className =
-      "btn " +
-      ((k === "all" && f === "all") ||
+        "btn " +
+        ((k === "all" && f === "all") ||
         (k === "avail" && f === "available") ||
-        (k === "used" && f === "used") ?
-        "b-p" :
-        "b-s");
+        (k === "used" && f === "used")
+          ? "b-p"
+          : "b-s");
   });
   renderBatchDetail();
 }
@@ -2769,17 +2683,17 @@ function renderBatchDetail() {
   if (!currentBatch) return;
   const vouchers = currentBatch.vouchers || [];
   const filtered =
-    batchDetailFilter === "all" ?
-    vouchers :
-    vouchers.filter((v) => v.status === batchDetailFilter);
+    batchDetailFilter === "all"
+      ? vouchers
+      : vouchers.filter((v) => v.status === batchDetailFilter);
 
   const tb = document.getElementById("t-batch-detail");
   const color = currentBatch.profileColor || "#1f6feb";
 
-  tb.innerHTML = filtered.length ?
-    filtered
-    .map(
-      (v, i) => `<tr>
+  tb.innerHTML = filtered.length
+    ? filtered
+        .map(
+          (v, i) => `<tr>
     <td style="color:var(--muted)">${i + 1}</td>
     <td><b style="font-family:monospace;font-size:.85rem;letter-spacing:.5px">${v.username}</b></td>
     <td><span style="font-family:monospace;font-size:.85rem">${v.password}</span></td>
@@ -2792,9 +2706,9 @@ function renderBatchDetail() {
         : ""
     }</td>
   </tr>`
-    )
-    .join("") :
-    `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Tidak ada voucher</td></tr>`;
+        )
+        .join("")
+    : `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Tidak ada voucher</td></tr>`;
 }
 
 async function markVoucherUsed(username) {
@@ -2803,16 +2717,11 @@ async function markVoucherUsed(username) {
   const d = await fetch(`${API}/batches/${CS}/${currentBatch.id}/mark-used`, {
     method: "POST",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      username,
-      usedBy: "Admin"
-    })
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, usedBy: "Admin" })
   }).then((r) => r.json());
   hideL();
-  if (d ? .success) {
+  if (d?.success) {
     // Update local state
     const vcr = currentBatch.vouchers.find((v) => v.username === username);
     if (vcr) {
@@ -2869,9 +2778,9 @@ let sheetStack = []; // Stack untuk multiple sheets
 function openSheet(htmlContent, options = {}) {
   const {
     title = "",
-      closable = true,
-      onClose = null,
-      className = ""
+    closable = true,
+    onClose = null,
+    className = ""
   } = options;
 
   // Buat sheet element
@@ -2893,10 +2802,7 @@ function openSheet(htmlContent, options = {}) {
   `;
 
   document.body.appendChild(sheet);
-  sheetStack.push({
-    id: sheetId,
-    onClose
-  });
+  sheetStack.push({ id: sheetId, onClose });
 
   // Trigger animation
   setTimeout(() => sheet.classList.add("show"), 10);
@@ -2913,10 +2819,7 @@ function openSheet(htmlContent, options = {}) {
 function closeSheet() {
   if (sheetStack.length === 0) return;
 
-  const {
-    id,
-    onClose
-  } = sheetStack.pop();
+  const { id, onClose } = sheetStack.pop();
   const sheet = document.getElementById(id);
 
   if (sheet) {
@@ -2969,9 +2872,8 @@ async function deleteBatch(batchId) {
         Batal
       </button>
     </div>
-  `, {
-      closable: true
-    }
+  `,
+    { closable: true }
   );
 }
 
@@ -2986,7 +2888,7 @@ async function confirmDeleteBatch(batchId, deleteMikrotik) {
     }).then((r) => r.json());
     hideL();
 
-    if (d ? .success) {
+    if (d?.success) {
       let msg = "✅ Batch dihapus";
       if (deleteMikrotik) {
         msg += ` · ${d.deletedFromMikrotik || 0} user dihapus dari MikroTik`;
@@ -2997,13 +2899,13 @@ async function confirmDeleteBatch(batchId, deleteMikrotik) {
       toast(msg);
       // Kalau sedang di detail, kembali ke list dulu
       if (
-        document.getElementById("batch-detail-area") ? .style.display !== "none"
+        document.getElementById("batch-detail-area")?.style.display !== "none"
       ) {
         closeBatchDetail();
       }
       loadBatchList();
     } else {
-      toast("❌ Gagal hapus: " + (d ? .error || "error"), true);
+      toast("❌ Gagal hapus: " + (d?.error || "error"), true);
     }
   } catch (e) {
     hideL();
@@ -3027,25 +2929,21 @@ async function syncBatchToReport(batchId = null) {
 
   showL();
   try {
-    const body = batchId ? {
-      batchId
-    } : {};
+    const body = batchId ? { batchId } : {};
     const d = await fetch(`${API}/batches/${CS}/sync-to-report`, {
       method: "POST",
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
     }).then((r) => r.json());
 
     hideL();
-    if (d ? .success) {
+    if (d?.success) {
       toast(
         `✅ Sync selesai: ${d.created} dibuat, ${d.skipped} sudah ada, ${d.errors} error`
       );
     } else {
-      toast("Gagal sync: " + (d ? .error || "error"), true);
+      toast("Gagal sync: " + (d?.error || "error"), true);
     }
   } catch (e) {
     hideL();
@@ -3070,14 +2968,12 @@ async function syncUsedFromMikrotik() {
     const d = await fetch(`${API}/batches/${CS}/sync-used`, {
       method: "POST",
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({})
     }).then((r) => r.json());
 
     hideL();
-    if (d ? .success) {
+    if (d?.success) {
       toast(`✅ ${d.updated} voucher ditandai terpakai`);
       // ── AUTO-REMOVE: scan semua batch setelah sync ──
       const removedCount = await checkAndAutoRemoveAll();
@@ -3085,7 +2981,7 @@ async function syncUsedFromMikrotik() {
       if (removedCount === 0) loadBatchList();
       // ── END AUTO-REMOVE ──
     } else {
-      toast("Gagal: " + (d ? .error || "error"), true);
+      toast("Gagal: " + (d?.error || "error"), true);
     }
   } catch (e) {
     hideL();
@@ -3136,18 +3032,18 @@ async function loadResellerBot() {
 
   // Table
   const tb = document.getElementById("t-rb");
-  tb.innerHTML = data.length ?
-    data
-    .map((r) => {
-      const saldo = "Rp " + (r.saldo || 0).toLocaleString("id-ID");
-      const pend = "Rp " + (r.totalPendapatan || 0).toLocaleString("id-ID");
-      const regDate = r.registeredAt ?
-        new Date(r.registeredAt).toLocaleString("id-ID", {
-          dateStyle: "short",
-          timeStyle: "short"
-        }) :
-        "—";
-      return `<tr>
+  tb.innerHTML = data.length
+    ? data
+        .map((r) => {
+          const saldo = "Rp " + (r.saldo || 0).toLocaleString("id-ID");
+          const pend = "Rp " + (r.totalPendapatan || 0).toLocaleString("id-ID");
+          const regDate = r.registeredAt
+            ? new Date(r.registeredAt).toLocaleString("id-ID", {
+                dateStyle: "short",
+                timeStyle: "short"
+              })
+            : "—";
+          return `<tr>
       <td>
         <div style="font-weight:600">${r.name}</div>
         <div style="color:var(--muted);font-size:.75rem">${r.username ? "@" + r.username : "—"}</div>
@@ -3165,22 +3061,22 @@ async function loadResellerBot() {
         <button class="btn b-d b-sm" onclick="deleteRb('${r.id}')"><i class="fa fa-trash"></i></button>
       </div></td>
     </tr>`;
-    })
-    .join("") :
-    '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">Belum ada reseller. Reseller bisa daftar via bot dengan /daftar</td></tr>';
+        })
+        .join("")
+    : '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px">Belum ada reseller. Reseller bisa daftar via bot dengan /daftar</td></tr>';
 }
 
 async function openRbModal(data = null) {
-  editRbId = data ? .id || null;
-  document.getElementById("mrb-ttl").textContent = data ?
-    "Edit Reseller" :
-    "Tambah Reseller";
+  editRbId = data?.id || null;
+  document.getElementById("mrb-ttl").textContent = data
+    ? "Edit Reseller"
+    : "Tambah Reseller";
   document.getElementById("mrb-err").textContent = "";
-  document.getElementById("mrb-name").value = data ? .name || "";
-  document.getElementById("mrb-uname").value = data ? .username || "";
-  document.getElementById("mrb-tid").value = data ? .telegramId || "";
-  document.getElementById("mrb-markup").value = data ? .markup || 0;
-  document.getElementById("mrb-status").value = data ? .status || "active";
+  document.getElementById("mrb-name").value = data?.name || "";
+  document.getElementById("mrb-uname").value = data?.username || "";
+  document.getElementById("mrb-tid").value = data?.telegramId || "";
+  document.getElementById("mrb-markup").value = data?.markup || 0;
+  document.getElementById("mrb-status").value = data?.status || "active";
 
   // Populate router dropdown
   const sess = (await req("/sessions")) || [];
@@ -3188,7 +3084,7 @@ async function openRbModal(data = null) {
   ssel.innerHTML = '<option value="">Pilih router...</option>';
   sess.forEach(
     (s) =>
-    (ssel.innerHTML += `<option value="${s.id}" ${s.id === data?.sessionId ? "selected" : ""}>${s.name} (${s.ip})</option>`)
+      (ssel.innerHTML += `<option value="${s.id}" ${s.id === data?.sessionId ? "selected" : ""}>${s.name} (${s.ip})</option>`)
   );
 
   document.getElementById("m-rb").classList.add("show");
@@ -3222,32 +3118,28 @@ async function saveRb() {
   };
 
   showL();
-  const d = editRbId ?
-    await fetch(`${API}/bot-resellers/${editRbId}`, {
-      method: "PUT",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
-    }).then((r) => r.json()) :
-    await fetch(`${API}/bot-resellers`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
-    }).then((r) => r.json());
+  const d = editRbId
+    ? await fetch(`${API}/bot-resellers/${editRbId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }).then((r) => r.json())
+    : await fetch(`${API}/bot-resellers`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }).then((r) => r.json());
   hideL();
 
-  if (d ? .id || d ? .name) {
+  if (d?.id || d?.name) {
     closeM("m-rb");
     loadResellerBot();
     toast(editRbId ? "Reseller diupdate!" : "Reseller ditambahkan!");
   } else {
     document.getElementById("mrb-err").textContent =
-      d ? .error || "Gagal menyimpan";
+      d?.error || "Gagal menyimpan";
   }
 }
 
@@ -3256,7 +3148,7 @@ async function toggleRb(id) {
     method: "PATCH",
     credentials: "include"
   }).then((r) => r.json());
-  if (d ? .success) {
+  if (d?.success) {
     loadResellerBot();
     toast(
       d.status === "active" ? "Reseller diaktifkan" : "Reseller dinonaktifkan"
@@ -3270,9 +3162,9 @@ async function deleteRb(id) {
     method: "DELETE",
     credentials: "include"
   }).then((r) => r.json());
-  d ? .success ?
-    (loadResellerBot(), toast("Reseller dihapus")) :
-    toast("Gagal", true);
+  d?.success
+    ? (loadResellerBot(), toast("Reseller dihapus"))
+    : toast("Gagal", true);
 }
 
 // ── Topup ────────────────────────────────────────
@@ -3319,25 +3211,23 @@ async function doTopup() {
   const d = await fetch(`${API}/bot-resellers/${id}/topup`, {
     method: "POST",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json"
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       amount,
       note,
-      by: document.getElementById("tb-un") ? .textContent || "Admin"
+      by: document.getElementById("tb-un")?.textContent || "Admin"
     })
   }).then((r) => r.json());
   hideL();
 
-  if (d ? .success) {
+  if (d?.success) {
     closeM("m-topup");
     loadResellerBot();
     toast(
       `✅ Topup Rp ${amount.toLocaleString("id-ID")} berhasil! Saldo baru: Rp ${d.saldo.toLocaleString("id-ID")}`
     );
   } else {
-    document.getElementById("tu-err").textContent = d ? .error || "Topup gagal";
+    document.getElementById("tu-err").textContent = d?.error || "Topup gagal";
   }
 }
 
@@ -3351,29 +3241,27 @@ function showRbDetail(id) {
 
   // Topup history
   const topups = [...(r.topupHistory || [])].reverse().slice(0, 20);
-  document.getElementById("t-rb-topup").innerHTML = topups.length ?
-    topups
-    .map(
-      (t) =>
-      `<tr><td style="color:var(--green);font-weight:600">+Rp ${t.amount.toLocaleString("id-ID")}</td><td>${t.note}</td><td>${t.by}</td><td style="color:var(--muted);font-size:.76rem">${t.at}</td></tr>`
-    )
-    .join("") :
-    '<tr><td colspan="4" style="text-align:center;color:var(--muted)">Belum ada topup</td></tr>';
+  document.getElementById("t-rb-topup").innerHTML = topups.length
+    ? topups
+        .map(
+          (t) =>
+            `<tr><td style="color:var(--green);font-weight:600">+Rp ${t.amount.toLocaleString("id-ID")}</td><td>${t.note}</td><td>${t.by}</td><td style="color:var(--muted);font-size:.76rem">${t.at}</td></tr>`
+        )
+        .join("")
+    : '<tr><td colspan="4" style="text-align:center;color:var(--muted)">Belum ada topup</td></tr>';
 
   // Purchase history
   const purchases = [...(r.purchaseHistory || [])].reverse().slice(0, 10);
-  document.getElementById("t-rb-purchase").innerHTML = purchases.length ?
-    purchases
-    .map(
-      (p) =>
-      `<tr><td><code>${p.username}</code></td><td><span class="badge b-bl">${p.profileName}</span></td><td style="color:var(--red)">-Rp ${p.paidSaldo.toLocaleString("id-ID")}</td><td style="color:var(--muted);font-size:.76rem">${p.at}</td></tr>`
-    )
-    .join("") :
-    '<tr><td colspan="4" style="text-align:center;color:var(--muted)">Belum ada pembelian</td></tr>';
+  document.getElementById("t-rb-purchase").innerHTML = purchases.length
+    ? purchases
+        .map(
+          (p) =>
+            `<tr><td><code>${p.username}</code></td><td><span class="badge b-bl">${p.profileName}</span></td><td style="color:var(--red)">-Rp ${p.paidSaldo.toLocaleString("id-ID")}</td><td style="color:var(--muted);font-size:.76rem">${p.at}</td></tr>`
+        )
+        .join("")
+    : '<tr><td colspan="4" style="text-align:center;color:var(--muted)">Belum ada pembelian</td></tr>';
 
-  document.getElementById("rb-detail").scrollIntoView({
-    behavior: "smooth"
-  });
+  document.getElementById("rb-detail").scrollIntoView({ behavior: "smooth" });
 }
 
 // ════════════════════════════════════════════════
@@ -3400,11 +3288,7 @@ const ROLE_COLOR = {
   reseller: "var(--purple)",
   collector: "var(--green)"
 };
-const ROLE_BADGE = {
-  admin: "b-bl",
-  reseller: "b-pu",
-  collector: "b-gr"
-};
+const ROLE_BADGE = { admin: "b-bl", reseller: "b-pu", collector: "b-gr" };
 
 async function loadUserManagement(isPg = false) {
   if (!isPg) {
@@ -3432,19 +3316,19 @@ async function loadUserManagement(isPg = false) {
 function renderUserManagement(subset) {
   se(
     "t-users",
-    subset.length ?
-    subset
-    .map((u) => {
-      const lastLogin = u.lastLogin ?
-        new Date(u.lastLogin).toLocaleString("id-ID", {
-          dateStyle: "short",
-          timeStyle: "short"
-        }) :
-        "Belum pernah";
-      const sessions = u.allowedSessions ? .length ?
-        u.allowedSessions.join(", ") :
-        '<span style="color:var(--muted)">Semua router</span>';
-      return `<tr>
+    subset.length
+      ? subset
+          .map((u) => {
+            const lastLogin = u.lastLogin
+              ? new Date(u.lastLogin).toLocaleString("id-ID", {
+                  dateStyle: "short",
+                  timeStyle: "short"
+                })
+              : "Belum pernah";
+            const sessions = u.allowedSessions?.length
+              ? u.allowedSessions.join(", ")
+              : '<span style="color:var(--muted)">Semua router</span>';
+            return `<tr>
       <td>
         <div style="font-weight:600;font-family:monospace">${u.username}</div>
         <div style="font-size:.72rem;color:var(--muted)">${u.id}</div>
@@ -3466,9 +3350,9 @@ function renderUserManagement(subset) {
         </div>
       </td>
     </tr>`;
-    })
-    .join("") :
-    `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">
+          })
+          .join("")
+      : `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">
       <i class="fa fa-users" style="font-size:1.5rem;display:block;margin-bottom:8px;opacity:.3"></i>
       Belum ada user tambahan. Klik "+ Tambah User".
     </td></tr>`,
@@ -3477,10 +3361,10 @@ function renderUserManagement(subset) {
 }
 
 async function openUmModal(data = null) {
-  editUmId = data ? .id || null;
-  document.getElementById("mum-ttl").textContent = data ?
-    "Edit User" :
-    "Tambah User";
+  editUmId = data?.id || null;
+  document.getElementById("mum-ttl").textContent = data
+    ? "Edit User"
+    : "Tambah User";
   document.getElementById("mum-err").textContent = "";
 
   // Fetch defaults if not loaded
@@ -3493,32 +3377,32 @@ async function openUmModal(data = null) {
     umSessions = s || [];
   }
 
-  document.getElementById("mum-un").value = data ? .username || "";
+  document.getElementById("mum-un").value = data?.username || "";
   document.getElementById("mum-un").disabled = !!data;
-  document.getElementById("mum-nm").value = data ? .name || "";
+  document.getElementById("mum-nm").value = data?.name || "";
   document.getElementById("mum-pw").value = "";
-  document.getElementById("mum-pw-hint").textContent = data ?
-    "(kosong = tidak berubah)" :
-    "wajib diisi";
-  document.getElementById("mum-role").value = data ? .role || "reseller";
-  document.getElementById("mum-note").value = data ? .note || "";
-  document.getElementById("mum-active").value = String(data ? .active !== false);
+  document.getElementById("mum-pw-hint").textContent = data
+    ? "(kosong = tidak berubah)"
+    : "wajib diisi";
+  document.getElementById("mum-role").value = data?.role || "reseller";
+  document.getElementById("mum-note").value = data?.note || "";
+  document.getElementById("mum-active").value = String(data?.active !== false);
 
   // Sessions checkboxes
   const sessEl = document.getElementById("mum-sessions-list");
   sessEl.innerHTML =
     umSessions
-    .map(
-      (s) =>
-      `<label style="display:flex;align-items:center;gap:5px;background:var(--card2);border-radius:6px;padding:5px 9px;cursor:pointer;font-size:.8rem">
+      .map(
+        (s) =>
+          `<label style="display:flex;align-items:center;gap:5px;background:var(--card2);border-radius:6px;padding:5px 9px;cursor:pointer;font-size:.8rem">
       <input type="checkbox" value="${s.id}" ${!data?.allowedSessions?.length || data?.allowedSessions?.includes(s.id) ? "checked" : ""}>
       ${s.name} (${s.ip})
     </label>`
-    )
-    .join("") ||
+      )
+      .join("") ||
     '<span style="color:var(--muted);font-size:.8rem">Tidak ada router terkonfigurasi</span>';
 
-  renderPermissions(data ? .role || "reseller", data ? .permissions);
+  renderPermissions(data?.role || "reseller", data?.permissions);
   document.getElementById("m-um").classList.add("show");
 }
 
@@ -3529,15 +3413,12 @@ function onRoleChange() {
 
 function renderPermissions(role, override) {
   const defaults = umRoleDefaults[role] || {};
-  const perms = override ? {
-    ...defaults,
-    ...override
-  } : defaults;
+  const perms = override ? { ...defaults, ...override } : defaults;
   const el = document.getElementById("mum-perms");
   el.innerHTML = Object.entries(PERM_LABELS)
     .map(
       ([key, label]) =>
-      `<label style="display:flex;align-items:center;gap:7px;padding:7px 10px;background:var(--card2);border-radius:7px;cursor:pointer;font-size:.8rem">
+        `<label style="display:flex;align-items:center;gap:7px;padding:7px 10px;background:var(--card2);border-radius:7px;cursor:pointer;font-size:.8rem">
       <input type="checkbox" id="perm-${key}" ${perms[key] ? "checked" : ""}>
       ${label}
     </label>`
@@ -3580,7 +3461,9 @@ async function saveUm() {
     "#mum-sessions-list input[type=checkbox]"
   );
   const allChecked = [...sessionChecks].every((c) => c.checked);
-  const allowedSessions = allChecked ? [] : [...sessionChecks].filter((c) => c.checked).map((c) => c.value);
+  const allowedSessions = allChecked
+    ? []
+    : [...sessionChecks].filter((c) => c.checked).map((c) => c.value);
 
   const body = {
     username: un,
@@ -3590,30 +3473,26 @@ async function saveUm() {
     permissions,
     note: v("mum-note"),
     active: v("mum-active") === "true",
-    ...(pw ? {
-      password: pw
-    } : {})
+    ...(pw ? { password: pw } : {})
   };
 
   showL();
-  const d = editUmId ?
-    await fetch(`${API}/users/${editUmId}`, {
-      method: "PUT",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
-    }).then((r) => r.json()) :
-    await post("/users", body);
+  const d = editUmId
+    ? await fetch(`${API}/users/${editUmId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }).then((r) => r.json())
+    : await post("/users", body);
   hideL();
 
-  if (d ? .id || d ? .username) {
+  if (d?.id || d?.username) {
     closeM("m-um");
     loadUserManagement();
     toast(editUmId ? "User diupdate!" : "User berhasil ditambahkan!");
   } else {
-    se("mum-err", d ? .error || "Gagal menyimpan");
+    se("mum-err", d?.error || "Gagal menyimpan");
   }
 }
 
@@ -3622,10 +3501,10 @@ async function toggleUm(id) {
     method: "PATCH",
     credentials: "include"
   }).then((r) => r.json());
-  if (d ? .success) {
+  if (d?.success) {
     loadUserManagement();
     toast(d.active ? "User diaktifkan" : "User dinonaktifkan");
-  } else toast(d ? .error || "Gagal", true);
+  } else toast(d?.error || "Gagal", true);
 }
 
 async function deleteUm(id) {
@@ -3636,9 +3515,9 @@ async function deleteUm(id) {
     credentials: "include"
   }).then((r) => r.json());
   hideL();
-  d ? .success ?
-    (loadUserManagement(), toast("User dihapus")) :
-    toast(d ? .error || "Gagal", true);
+  d?.success
+    ? (loadUserManagement(), toast("User dihapus"))
+    : toast(d?.error || "Gagal", true);
 }
 
 // ── Reset Password ────────────────────────────────────────────────
@@ -3671,9 +3550,9 @@ async function doResetPw() {
     newPassword: np
   });
   hideL();
-  d ? .success ?
-    (closeM("m-reset-pw"), toast("✓ Password berhasil direset!")) :
-    se("rpw-err", d ? .error || "Gagal");
+  d?.success
+    ? (closeM("m-reset-pw"), toast("✓ Password berhasil direset!"))
+    : se("rpw-err", d?.error || "Gagal");
 }
 
 // ════════════════════════════════════════════════
@@ -3682,7 +3561,7 @@ async function doResetPw() {
 function initChangePassword() {
   // Get current username from session
   req("/auth/me").then((d) => {
-    if (d ? .username) {
+    if (d?.username) {
       document.getElementById("cp-username-label").textContent = d.username;
     }
   });
@@ -3719,35 +3598,32 @@ async function doChangePassword() {
   const d = await fetch(`${API}/auth/change-password`, {
     method: "POST",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      oldPassword: old,
-      newPassword: np
-    })
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ oldPassword: old, newPassword: np })
   }).then((r) => r.json());
   hideL();
 
-  if (d ? .success) {
+  if (d?.success) {
     document.getElementById("cp-old").value = "";
     document.getElementById("cp-new").value = "";
     document.getElementById("cp-confirm").value = "";
     toast("✓ Password berhasil diubah! Silakan login ulang.");
     setTimeout(() => doLogout(), 2500);
   } else {
-    se("cp-err", d ? .error || "Gagal mengubah password");
+    se("cp-err", d?.error || "Gagal mengubah password");
   }
 }
 
 // ════════════════════════════════════════════════
 // MOBILE API DOCS
 // ════════════════════════════════════════════════
-const MOBILE_ENDPOINTS = [{
+const MOBILE_ENDPOINTS = [
+  {
     group: "Auth",
     icon: "fa-key",
     color: "var(--acc2)",
-    endpoints: [{
+    endpoints: [
+      {
         method: "POST",
         path: "/mobile/v1/auth/login",
         auth: false,
@@ -3775,31 +3651,36 @@ const MOBILE_ENDPOINTS = [{
     group: "Dashboard",
     icon: "fa-dashboard",
     color: "var(--green)",
-    endpoints: [{
-      method: "GET",
-      path: "/mobile/v1/dashboard",
-      auth: true,
-      desc: "Ringkasan saldo, billing & aktivitas terbaru",
-      response: "{ success, reseller, billing, recentActivity }"
-    }]
+    endpoints: [
+      {
+        method: "GET",
+        path: "/mobile/v1/dashboard",
+        auth: true,
+        desc: "Ringkasan saldo, billing & aktivitas terbaru",
+        response: "{ success, reseller, billing, recentActivity }"
+      }
+    ]
   },
   {
     group: "Saldo",
     icon: "fa-money",
     color: "var(--yellow)",
-    endpoints: [{
-      method: "GET",
-      path: "/mobile/v1/saldo",
-      auth: true,
-      desc: "Info saldo & riwayat 50 transaksi terakhir",
-      response: "{ success, saldo, totalVoucher, totalIncome, logs[] }"
-    }]
+    endpoints: [
+      {
+        method: "GET",
+        path: "/mobile/v1/saldo",
+        auth: true,
+        desc: "Info saldo & riwayat 50 transaksi terakhir",
+        response: "{ success, saldo, totalVoucher, totalIncome, logs[] }"
+      }
+    ]
   },
   {
     group: "Voucher",
     icon: "fa-ticket",
     color: "var(--purple)",
-    endpoints: [{
+    endpoints: [
+      {
         method: "GET",
         path: "/mobile/v1/voucher/profiles",
         auth: true,
@@ -3820,7 +3701,8 @@ const MOBILE_ENDPOINTS = [{
         auth: true,
         desc: "Generate batch voucher — saldo dipotong total",
         body: '{ "profileName": "VOCER-1K", "quantity": 10 }',
-        response: "{ success, vouchers[], generated, priceEach, totalCost, saldoSesudah }"
+        response:
+          "{ success, vouchers[], generated, priceEach, totalCost, saldoSesudah }"
       }
     ]
   },
@@ -3828,7 +3710,8 @@ const MOBILE_ENDPOINTS = [{
     group: "Billing",
     icon: "fa-file-text",
     color: "var(--cyan)",
-    endpoints: [{
+    endpoints: [
+      {
         method: "GET",
         path: "/mobile/v1/billing/customers",
         auth: true,
@@ -3912,15 +3795,15 @@ async function loadApiTokens() {
   if (!tb) return;
   // Read token file via API (we need an admin endpoint)
   const tokens = await req("/mobile/v1/admin/tokens").catch(() => null);
-  if (!tokens ? .success) {
+  if (!tokens?.success) {
     tb.innerHTML =
       '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:12px">Gunakan endpoint admin untuk melihat token aktif</td></tr>';
     return;
   }
-  tb.innerHTML = (tokens.tokens || []).length ?
-    (tokens.tokens || [])
-    .map(
-      (t) => `<tr>
+  tb.innerHTML = (tokens.tokens || []).length
+    ? (tokens.tokens || [])
+        .map(
+          (t) => `<tr>
         <td><b>${t.resellerName}</b></td>
         <td><code style="font-size:.78rem">${t.telegramId}</code></td>
         <td><span class="badge b-bl">${t.sessionId}</span></td>
@@ -3929,9 +3812,9 @@ async function loadApiTokens() {
         <td style="font-size:.75rem;color:var(--muted)">${new Date(t.lastUsed).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}</td>
         <td><button class="btn b-d b-sm" onclick="revokeToken('${t.token.slice(0, 8)}...')"><i class="fa fa-times"></i></button></td>
       </tr>`
-    )
-    .join("") :
-    '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:12px">Belum ada token aktif</td></tr>';
+        )
+        .join("")
+    : '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:12px">Belum ada token aktif</td></tr>';
 }
 
 async function testMobileLogin() {
@@ -3947,12 +3830,8 @@ async function testMobileLogin() {
   try {
     const d = await fetch(`/mobile/v1/auth/login`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        telegramId: tid
-      })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ telegramId: tid })
     }).then((r) => r.json());
     jsonEl.textContent = JSON.stringify(d, null, 2);
     jsonEl.style.color = d.success ? "var(--green)" : "var(--red)";
@@ -3998,29 +3877,30 @@ async function loadBilling() {
   document.getElementById("bill-unpaid").textContent = stats.unpaidCount || 0;
   document.getElementById("bill-suspended").textContent = stats.suspended || 0;
 
-  const typeF = document.getElementById("bill-type-filter") ? .value || "";
-  const statusF = document.getElementById("bill-status-filter") ? .value || "";
+  const typeF = document.getElementById("bill-type-filter")?.value || "";
+  const statusF = document.getElementById("bill-status-filter")?.value || "";
   let customers = (await req(`/billing/${CS}/customers`)) || [];
   if (typeF) customers = customers.filter((c) => c.type === typeF);
   if (statusF) customers = customers.filter((c) => c.status === statusF);
 
   const tb = document.getElementById("t-billing");
-  tb.innerHTML = customers.length ?
-    customers
-    .map((c) => {
-      const typeLabel =
-        c.type === "pppoe" ?
-        '<span class="badge b-pu">PPPoE</span>' :
-        '<span class="badge b-bl">Hotspot</span>';
-      const statusLabel = {
-        active: '<span class="badge b-gr">Aktif</span>',
-        suspended: '<span class="badge b-rd">Diblokir</span>',
-        expired: '<span class="badge b-yl">Expired</span>'
-      } [c.status] || '<span class="badge b-mu">—</span>';
-      const tgBadge = c.telegramId ?
-        `<span class="badge b-bl" title="${c.telegramId}"><i class="fa fa-telegram"></i> Terhubung</span>` :
-        '<span class="badge b-mu">—</span>';
-      return `<tr>
+  tb.innerHTML = customers.length
+    ? customers
+        .map((c) => {
+          const typeLabel =
+            c.type === "pppoe"
+              ? '<span class="badge b-pu">PPPoE</span>'
+              : '<span class="badge b-bl">Hotspot</span>';
+          const statusLabel =
+            {
+              active: '<span class="badge b-gr">Aktif</span>',
+              suspended: '<span class="badge b-rd">Diblokir</span>',
+              expired: '<span class="badge b-yl">Expired</span>'
+            }[c.status] || '<span class="badge b-mu">—</span>';
+          const tgBadge = c.telegramId
+            ? `<span class="badge b-bl" title="${c.telegramId}"><i class="fa fa-telegram"></i> Terhubung</span>`
+            : '<span class="badge b-mu">—</span>';
+          return `<tr>
       <td>
         <div style="font-weight:600">${c.name}</div>
         <div style="font-size:.73rem;color:var(--muted)">${c.phone || ""}</div>
@@ -4046,39 +3926,39 @@ async function loadBilling() {
         </div>
       </td>
     </tr>`;
-    })
-    .join("") :
-    `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">
+        })
+        .join("")
+    : `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">
       <i class="fa fa-users" style="font-size:1.5rem;display:block;margin-bottom:8px;opacity:.3"></i>
       Belum ada pelanggan billing. Klik <b>Tambah Pelanggan</b>.
     </td></tr>`;
 }
 
 async function openBillCustomerModal(data = null) {
-  editBillId = data ? .id || null;
-  document.getElementById("mbill-ttl").textContent = data ?
-    "Edit Pelanggan" :
-    "Tambah Pelanggan";
+  editBillId = data?.id || null;
+  document.getElementById("mbill-ttl").textContent = data
+    ? "Edit Pelanggan"
+    : "Tambah Pelanggan";
   document.getElementById("mb-err").textContent = "";
-  document.getElementById("mb-nm").value = data ? .name || "";
-  document.getElementById("mb-ph").value = data ? .phone || "";
-  document.getElementById("mb-tp").value = data ? .type || "pppoe";
-  document.getElementById("mb-prof").value = data ? .profile || "";
-  document.getElementById("mb-price").value = data ? .price || "";
-  document.getElementById("mb-date").value = data ? .billDate || 1;
-  document.getElementById("mb-grace").value = data ? .graceDays ? ? 3;
-  document.getElementById("mb-tg").value = data ? .telegramId || "";
-  document.getElementById("mb-st").value = data ? .status || "active";
+  document.getElementById("mb-nm").value = data?.name || "";
+  document.getElementById("mb-ph").value = data?.phone || "";
+  document.getElementById("mb-tp").value = data?.type || "pppoe";
+  document.getElementById("mb-prof").value = data?.profile || "";
+  document.getElementById("mb-price").value = data?.price || "";
+  document.getElementById("mb-date").value = data?.billDate || 1;
+  document.getElementById("mb-grace").value = data?.graceDays ?? 3;
+  document.getElementById("mb-tg").value = data?.telegramId || "";
+  document.getElementById("mb-st").value = data?.status || "active";
   document.getElementById("mb-auto").value = String(
-    data ? .autoDisable !== false
+    data?.autoDisable !== false
   );
-  document.getElementById("mb-note").value = data ? .note || "";
-  const rd = data ? .reminderDays || [7, 3, 1];
+  document.getElementById("mb-note").value = data?.note || "";
+  const rd = data?.reminderDays || [7, 3, 1];
   document.getElementById("mb-rem7").checked = rd.includes(7);
   document.getElementById("mb-rem3").checked = rd.includes(3);
   document.getElementById("mb-rem1").checked = rd.includes(1);
   document.getElementById("mb-rem0").checked = rd.includes(0);
-  await loadBillUsers(data ? .mikrotikUser);
+  await loadBillUsers(data?.mikrotikUser);
   document.getElementById("m-bill").classList.add("show");
 }
 
@@ -4091,12 +3971,12 @@ async function loadBillUsers(selectedUser = "") {
   psel.innerHTML = '<option value="">Pilih user...</option>';
   users.forEach(
     (u) =>
-    (psel.innerHTML += `<option value="${u.username}" data-profile="${u.profile}" ${u.username === selectedUser ? "selected" : ""}>${u.username} (${u.profile || "—"})</option>`)
+      (psel.innerHTML += `<option value="${u.username}" data-profile="${u.profile}" ${u.username === selectedUser ? "selected" : ""}>${u.username} (${u.profile || "—"})</option>`)
   );
   if (selectedUser) psel.value = selectedUser;
   psel.onchange = () => {
     const opt = psel.options[psel.selectedIndex];
-    document.getElementById("mb-prof").value = opt ? .dataset.profile || "";
+    document.getElementById("mb-prof").value = opt?.dataset.profile || "";
   };
   psel.dispatchEvent(new Event("change"));
 }
@@ -4123,7 +4003,7 @@ async function saveBillCustomer() {
     profile: v("mb-prof"),
     price,
     billDate: parseInt(v("mb-date")) || 1,
-    graceDays: parseInt(v("mb-grace")) ? ? 3,
+    graceDays: parseInt(v("mb-grace")) ?? 3,
     telegramId: v("mb-tg"),
     status: v("mb-st"),
     autoDisable: v("mb-auto") === "true",
@@ -4131,22 +4011,20 @@ async function saveBillCustomer() {
     note: v("mb-note")
   };
   showL();
-  const d = editBillId ?
-    await fetch(`${API}/billing/${CS}/customers/${editBillId}`, {
-      method: "PUT",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
-    }).then((r) => r.json()) :
-    await post(`/billing/${CS}/customers`, body);
+  const d = editBillId
+    ? await fetch(`${API}/billing/${CS}/customers/${editBillId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }).then((r) => r.json())
+    : await post(`/billing/${CS}/customers`, body);
   hideL();
-  if (d ? .id) {
+  if (d?.id) {
     closeM("m-bill");
     loadBilling();
     toast(editBillId ? "Pelanggan diupdate!" : "Pelanggan ditambahkan!");
-  } else se("mb-err", d ? .error || "Gagal menyimpan");
+  } else se("mb-err", d?.error || "Gagal menyimpan");
 }
 
 async function editBillFn(id) {
@@ -4174,9 +4052,9 @@ async function reEnable(id) {
     credentials: "include"
   }).then((r) => r.json());
   hideL();
-  d ? .success ?
-    (loadBilling(), toast("Pelanggan diaktifkan kembali")) :
-    toast("Gagal: " + d ? .error, true);
+  d?.success
+    ? (loadBilling(), toast("Pelanggan diaktifkan kembali"))
+    : toast("Gagal: " + d?.error, true);
 }
 
 async function suspendCustomer(id) {
@@ -4212,7 +4090,7 @@ function viewCustomerInvoices(id) {
 // ── Send Reminder ───────────────────────────────────────────────
 async function sendReminderManual(customerId) {
   const c = await req(`/billing/${CS}/customers/${customerId}`);
-  if (!c ? .telegramId) {
+  if (!c?.telegramId) {
     toast("Pelanggan tidak memiliki Telegram ID", true);
     return;
   }
@@ -4253,18 +4131,19 @@ async function sendReminder() {
   if (!reminderInvId) return;
   showL();
   const d = await post(
-    `/billing/${CS}/invoices/${reminderInvId}/send-reminder`, {}
+    `/billing/${CS}/invoices/${reminderInvId}/send-reminder`,
+    {}
   );
   hideL();
-  d ? .success ?
-    (closeM("m-reminder"), toast("✓ Reminder terkirim!")) :
-    se("rem-err", d ? .error || "Gagal kirim");
+  d?.success
+    ? (closeM("m-reminder"), toast("✓ Reminder terkirim!"))
+    : se("rem-err", d?.error || "Gagal kirim");
 }
 
 // ── INVOICES ────────────────────────────────────────────────────
 async function loadInvoices(filterCustomerId = "") {
   if (!CS) return;
-  const statusF = document.getElementById("inv-status-filter") ? .value || "";
+  const statusF = document.getElementById("inv-status-filter")?.value || "";
   let invs =
     (await req(
       `/billing/${CS}/invoices${filterCustomerId ? "?customerId=" + filterCustomerId : ""}`
@@ -4295,21 +4174,21 @@ async function loadInvoices(filterCustomerId = "") {
   };
 
   const tb = document.getElementById("t-invoices");
-  tb.innerHTML = invs.length ?
-    invs
-    .map((inv) => {
-      const due = new Date(inv.dueDate);
-      const daysLeft = Math.round((due - new Date()) / 86400000);
-      const dueStr = due.toLocaleDateString("id-ID", {
-        dateStyle: "medium"
-      });
-      const dueColor =
-        daysLeft < 0 ?
-        "var(--red)" :
-        daysLeft <= 3 ?
-        "var(--yellow)" :
-        "var(--muted)";
-      return `<tr>
+  tb.innerHTML = invs.length
+    ? invs
+        .map((inv) => {
+          const due = new Date(inv.dueDate);
+          const daysLeft = Math.round((due - new Date()) / 86400000);
+          const dueStr = due.toLocaleDateString("id-ID", {
+            dateStyle: "medium"
+          });
+          const dueColor =
+            daysLeft < 0
+              ? "var(--red)"
+              : daysLeft <= 3
+                ? "var(--yellow)"
+                : "var(--muted)";
+          return `<tr>
       <td><code style="font-size:.73rem">${inv.id}</code></td>
       <td>
         <div style="font-weight:600">${inv.customerName}</div>
@@ -4329,9 +4208,9 @@ async function loadInvoices(filterCustomerId = "") {
         </div>
       </td>
     </tr>`;
-    })
-    .join("") :
-    `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Tidak ada tagihan</td></tr>`;
+        })
+        .join("")
+    : `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Tidak ada tagihan</td></tr>`;
 }
 
 async function generateInvoices() {
@@ -4362,11 +4241,9 @@ function openPayModal(invId) {
       "Rp " + Math.round(inv.amount).toLocaleString("id-ID");
     document.getElementById("pay-due").textContent = new Date(
       inv.dueDate
-    ).toLocaleDateString("id-ID", {
-      dateStyle: "long"
-    });
+    ).toLocaleDateString("id-ID", { dateStyle: "long" });
     document.getElementById("pay-by").value =
-      document.getElementById("tb-un") ? .textContent || "Admin";
+      document.getElementById("tb-un")?.textContent || "Admin";
     document.getElementById("pay-note").value = "";
     document.getElementById("pay-err").textContent = "";
     document.getElementById("m-pay").classList.add("show");
@@ -4380,21 +4257,16 @@ async function confirmPay() {
   const d = await fetch(`${API}/billing/${CS}/invoices/${payInvId}/pay`, {
     method: "POST",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      paidBy,
-      note
-    })
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ paidBy, note })
   }).then((r) => r.json());
   hideL();
-  if (d ? .success) {
+  if (d?.success) {
     closeM("m-pay");
     loadInvoices();
     loadBilling(); // refresh stats
     toast("✓ Tagihan ditandai LUNAS!");
-  } else se("pay-err", d ? .error || "Gagal");
+  } else se("pay-err", d?.error || "Gagal");
 }
 
 // ════════════════════════════════════════════════
@@ -4429,7 +4301,7 @@ async function loadBotResellers() {
     if (brsVcrEl) brsVcrEl.textContent = vcr;
     if (brsIncomeEl)
       brsIncomeEl.textContent =
-      "Rp " + Math.round(income).toLocaleString("id-ID");
+        "Rp " + Math.round(income).toLocaleString("id-ID");
 
     const tb = document.getElementById("t-brs");
     if (!tb) {
@@ -4437,16 +4309,16 @@ async function loadBotResellers() {
       return;
     }
 
-    tb.innerHTML = list.length ?
-      list
-      .map((r) => {
-        const date = r.createdAt ?
-          new Date(r.createdAt).toLocaleString("id-ID", {
-            dateStyle: "short",
-            timeStyle: "short"
-          }) :
-          "—";
-        return `<tr>
+    tb.innerHTML = list.length
+      ? list
+          .map((r) => {
+            const date = r.createdAt
+              ? new Date(r.createdAt).toLocaleString("id-ID", {
+                  dateStyle: "short",
+                  timeStyle: "short"
+                })
+              : "—";
+            return `<tr>
         <td>
           <div style="font-weight:600">${r.name || "—"}</div>
           <div style="font-size:.75rem;color:var(--muted)">${r.username ? "@" + r.username.replace("@", "") : "—"}</div>
@@ -4466,9 +4338,9 @@ async function loadBotResellers() {
           </div>
         </td>
       </tr>`;
-      })
-      .join("") :
-      '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px"><i class="fa fa-users" style="font-size:1.5rem;display:block;margin-bottom:8px;opacity:.3"></i>Belum ada agen reseller</td></tr>';
+          })
+          .join("")
+      : '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:20px"><i class="fa fa-users" style="font-size:1.5rem;display:block;margin-bottom:8px;opacity:.3"></i>Belum ada agen reseller</td></tr>';
 
     console.log("Data berhasil dimuat:", list.length, "reseller");
   } catch (error) {
@@ -4478,19 +4350,19 @@ async function loadBotResellers() {
 }
 
 function openBrsModal(data = null) {
-  editBrsId = data ? .id || null;
-  document.getElementById("mbrs-ttl").textContent = data ?
-    "Edit Agen" :
-    "Tambah Agen";
+  editBrsId = data?.id || null;
+  document.getElementById("mbrs-ttl").textContent = data
+    ? "Edit Agen"
+    : "Tambah Agen";
   document.getElementById("mbrs-err").textContent = "";
-  document.getElementById("mbrs-nm").value = data ? .name || "";
-  document.getElementById("mbrs-un").value = data ? .username || "";
-  document.getElementById("mbrs-tid").value = data ? .telegramId || "";
-  document.getElementById("mbrs-st").value = data ? .status || "active";
-  document.getElementById("mbrs-dc").value = data ? .discount || 0;
-  document.getElementById("mbrs-sl").value = data ? .saldo || 0;
+  document.getElementById("mbrs-nm").value = data?.name || "";
+  document.getElementById("mbrs-un").value = data?.username || "";
+  document.getElementById("mbrs-tid").value = data?.telegramId || "";
+  document.getElementById("mbrs-st").value = data?.status || "active";
+  document.getElementById("mbrs-dc").value = data?.discount || 0;
+  document.getElementById("mbrs-sl").value = data?.saldo || 0;
   document.getElementById("mbrs-sl").disabled = !!data; // saldo only on create
-  document.getElementById("mbrs-nt").value = data ? .note || "";
+  document.getElementById("mbrs-nt").value = data?.note || "";
   document.getElementById("m-brs").classList.add("show");
 }
 
@@ -4517,22 +4389,20 @@ async function saveBrs() {
     note: v("mbrs-nt")
   };
   showL();
-  const d = editBrsId ?
-    await fetch(`${API}/bot-resellers/${editBrsId}`, {
-      method: "PUT",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
-    }).then((r) => r.json()) :
-    await post("/bot-resellers", body);
+  const d = editBrsId
+    ? await fetch(`${API}/bot-resellers/${editBrsId}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }).then((r) => r.json())
+    : await post("/bot-resellers", body);
   hideL();
-  if (d ? .id) {
+  if (d?.id) {
     closeM("m-brs");
     loadBotResellers();
     toast(editBrsId ? "Agen diupdate!" : "Agen ditambahkan!");
-  } else se("mbrs-err", d ? .error || "Gagal menyimpan");
+  } else se("mbrs-err", d?.error || "Gagal menyimpan");
 }
 
 async function toggleBrs(id) {
@@ -4540,7 +4410,7 @@ async function toggleBrs(id) {
     method: "PATCH",
     credentials: "include"
   }).then((r) => r.json());
-  if (d ? .success) {
+  if (d?.success) {
     loadBotResellers();
     toast(d.status === "active" ? "Agen diaktifkan" : "Agen dinonaktifkan");
   }
@@ -4590,22 +4460,16 @@ async function doTopup() {
   }
   const note =
     v("tp-note").trim() || (amt > 0 ? "Topup saldo" : "Potong saldo");
-  const by = document.getElementById("tb-un") ? .textContent || "Admin";
+  const by = document.getElementById("tb-un")?.textContent || "Admin";
   showL();
   const d = await fetch(`${API}/bot-resellers/${topupBrsId}/topup`, {
     method: "POST",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      amount: amt,
-      note,
-      by
-    })
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ amount: amt, note, by })
   }).then((r) => r.json());
   hideL();
-  if (d ? .success) {
+  if (d?.success) {
     closeM("m-topup");
     loadBotResellers();
     const sign = amt > 0 ? "+" : "";
@@ -4613,7 +4477,7 @@ async function doTopup() {
       `✓ Saldo ${d.reseller.name}: ${sign}Rp ${Math.abs(amt).toLocaleString("id-ID")} → Rp ${Math.round(d.reseller.saldo).toLocaleString("id-ID")}`
     );
   } else {
-    se("tp-err", d ? .error || "Gagal topup");
+    se("tp-err", d?.error || "Gagal topup");
   }
 }
 
@@ -4624,27 +4488,25 @@ async function showBrsLog(id, name) {
   document.getElementById("brs-log-card").style.display = "block";
   document
     .getElementById("brs-log-card")
-    .scrollIntoView({
-      behavior: "smooth"
-    });
+    .scrollIntoView({ behavior: "smooth" });
   const logs = (await req("/bot-resellers/logs/" + id)) || [];
   const TYPE_LABEL = {
     topup: "Topup",
     deduct: "Potong",
     purchase: "Pembelian"
   };
-  document.getElementById("t-brs-log").innerHTML = logs.length ?
-    logs
-    .map((l) => {
-      const sign = l.amount >= 0 ? "+" : "";
-      const color = l.amount >= 0 ? "var(--green)" : "var(--red)";
-      const dt = l.at ?
-        new Date(l.at).toLocaleString("id-ID", {
-          dateStyle: "short",
-          timeStyle: "short"
-        }) :
-        "—";
-      return `<tr>
+  document.getElementById("t-brs-log").innerHTML = logs.length
+    ? logs
+        .map((l) => {
+          const sign = l.amount >= 0 ? "+" : "";
+          const color = l.amount >= 0 ? "var(--green)" : "var(--red)";
+          const dt = l.at
+            ? new Date(l.at).toLocaleString("id-ID", {
+                dateStyle: "short",
+                timeStyle: "short"
+              })
+            : "—";
+          return `<tr>
           <td style="white-space:nowrap;font-size:.78rem">${dt}</td>
           <td><span class="badge ${l.type === "purchase" ? "b-yl" : l.amount >= 0 ? "b-gr" : "b-rd"}">${TYPE_LABEL[l.type] || l.type}</span></td>
           <td style="text-align:right;font-weight:600;color:${color}">${sign}Rp ${Math.abs(l.amount).toLocaleString("id-ID")}</td>
@@ -4653,9 +4515,9 @@ async function showBrsLog(id, name) {
           <td style="color:var(--muted);font-size:.78rem">${l.note || "—"}</td>
           <td style="color:var(--muted);font-size:.78rem">${l.by || "—"}</td>
         </tr>`;
-    })
-    .join("") :
-    '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:16px">Belum ada riwayat</td></tr>';
+        })
+        .join("")
+    : '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:16px">Belum ada riwayat</td></tr>';
 }
 
 // ════════════════════════════════════════════════
@@ -4664,11 +4526,10 @@ async function showBrsLog(id, name) {
 function toggleTheme() {
   const isLight = document.body.classList.toggle("light");
   localStorage.setItem("theme", isLight ? "light" : "dark");
-  document.getElementById("theme-icon").className = isLight ?
-    "fa fa-sun-o" :
-    "fa fa-moon-o";
+  document.getElementById("theme-icon").className = isLight
+    ? "fa fa-sun-o"
+    : "fa fa-moon-o";
 }
-
 function initTheme() {
   const saved = localStorage.getItem("theme");
   if (saved === "light") {
@@ -4719,7 +4580,6 @@ function setPaper(p, btn) {
   btn.classList.add("active");
   renderPrintPreview();
 }
-
 function setOrient(o, btn) {
   pvOrient = o;
   document
@@ -4728,7 +4588,6 @@ function setOrient(o, btn) {
   btn.classList.add("active");
   renderPrintPreview();
 }
-
 function setCols(n, btn) {
   pvCols = n;
   document
@@ -4755,13 +4614,13 @@ function renderPrintPreview() {
 function calcPerPage() {
   // Approximate rows that fit per page
   const rowsPerPage =
-    pvOrient === "portrait" ?
-    pvPaper === "A4" ?
-    8 :
-    9 :
-    pvPaper === "A4" ?
-    5 :
-    6;
+    pvOrient === "portrait"
+      ? pvPaper === "A4"
+        ? 8
+        : 9
+      : pvPaper === "A4"
+        ? 5
+        : 6;
   return pvCols * rowsPerPage;
 }
 
@@ -4792,9 +4651,9 @@ function formatMikrotikTime(durasiStr) {
 
 function buildPvCard(vcr, idx) {
   const color = vcr.color || "#1f6feb";
-  const price = vcr.price ?
-    "Rp " + Number(vcr.price).toLocaleString("id-ID") :
-    "";
+  const price = vcr.price
+    ? "Rp " + Number(vcr.price).toLocaleString("id-ID")
+    : "";
   const caption = vcr.caption || vcr.profile || "";
   const duration = vcr.limitUptime || vcr.validity || "—";
 
@@ -4863,13 +4722,13 @@ function downloadPDF() {
 
 function buildPrintHTML() {
   const colW =
-    pvOrient === "portrait" ?
-    pvPaper === "A4" ?
-    "190mm" :
-    "210mm" :
-    pvPaper === "A4" ?
-    "277mm" :
-    "330mm";
+    pvOrient === "portrait"
+      ? pvPaper === "A4"
+        ? "190mm"
+        : "210mm"
+      : pvPaper === "A4"
+        ? "277mm"
+        : "330mm";
 
   const cards = pvVouchers.map((v, i) => buildPvCard(v, i)).join("");
 
@@ -4908,10 +4767,10 @@ async function fetchProfileMeta(profileName) {
   try {
     const p = await req(`/mikrotik/${CS}/hotspot/profiles/${profileName}`);
     return {
-      color: p ? .color || p ? .profileColor || "#1f6feb",
-      price: p ? .sprice || p ? .price || 0,
-      caption: p ? .caption || "",
-      validity: p ? .validity || ""
+      color: p?.color || p?.profileColor || "#1f6feb",
+      price: p?.sprice || p?.price || 0,
+      caption: p?.caption || "",
+      validity: p?.validity || ""
     };
   } catch {
     return {};
@@ -4960,9 +4819,9 @@ function toggleAutoRemoveSetting() {
   localStorage.setItem("mh_auto_remove", AUTO_REMOVE_BATCH);
   initAutoRemoveSetting();
   toast(
-    AUTO_REMOVE_BATCH ?
-    "🗑️ Auto hapus batch aktif" :
-    "Auto hapus batch dinonaktifkan"
+    AUTO_REMOVE_BATCH
+      ? "🗑️ Auto hapus batch aktif"
+      : "Auto hapus batch dinonaktifkan"
   );
 }
 
@@ -5042,7 +4901,7 @@ async function removeBatchWithAnimation(batchId) {
   }
 
   // If we're viewing this batch's detail, go back to list
-  if (currentBatch ? .id === batchId) {
+  if (currentBatch?.id === batchId) {
     closeBatchDetail();
   }
 
@@ -5052,7 +4911,7 @@ async function removeBatchWithAnimation(batchId) {
       method: "DELETE",
       credentials: "include"
     }).then((res) => res.json());
-    return !!(r ? .success || r ? .deleted);
+    return !!(r?.success || r?.deleted);
   } catch {
     return false;
   }
@@ -5068,10 +4927,10 @@ async function checkAndAutoRemoveByProfile(profileName) {
     const batches = (await req(`/batches/${CS}`)) || [];
     const matching = batches.filter(
       (b) =>
-      b.profileName === profileName &&
-      b.stats &&
-      b.stats.total > 0 &&
-      b.stats.remaining === 0
+        b.profileName === profileName &&
+        b.stats &&
+        b.stats.total > 0 &&
+        b.stats.remaining === 0
     );
     let removed = 0;
     for (const b of matching) {
@@ -5134,11 +4993,11 @@ async function initTrafficPanel() {
     // Sort: ether & wlan first, then bridges, then others
     const sorted = ifaces.sort((a, b) => {
       const rank = (n) =>
-        n.startsWith("ether") || n.startsWith("wlan") ?
-        0 :
-        n.startsWith("bridge") ?
-        1 :
-        2;
+        n.startsWith("ether") || n.startsWith("wlan")
+          ? 0
+          : n.startsWith("bridge")
+            ? 1
+            : 2;
       return rank(a.name) - rank(b.name);
     });
 
@@ -5257,8 +5116,8 @@ async function fetchTrafficNow() {
       return; // unknown format
     }
 
-    const txMbps = txBps / 1 _000_000;
-    const rxMbps = rxBps / 1 _000_000;
+    const txMbps = txBps / 1_000_000;
+    const rxMbps = rxBps / 1_000_000;
 
     pushTrafficPoint(txMbps, rxMbps);
   } catch (e) {
@@ -5368,7 +5227,8 @@ function buildTrafficUI() {
     type: "line",
     data: {
       labels: [],
-      datasets: [{
+      datasets: [
+        {
           label: "TX (Upload)",
           data: [],
           borderColor: TRAFFIC.COLOR_TX,
@@ -5395,10 +5255,7 @@ function buildTrafficUI() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      interaction: {
-        mode: "index",
-        intersect: false
-      },
+      interaction: { mode: "index", intersect: false },
       animation: false,
       plugins: {
         legend: {
@@ -5410,9 +5267,7 @@ function buildTrafficUI() {
             boxHeight: 12,
             borderRadius: 3,
             useBorderRadius: true,
-            font: {
-              size: 11
-            },
+            font: { size: 11 },
             padding: 12
           }
         },
@@ -5433,27 +5288,19 @@ function buildTrafficUI() {
           ticks: {
             color: "#8b949e",
             maxTicksLimit: 6,
-            font: {
-              size: 10
-            },
+            font: { size: 10 },
             maxRotation: 0
           },
-          grid: {
-            color: "rgba(255,255,255,.04)"
-          }
+          grid: { color: "rgba(255,255,255,.04)" }
         },
         y: {
           beginAtZero: true,
           ticks: {
             color: "#8b949e",
-            font: {
-              size: 10
-            },
+            font: { size: 10 },
             callback: (v) => fmtMbps(v)
           },
-          grid: {
-            color: "rgba(255,255,255,.04)"
-          }
+          grid: { color: "rgba(255,255,255,.04)" }
         }
       }
     }
@@ -5531,14 +5378,12 @@ function fmtMbps(mbps) {
   if (mbps >= 1000) return (mbps / 1000).toFixed(2) + " Gbps";
   return mbps.toFixed(2) + " Mbps";
 }
-
 function hexToRgba(hex, alpha) {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   return `rgba(${r},${g},${b},${alpha})`;
 }
-
 function setEl(id, val) {
   const el = document.getElementById(id);
   if (el) el.textContent = val;
@@ -5585,18 +5430,15 @@ function impDragOver(e) {
   e.preventDefault();
   document.getElementById("imp-dropzone").classList.add("drag-over");
 }
-
 function impDragLeave(e) {
   document.getElementById("imp-dropzone").classList.remove("drag-over");
 }
-
 function impDrop(e) {
   e.preventDefault();
   document.getElementById("imp-dropzone").classList.remove("drag-over");
   const file = e.dataTransfer.files[0];
   if (file) processImportFile(file);
 }
-
 function impFileSelected(input) {
   if (input.files[0]) processImportFile(input.files[0]);
 }
@@ -5606,9 +5448,9 @@ function toggleMapping() {
   const grid = document.getElementById("map-grid");
   const icon = document.getElementById("map-chevron");
   grid.classList.toggle("show");
-  icon.className = grid.classList.contains("show") ?
-    "fa fa-chevron-down" :
-    "fa fa-chevron-right";
+  icon.className = grid.classList.contains("show")
+    ? "fa fa-chevron-down"
+    : "fa fa-chevron-right";
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -5671,14 +5513,14 @@ function mapAndValidate(raw, index) {
 
   const type = raw.service_type || raw.type || "pppoe";
   const mikrotikUser = cleanStr(
-    type === "pppoe" ?
-    raw.pppoe_username || raw.mikrotikUser :
-    raw.hotspot_username || raw.mikrotikUser
+    type === "pppoe"
+      ? raw.pppoe_username || raw.mikrotikUser
+      : raw.hotspot_username || raw.mikrotikUser
   );
   const profile =
-    type === "pppoe" ?
-    raw.pppoe_profile || raw.profile :
-    raw.hotspot_profile || raw.profile;
+    type === "pppoe"
+      ? raw.pppoe_profile || raw.profile
+      : raw.hotspot_profile || raw.profile;
   const price = parseFloat(raw.package_price || raw.price) || 0;
   const billDate = Math.max(
     1,
@@ -5747,19 +5589,20 @@ function renderImportPreview() {
   tbody.innerHTML = customers
     .map((c, i) => {
       const hasIssue = !c._valid || c._warnings.length > 0;
-      const rowColor = !c._valid ?
-        "rgba(248,81,73,.05)" :
-        c._warnings.length ?
-        "rgba(210,153,34,.05)" :
-        "";
-      const checks = [
+      const rowColor = !c._valid
+        ? "rgba(248,81,73,.05)"
+        : c._warnings.length
+          ? "rgba(210,153,34,.05)"
+          : "";
+      const checks =
+        [
           ...c._errors.map(
             (e) =>
-            `<span style="color:var(--red)"><i class="fa fa-times-circle"></i> ${e}</span>`
+              `<span style="color:var(--red)"><i class="fa fa-times-circle"></i> ${e}</span>`
           ),
           ...c._warnings.map(
             (w) =>
-            `<span style="color:var(--yellow)"><i class="fa fa-exclamation-triangle"></i> ${w}</span>`
+              `<span style="color:var(--yellow)"><i class="fa fa-exclamation-triangle"></i> ${w}</span>`
           )
         ].join("<br>") ||
         `<span style="color:var(--green)"><i class="fa fa-check-circle"></i> OK</span>`;
@@ -5862,9 +5705,7 @@ async function startBillingImport() {
       const res = await fetch(`${API}/billing/${CS}/customers`, {
         method: "POST",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       }).then((r) => r.json());
 
@@ -5960,13 +5801,13 @@ function updateImportRow(index, statusCls, msg) {
   const row = document.getElementById(`imp-row-${index}`);
   if (row) {
     row.style.background =
-      statusCls === "success" ?
-      "rgba(63,185,80,.06)" :
-      statusCls === "error" ?
-      "rgba(248,81,73,.06)" :
-      statusCls === "skip" ?
-      "rgba(210,153,34,.06)" :
-      "";
+      statusCls === "success"
+        ? "rgba(63,185,80,.06)"
+        : statusCls === "error"
+          ? "rgba(248,81,73,.06)"
+          : statusCls === "skip"
+            ? "rgba(210,153,34,.06)"
+            : "";
   }
 }
 
