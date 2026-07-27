@@ -72,10 +72,6 @@ function renderPagination(tid, onRender) {
   const s = PG[tid];
   if (!s || !s.data) return "";
 
-  // Keep a reference to the render function itself (works for
-  // anonymous/arrow/local functions, not just named globals)
-  s.renderFn = onRender;
-
   const total = s.data.length;
   const maxPage = Math.ceil(total / s.limit) || 1;
 
@@ -104,13 +100,34 @@ function renderPagination(tid, onRender) {
 }
 
 /**
+ * Register the "load..." function for a table so changePage can call it
+ * back when the user switches pages (without re-fetching from server).
+ * Call this once at the top of each load...() function, e.g.:
+ *
+ *   async function loadHsUsers(isPg = false) {
+ *     registerReload("t-hu", loadHsUsers);
+ *     ...
+ *   }
+ *
+ * @param {string} tid - table id / key in PG
+ * @param {(isPg: boolean) => void} reloadFn - the load...() function itself
+ */
+function registerReload(tid, reloadFn) {
+  const s = PG[tid];
+  if (s) s.reload = reloadFn;
+}
+
+/**
  * Change the current page for a table and re-render it.
  * @param {string} tid - table id / key in PG
  * @param {number} newPage - target page number (will be clamped)
  */
 function changePage(tid, newPage) {
   const s = PG[tid];
-  if (!s || typeof s.renderFn !== "function") return;
+  if (!s || typeof s.reload !== "function") {
+    console.warn(`changePage: no reload function registered for "${tid}". Call registerReload(tid, loadFn) inside your load...() function first.`);
+    return;
+  }
 
   const maxPage = Math.ceil(s.data.length / s.limit) || 1;
   const clamped = Math.min(Math.max(1, newPage), maxPage);
@@ -118,8 +135,10 @@ function changePage(tid, newPage) {
   if (clamped === s.page) return; // no-op, avoid unnecessary re-render
   s.page = clamped;
 
-  // renderFn akan memanggil load... yang kemudian memanggil renderPagination lagi
-  s.renderFn(true); // true = ini perubahan halaman, bukan fetch baru
+  // Panggil ulang fungsi load...() dengan isPg=true:
+  // ini akan skip fetch, lalu memanggil renderPagination() lagi
+  // (yang menghitung ulang slice data + update DOM pagination)
+  s.reload(true);
 }
 
 const MS = [
@@ -508,6 +527,7 @@ async function switchRouter(id) {
 // SESSIONS
 // ════════════════════════════════════════════════
 async function loadSessions(isPg = false) {
+  registerReload("t-sess", loadSessions);
   if (!isPg) {
     showL();
     const sess = (await req("/sessions")) || [];
@@ -820,6 +840,7 @@ function filterLog(type, btn) {
 // ════════════════════════════════════════════════
 async function loadHsActive(isPg = false) {
   if (!CS) return;
+  registerReload("t-ha", loadHsActive);
   if (!isPg) {
     showL();
     const d = (await req(`/mikrotik/${CS}/hotspot/active`)) || [];
@@ -850,6 +871,7 @@ function renderHsActive(subset) {
 }
 async function loadHsUsers(isPg = false) {
   if (!CS) return;
+  registerReload("t-hu", loadHsUsers);
   if (!isPg) {
     showL();
     const prof = document.getElementById("uprof")?.value || "all";
@@ -1072,6 +1094,7 @@ async function delHsProfile(name) {
 // ════════════════════════════════════════════════
 async function loadPppActive(isPg = false) {
   if (!CS) return;
+  registerReload("t-pa", loadPppActive);
   if (!isPg) {
     showL();
     const d = (await req(`/pppoe/${CS}/active`)) || [];
@@ -1111,6 +1134,7 @@ async function disconnectPpp(id) {
 
 async function loadPppUsers(isPg = false) {
   if (!CS) return;
+  registerReload("t-ps", loadPppUsers);
   if (!isPg) {
     showL();
     const prof = document.getElementById("ppp-prof-filter")?.value || "all";
@@ -1326,6 +1350,7 @@ async function delPppProfile(name) {
 // RESELLER
 // ════════════════════════════════════════════════
 async function loadResellers(isPg = false) {
+  registerReload("t-rs", loadResellers);
   if (!isPg) {
     showL();
     const d = (await req(`/resellers/session/${CS}`)) || [];
@@ -1777,6 +1802,7 @@ async function initSelling() {
 }
 async function loadSelling(isPg = false) {
   if (!CS) return;
+  registerReload("t-sel", loadSelling);
   let s = { currency: "Rp", isIndo: true };
   if (!isPg) {
     showL();
@@ -3291,6 +3317,7 @@ const ROLE_COLOR = {
 const ROLE_BADGE = { admin: "b-bl", reseller: "b-pu", collector: "b-gr" };
 
 async function loadUserManagement(isPg = false) {
+  registerReload("t-users", loadUserManagement);
   if (!isPg) {
     showL();
     const [users, defaults, sessions] = await Promise.all([
