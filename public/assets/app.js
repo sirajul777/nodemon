@@ -17,7 +17,8 @@ let liveInterval = null; // dashboard auto-refresh
 let logFilter = "all";
 
 // Pagination States
-let PG = {
+// Guard against accidental double-inclusion of this script
+window.PG = window.PG || {
   "t-hu": {
     page: 1,
     limit: 25,
@@ -59,13 +60,28 @@ let PG = {
     data: []
   }
 };
+const PG = window.PG;
 
+/**
+ * Render a paginated table.
+ * @param {string} tid - table id / key in PG
+ * @param {(subset: any[], isPageChange?: boolean) => void} onRender - renders the subset into the DOM
+ * @returns {string} pagination controls HTML
+ */
 function renderPagination(tid, onRender) {
   const s = PG[tid];
   if (!s || !s.data) return "";
+
+  // Keep a reference to the render function itself (works for
+  // anonymous/arrow/local functions, not just named globals)
+  s.renderFn = onRender;
+
   const total = s.data.length;
   const maxPage = Math.ceil(total / s.limit) || 1;
+
+  // Clamp current page into valid range
   if (s.page > maxPage) s.page = maxPage;
+  if (s.page < 1) s.page = 1;
 
   const start = (s.page - 1) * s.limit;
   const end = Math.min(start + s.limit, total);
@@ -74,28 +90,36 @@ function renderPagination(tid, onRender) {
   const subset = s.data.slice(start, end);
   onRender(subset);
 
-  // Get function name for the button onclick
-  const fnName = onRender.name;
-
   // Return HTML navigasi
   return `
     <div class="pg-box">
       <div class="pg-info">Showing <b>${total > 0 ? start + 1 : 0}</b> to <b>${end}</b> of <b>${total}</b> entries</div>
       <div class="pg-ctrl">
-        <button class="btn b-s pg-btn" ${s.page <= 1 ? "disabled" : ""} onclick=changePage('${tid}', ${s.page - 1}, ${fnName})><i class="fa fa-chevron-left"></i></button>
+        <button class="btn b-s pg-btn" ${s.page <= 1 ? "disabled" : ""} onclick="changePage('${tid}', ${s.page - 1})"><i class="fa fa-chevron-left"></i></button>
         <span style="font-size:.75rem;font-weight:600;padding:0 8px">Page ${s.page} of ${maxPage}</span>
-        <button class="btn b-s pg-btn" ${s.page >= maxPage ? "disabled" : ""} onclick="changePage('${tid}', ${s.page + 1}, ${fnName})"><i class="fa fa-chevron-right"></i></button>
+        <button class="btn b-s pg-btn" ${s.page >= maxPage ? "disabled" : ""} onclick="changePage('${tid}', ${s.page + 1})"><i class="fa fa-chevron-right"></i></button>
       </div>
     </div>
   `;
 }
 
-function changePage(tid, newPage, renderFn) {
-  if (PG[tid]) {
-    PG[tid].page = newPage;
-    // renderFn akan memanggil load... yang kemudian memanggil renderPagination lagi
-    renderFn(true); // pass true to indicate it's a pagination change, not a fresh fetch if possible
-  }
+/**
+ * Change the current page for a table and re-render it.
+ * @param {string} tid - table id / key in PG
+ * @param {number} newPage - target page number (will be clamped)
+ */
+function changePage(tid, newPage) {
+  const s = PG[tid];
+  if (!s || typeof s.renderFn !== "function") return;
+
+  const maxPage = Math.ceil(s.data.length / s.limit) || 1;
+  const clamped = Math.min(Math.max(1, newPage), maxPage);
+
+  if (clamped === s.page) return; // no-op, avoid unnecessary re-render
+  s.page = clamped;
+
+  // renderFn akan memanggil load... yang kemudian memanggil renderPagination lagi
+  s.renderFn(true); // true = ini perubahan halaman, bukan fetch baru
 }
 
 const MS = [
@@ -2047,8 +2071,7 @@ async function loadTgInfo() {
   // Log
   const logEl = document.getElementById("tg-log");
   if (logEl) {
-    logEl.innerHTML = (logs || []).length ?
-      [...(logs || [])]
+    logEl.innerHTML = (logs || []).length ? [...(logs || [])]
       .reverse()
       .slice(0, 30)
       .map(
@@ -2193,8 +2216,7 @@ async function saveTgConfig() {
       allowedRaw
       .split(",")
       .map((x) => x.trim())
-      .filter(Boolean) :
-      [],
+      .filter(Boolean) : [],
     notifSale: document.getElementById("mtg-notif-sale").value === "true",
     notifDaily: document.getElementById("mtg-notif-daily").value === "true",
     dailyTime: document.getElementById("mtg-daily-time").value,
@@ -3558,9 +3580,7 @@ async function saveUm() {
     "#mum-sessions-list input[type=checkbox]"
   );
   const allChecked = [...sessionChecks].every((c) => c.checked);
-  const allowedSessions = allChecked ?
-    [] :
-    [...sessionChecks].filter((c) => c.checked).map((c) => c.value);
+  const allowedSessions = allChecked ? [] : [...sessionChecks].filter((c) => c.checked).map((c) => c.value);
 
   const body = {
     username: un,
