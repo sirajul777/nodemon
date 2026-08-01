@@ -1,9 +1,8 @@
 import { Controller, Get, Post, Put, Delete, Param, Query, Body, UseGuards } from '@nestjs/common';
 import { MikrotikService } from './mikrotik.service';
 import { ConfigService } from '../config/config.service';
+import { ProfileMetaService } from '../database/profile-meta.service';
 import { AuthGuard } from '../auth/auth.guard';
-import * as fs from 'fs';
-import * as path from 'path';
 
 @Controller('api/mikrotik')
 @UseGuards(AuthGuard)
@@ -11,10 +10,11 @@ export class MikrotikController {
   constructor(
     private readonly mikrotikService: MikrotikService,
     private readonly configService: ConfigService,
+    private readonly profileMetaService: ProfileMetaService,
   ) {}
 
-  private getConn(sessionId: string) {
-    const s = this.configService.getDecryptedSession(sessionId);
+  private async getConn(sessionId: string) {
+    const s = await this.configService.getDecryptedSession(sessionId);
     if (!s) throw new Error(`Session "${sessionId}" not found`);
     return { ip: s.ip, user: s.user, password: s.password, port: s.port || 8728 };
   }
@@ -83,31 +83,22 @@ export class MikrotikController {
     return `:put (",${expmode},${price},${validity},${sprice},,${lockUser},");`;
   }
 
-  private readProfileMeta(sessionId: string): Record<string, { price: number; validity: string; profileColor?: string; caption?: string }> {
-    const file = path.join(process.cwd(), 'data', 'profile-meta.json');
-    try {
-      if (fs.existsSync(file)) {
-        const all = JSON.parse(fs.readFileSync(file, 'utf8'));
-        return all[sessionId] || {};
-      }
-    } catch {}
-    return {};
+  private async readProfileMeta(sessionId: string) {
+    return this.profileMetaService.getAllForSession('hotspot', sessionId);
   }
 
-  private writeProfileMeta(sessionId: string, profileName: string, price: number, validity: string, profileColor?: string, caption?: string) {
-    const file = path.join(process.cwd(), 'data', 'profile-meta.json');
-    let all: any = {};
-    try { if (fs.existsSync(file)) all = JSON.parse(fs.readFileSync(file, 'utf8')); } catch {}
-    if (!all[sessionId]) all[sessionId] = {};
-    all[sessionId][profileName] = { price, validity, ...(profileColor ? { profileColor } : {}), ...(caption !== undefined ? { caption } : {}) };
-    const dir = path.dirname(file);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(file, JSON.stringify(all, null, 2));
+  private async writeProfileMeta(sessionId: string, profileName: string, price: number, validity: string, profileColor?: string, caption?: string) {
+    await this.profileMetaService.set('hotspot', sessionId, profileName, {
+      price,
+      validity,
+      ...(profileColor ? { profileColor } : {}),
+      ...(caption !== undefined ? { caption } : {}),
+    });
   }
 
-  private mergeProfile(sessionId: string, p: any): any {
+  private async mergeProfile(sessionId: string, p: any): Promise<any> {
     const ol   = this.parseOnLogin(p['on-login'] || '');
-    const meta = this.readProfileMeta(sessionId);
+    const meta = await this.readProfileMeta(sessionId);
     const loc: { price?: number; validity?: string; profileColor?: string; caption?: string } = meta[p.name] || {};
     
     // Prioritaskan data dari script MikroTik (ol), jika tidak ada baru pakai lokal (loc)
@@ -128,7 +119,7 @@ export class MikrotikController {
   @Get(':session/connect/test')
   async testConnect(@Param('session') session: string) {
     try {
-      const { ip, user, password, port } = this.getConn(session);
+      const { ip, user, password, port } = await this.getConn(session);
       const client = await this.mikrotikService.createClient(ip, user, password, port);
       const now = new Date();
       const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
@@ -152,7 +143,7 @@ export class MikrotikController {
 
   @Get(':session/dashboard')
   async dashboard(@Param('session') session: string) {
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
     try {
       const [resource, routerboard, identity, clock] = await Promise.all([
@@ -183,7 +174,7 @@ export class MikrotikController {
 
   @Get(':session/hotspot/active')
   async hotspotActive(@Param('session') session: string, @Query('server') server?: string) {
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const params: Record<string, string> = {};
     if (server) params['?server'] = server;
     return this.mikrotikService.run(ip, user, password, '/ip/hotspot/active/print', params, port);
@@ -195,7 +186,7 @@ export class MikrotikController {
     @Query('profile') profile?: string,
     @Query('comment') comment?: string,
   ) {
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const params: Record<string, string> = {};
     if (profile && profile !== 'all') params['?profile'] = profile;
     if (comment) params['?comment'] = comment;
@@ -204,7 +195,7 @@ export class MikrotikController {
 
   @Post(':session/hotspot/users')
   async addHotspotUser(@Param('session') session: string, @Body() body: any) {
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
     try {
       const params: Record<string, string> = {
@@ -221,7 +212,7 @@ export class MikrotikController {
 
   @Delete(':session/hotspot/users/:name')
   async removeHotspotUser(@Param('session') session: string, @Param('name') name: string) {
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
     try {
       const users = await client.run('/ip/hotspot/user/print', { '?name': name });
@@ -232,7 +223,7 @@ export class MikrotikController {
 
   @Post(':session/hotspot/users/bulk-delete')
   async bulkRemoveHotspotUsers(@Param('session') session: string, @Body() body: { names: string[] }) {
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
     try {
       for (const name of body.names) {
@@ -247,11 +238,15 @@ export class MikrotikController {
 
   @Get(':session/hotspot/profiles')
   async hotspotProfiles(@Param('session') session: string) {
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
     try {
       const profiles = await client.run('/ip/hotspot/user/profile/print');
-      return profiles.map(p => this.mergeProfile(session, p));
+      const result = [];
+      for (const p of profiles) {
+        result.push(await this.mergeProfile(session, p));
+      }
+      return result;
     } catch (err: any) {
       return { error: err.message };
     } finally {
@@ -261,18 +256,18 @@ export class MikrotikController {
 
   @Get(':session/hotspot/profiles/:name')
   async getProfile(@Param('session') session: string, @Param('name') name: string) {
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
     try {
       const profiles = await client.run('/ip/hotspot/user/profile/print', { '?name': name });
       if (!profiles[0]) return null;
-      return this.mergeProfile(session, profiles[0]);
+      return await this.mergeProfile(session, profiles[0]);
     } finally { client.close(); }
   }
 
   @Post(':session/hotspot/profiles')
   async addProfile(@Param('session') session: string, @Body() body: any) {
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
     try {
       const price    = parseFloat(body.price)  || 0;
@@ -298,7 +293,7 @@ export class MikrotikController {
       if (body['address-pool'])    params['address-pool']    = body['address-pool'];
 
       await client.run('/ip/hotspot/user/profile/add', params);
-      this.writeProfileMeta(session, body.name, price, validity, body.profileColor, body.caption);
+      await this.writeProfileMeta(session, body.name, price, validity, body.profileColor, body.caption);
       await this.setupExpiryScheduler(client, session);
       return { success: true };
     } catch (err: any) {
@@ -308,7 +303,7 @@ export class MikrotikController {
 
   @Put(':session/hotspot/profiles/:name')
   async editProfile(@Param('session') session: string, @Param('name') name: string, @Body() body: any) {
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
     try {
       // Single fetch — reuse for both .id and existing on-login
@@ -357,7 +352,7 @@ export class MikrotikController {
       if (body['address-pool']    !== undefined) params['address-pool']    = body['address-pool']    || 'none';
 
       await client.run('/ip/hotspot/user/profile/set', params);
-      this.writeProfileMeta(session, name, newPrice, newValidity, body.profileColor, body.caption);
+      await this.writeProfileMeta(session, name, newPrice, newValidity, body.profileColor, body.caption);
       await this.setupExpiryScheduler(client, session);
 
       return { success: true };
@@ -426,7 +421,7 @@ export class MikrotikController {
 
   @Delete(':session/hotspot/profiles/:name')
   async deleteProfile(@Param('session') session: string, @Param('name') name: string) {
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
     try {
       const profiles = await client.run('/ip/hotspot/user/profile/print', { '?name': name });
@@ -437,7 +432,7 @@ export class MikrotikController {
   }
 
   @Get(':session/hotspot/profile-meta')
-  getProfileMeta(@Param('session') session: string) {
+  async getProfileMeta(@Param('session') session: string) {
     return this.readProfileMeta(session);
   }
 
@@ -445,26 +440,26 @@ export class MikrotikController {
 
   @Get(':session/hotspot/log')
   async hotspotLog(@Param('session') session: string) {
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const logs = await this.mikrotikService.run(ip, user, password, '/log/print', { '?topics': 'hotspot,info,debug' }, port);
     return logs.reverse().slice(0, 50);
   }
 
   @Get(':session/scheduler')
   async getScheduler(@Param('session') session: string) {
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     return this.mikrotikService.run(ip, user, password, '/system/scheduler/print', {}, port);
   }
 
   @Get(':session/dhcp/leases')
   async dhcpLeases(@Param('session') session: string) {
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     return this.mikrotikService.run(ip, user, password, '/ip/dhcp-server/lease/print', {}, port);
   }
 
   @Get(':session/system/resource')
   async systemResource(@Param('session') session: string) {
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
     try {
       const resource = await client.run('/system/resource/print');
@@ -475,7 +470,7 @@ export class MikrotikController {
   }
   @Get(':session/interface/traffic/:name') 
   async interfaceTraffic(@Param('session') session: string, @Param('name') name: string) { 
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
     
     try {
@@ -490,7 +485,7 @@ export class MikrotikController {
 
   @Get(':session/interfaces') 
   async interface(@Param('session') session: string) {
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
     try {
       const ifaces  = await client.run('/interface/print');

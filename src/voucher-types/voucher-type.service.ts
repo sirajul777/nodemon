@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
-import * as fs from "fs";
-import * as path from "path";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { VoucherTypeEntity } from "../database/entities/voucher-type.entity";
 
 export interface VoucherType {
   id: string;
@@ -16,83 +17,99 @@ export interface VoucherType {
   createdAt: string;
 }
 
-const DATA_FILE = path.join(process.cwd(), "data", "voucher-types.json");
-
 @Injectable()
 export class VoucherTypeService {
-  private load(): VoucherType[] {
-    try {
-      if (fs.existsSync(DATA_FILE))
-        return JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
-    } catch {}
-    return [];
+  constructor(
+    @InjectRepository(VoucherTypeEntity)
+    private readonly vtRepo: Repository<VoucherTypeEntity>
+  ) {}
+
+  private async toModel(e: VoucherTypeEntity): Promise<VoucherType> {
+    return {
+      id: e.id,
+      name: e.name,
+      price: e.price || 0,
+      profile: e.profile,
+      duration: e.duration || "",
+      codeLength: e.codeLength || 6,
+      codeFormat: e.codeFormat || "upper+digit",
+      maxPerOrder: e.maxPerOrder || 10,
+      userType: e.userType || "up",
+      active: e.active !== false,
+      createdAt: e.createdAt
+    };
   }
 
-  private save(data: VoucherType[]): void {
-    const dir = path.dirname(DATA_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+  async getAll(): Promise<VoucherType[]> {
+    const rows = await this.vtRepo.find();
+    const result = [];
+    for (const r of rows) result.push(await this.toModel(r));
+    return result.sort((a, b) => a.price - b.price);
   }
 
-  getAll(): VoucherType[] {
-    return this.load().sort((a, b) => a.price - b.price);
+  async getActive(): Promise<VoucherType[]> {
+    const all = await this.getAll();
+    return all.filter((v) => v.active);
   }
 
-  getActive(): VoucherType[] {
-    return this.getAll().filter((v) => v.active);
+  async getById(id: string): Promise<VoucherType | null> {
+    const e = await this.vtRepo.findOne({ where: { id } });
+    return e ? this.toModel(e) : null;
   }
 
-  getById(id: string): VoucherType | null {
-    return this.load().find((v) => v.id === id) || null;
-  }
-
-  upsert(
+  async upsert(
     data: Partial<VoucherType> & {
       name: string;
       profile: string;
       price: number;
       userType: string;
     }
-  ): VoucherType {
-    const list = this.load();
+  ): Promise<VoucherType> {
     const id = data.id || `vt_${Date.now()}`;
-    const idx = list.findIndex((v) => v.id === id);
+    let entity = await this.vtRepo.findOne({ where: { id } });
 
-    const item: VoucherType = {
-      id,
-      name: data.name,
-      price: Number(data.price) || 0,
-      profile: data.profile,
-      duration: data.duration || "",
-      codeLength: Number(data.codeLength) || 6,
-      codeFormat: data.codeFormat || "upper+digit",
-      maxPerOrder: Number(data.maxPerOrder) || 10,
-      userType: data.userType || "up",
-      active: data.active !== false,
-      createdAt: data.createdAt || new Date().toISOString()
-    };
-
-    if (idx >= 0) list[idx] = item;
-    else list.push(item);
-    this.save(list);
-    return item;
+    if (!entity) {
+      entity = this.vtRepo.create({
+        id,
+        name: data.name,
+        price: Number(data.price) || 0,
+        profile: data.profile,
+        duration: data.duration || "",
+        codeLength: Number(data.codeLength) || 6,
+        codeFormat: data.codeFormat || "upper+digit",
+        maxPerOrder: Number(data.maxPerOrder) || 10,
+        userType: data.userType || "up",
+        active: data.active !== false,
+        createdAt: data.createdAt || new Date().toISOString()
+      });
+    } else {
+      if (data.name !== undefined) entity.name = data.name;
+      if (data.price !== undefined) entity.price = Number(data.price) || 0;
+      if (data.profile !== undefined) entity.profile = data.profile;
+      if (data.duration !== undefined) entity.duration = data.duration;
+      if (data.codeLength !== undefined)
+        entity.codeLength = Number(data.codeLength) || 6;
+      if (data.codeFormat !== undefined) entity.codeFormat = data.codeFormat;
+      if (data.maxPerOrder !== undefined)
+        entity.maxPerOrder = Number(data.maxPerOrder) || 10;
+      if (data.userType !== undefined) entity.userType = data.userType;
+      if (data.active !== undefined) entity.active = data.active;
+    }
+    const saved = await this.vtRepo.save(entity);
+    return this.toModel(saved);
   }
 
-  delete(id: string): boolean {
-    const list = this.load();
-    const newList = list.filter((v) => v.id !== id);
-    if (newList.length === list.length) return false;
-    this.save(newList);
-    return true;
+  async delete(id: string): Promise<boolean> {
+    const result = await this.vtRepo.delete({ id });
+    return (result.affected || 0) > 0;
   }
 
-  toggleActive(id: string): VoucherType | null {
-    const list = this.load();
-    const item = list.find((v) => v.id === id);
-    if (!item) return null;
-    item.active = !item.active;
-    this.save(list);
-    return item;
+  async toggleActive(id: string): Promise<VoucherType | null> {
+    const entity = await this.vtRepo.findOne({ where: { id } });
+    if (!entity) return null;
+    entity.active = !entity.active;
+    const saved = await this.vtRepo.save(entity);
+    return this.toModel(saved);
   }
 
   /**
@@ -127,3 +144,4 @@ export class VoucherTypeService {
     ).join("");
   }
 }
+

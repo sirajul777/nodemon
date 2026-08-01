@@ -12,6 +12,7 @@ import {
   BadRequestException
 } from "@nestjs/common";
 import { MobileAuthGuard, MobileTokenService } from "./mobile-auth.guard";
+import { Inject } from "@nestjs/common";
 import { BotResellerService } from "../reseller-bot/bot-reseller.service";
 import { BillingService } from "../billing/billing.service";
 import { ConfigService } from "../config/config.service";
@@ -26,7 +27,8 @@ export class MobileApiController {
     private readonly resellerSvc: BotResellerService,
     private readonly billingSvc: BillingService,
     private readonly configSvc: ConfigService,
-    private readonly authSvc: MobileAuthService
+    private readonly authSvc: MobileAuthService,
+    private readonly tokenService: MobileTokenService
   ) {}
 
   // ══════════════════════════════════════════════════════════════════════════════
@@ -50,7 +52,7 @@ export class MobileApiController {
       return ERR("Akun Anda tidak memiliki akses sebagai petugas lapangan");
     }
 
-    const token = MobileTokenService.generate(
+    const token = await this.tokenService.generate(
       result.id,
       result.username,
       result.name,
@@ -79,7 +81,7 @@ export class MobileApiController {
   async getCustomers(@Req() req: any) {
     // Ambil semua customer dari semua session yang diizinkan untuk user ini
     // (Atau filter berdasarkan session tertentu jika diperlukan)
-    const customers = this.billingSvc.loadCustomers();
+    const customers = await this.billingSvc.loadCustomers();
 
     return OK(
       customers.map((c) => ({
@@ -100,10 +102,9 @@ export class MobileApiController {
 
   @Get("billing/invoices/unpaid")
   @UseGuards(MobileAuthGuard)
-  getUnpaidInvoices() {
-    const invoices = this.billingSvc
-      .loadInvoices()
-      .filter((i) => i.status === "unpaid");
+  async getUnpaidInvoices() {
+    const allInvoices = await this.billingSvc.loadInvoices();
+    const invoices = allInvoices.filter((i) => i.status === "unpaid");
     return OK(invoices);
   }
 
@@ -116,7 +117,7 @@ export class MobileApiController {
     @Body() body: { note?: string; paymentMethod?: string }
   ) {
     const collectorName = req.user.name;
-    const inv = this.billingSvc.payInvoice(
+    const inv = await this.billingSvc.payInvoice(
       id,
       collectorName,
       body.note || "Bayar di tempat"
@@ -137,12 +138,12 @@ export class MobileApiController {
 
   @Get("settlement/summary")
   @UseGuards(MobileAuthGuard)
-  getSettlementSummary(@Req() req: any) {
+  async getSettlementSummary(@Req() req: any) {
     const collectorId = req.user.id;
 
     // Hitung total uang tunai yang dibawa collector tapi belum disetor ke admin
-    const unsetteled = this.billingSvc.getUnsettledAmount(collectorId);
-    const history = this.billingSvc.getSettlementHistory(collectorId);
+    const unsetteled = await this.billingSvc.getUnsettledAmount(collectorId);
+    const history = await this.billingSvc.getSettlementHistory(collectorId);
 
     return OK({
       unsetteled,
@@ -154,7 +155,7 @@ export class MobileApiController {
   @UseGuards(MobileAuthGuard)
   @HttpCode(200)
   async submitSettlement(@Req() req: any, @Body() body: { amount: number }) {
-    const result = this.billingSvc.createSettlementReport({
+    const result = await this.billingSvc.createSettlementReport({
       collectorId: req.user.id,
       collectorName: req.user.name,
       amount: body.amount,
@@ -173,8 +174,8 @@ export class MobileApiController {
   @Get("dashboard")
   @UseGuards(MobileAuthGuard)
   async getDashboard(@Req() req: any) {
-    const unpaidStats = this.billingSvc.getUnpaidStats();
-    const myCash = this.billingSvc.getUnsettledAmount(req.user.id);
+    const unpaidStats = await this.billingSvc.getUnpaidStats();
+    const myCash = await this.billingSvc.getUnsettledAmount(req.user.id);
 
     return OK({
       user: {

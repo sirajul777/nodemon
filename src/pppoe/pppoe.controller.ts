@@ -1,59 +1,48 @@
 import { Controller, Get, Post, Put, Delete, Param, Query, Body, UseGuards } from '@nestjs/common';
 import { MikrotikService } from '../mikrotik/mikrotik.service';
 import { ConfigService } from '../config/config.service';
+import { ProfileMetaService } from '../database/profile-meta.service';
 import { AuthGuard } from '../auth/auth.guard';
-import * as fs from 'fs';
-import * as path from 'path';
 
 @Controller('api/pppoe')
 @UseGuards(AuthGuard)
 export class PppoeController {
-  constructor(private mikrotikService: MikrotikService, private configService: ConfigService) {}
+  constructor(
+    private mikrotikService: MikrotikService,
+    private configService: ConfigService,
+    private profileMetaService: ProfileMetaService,
+  ) {}
 
-  private conn(id: string) {
-    const s = this.configService.getDecryptedSession(id);
+  private async conn(id: string) {
+    const s = await this.configService.getDecryptedSession(id);
     if (!s) throw new Error(`Session "${id}" not found`);
     return { ip: s.ip, user: s.user, password: s.password, port: s.port || 8728 };
   }
 
-  private readProfileMeta(sessionId: string): Record<string, { active: boolean }> {
-    const file = path.join(process.cwd(), 'data', 'pppoe-profile-meta.json');
-    try {
-      if (fs.existsSync(file)) {
-        const all = JSON.parse(fs.readFileSync(file, 'utf8'));
-        return all[sessionId] || {};
-      }
-    } catch {}
-    return {};
+  private async readProfileMeta(sessionId: string) {
+    return this.profileMetaService.getAllForSession('pppoe', sessionId);
   }
 
-  private writeProfileMeta(sessionId: string, profileName: string, active: boolean) {
-    const file = path.join(process.cwd(), 'data', 'pppoe-profile-meta.json');
-    let all: any = {};
-    try { if (fs.existsSync(file)) all = JSON.parse(fs.readFileSync(file, 'utf8')); } catch {}
-    if (!all[sessionId]) all[sessionId] = {};
-    all[sessionId][profileName] = { active };
-    const dir = path.dirname(file);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(file, JSON.stringify(all, null, 2));
+  private async writeProfileMeta(sessionId: string, profileName: string, active: boolean) {
+    await this.profileMetaService.set('pppoe', sessionId, profileName, { active });
   }
 
-  private mergeProfile(sessionId: string, p: any): any {
-    const meta = this.readProfileMeta(sessionId);
-    const loc = meta[p.name] || { active: true }; // Default aktif jika belum ada di meta
+  private async mergeProfile(sessionId: string, p: any): Promise<any> {
+    const meta = await this.readProfileMeta(sessionId);
+    const loc = meta[p.name] || { active: true };
     return { ...p, active: loc.active };
   }
 
   // Active connections
   @Get(':session/active')
-  getActive(@Param('session') s: string) {
-    const c = this.conn(s);
+  async getActive(@Param('session') s: string) {
+    const c = await this.conn(s);
     return this.mikrotikService.run(c.ip, c.user, c.password, '/ppp/active/print', {}, c.port);
   }
 
   @Delete(':session/active/:id')
   async disconnectActive(@Param('session') s: string, @Param('id') id: string) {
-    const c = this.conn(s);
+    const c = await this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
     try { await client.run('/ppp/active/remove', { '.id': id }); return { success: true }; }
     finally { client.close(); }
@@ -61,8 +50,8 @@ export class PppoeController {
 
   // Secrets (PPPoE users)
   @Get(':session/secrets')
-  getSecrets(@Param('session') s: string, @Query('profile') profile?: string) {
-    const c = this.conn(s);
+  async getSecrets(@Param('session') s: string, @Query('profile') profile?: string) {
+    const c = await this.conn(s);
     const params: Record<string, string> = {};
     if (profile && profile !== 'all') params['?profile'] = profile;
     return this.mikrotikService.run(c.ip, c.user, c.password, '/ppp/secret/print', params, c.port);
@@ -70,7 +59,7 @@ export class PppoeController {
 
   @Get(':session/secrets/:name')
   async getSecret(@Param('session') s: string, @Param('name') name: string) {
-    const c = this.conn(s);
+    const c = await this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
     try { const r = await client.run('/ppp/secret/print', { '?name': name }); return r[0] || null; }
     finally { client.close(); }
@@ -78,7 +67,7 @@ export class PppoeController {
 
   @Post(':session/secrets')
   async addSecret(@Param('session') s: string, @Body() body: any) {
-    const c = this.conn(s);
+    const c = await this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
     try {
       const p: Record<string, string> = { name: body.name, password: body.password || '', service: body.service || 'pppoe', profile: body.profile || 'default' };
@@ -93,7 +82,7 @@ export class PppoeController {
 
   @Put(':session/secrets/:name')
   async editSecret(@Param('session') s: string, @Param('name') name: string, @Body() body: any) {
-    const c = this.conn(s);
+    const c = await this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
     try {
       const found = await client.run('/ppp/secret/print', { '?name': name });
@@ -113,7 +102,7 @@ export class PppoeController {
 
   @Delete(':session/secrets/:name')
   async deleteSecret(@Param('session') s: string, @Param('name') name: string) {
-    const c = this.conn(s);
+    const c = await this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
     try {
       const found = await client.run('/ppp/secret/print', { '?name': name });
@@ -125,7 +114,7 @@ export class PppoeController {
 
   @Post(':session/secrets/:name/enable')
   async enableSecret(@Param('session') s: string, @Param('name') name: string) {
-    const c = this.conn(s);
+    const c = await this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
     try {
       const found = await client.run('/ppp/secret/print', { '?name': name });
@@ -136,7 +125,7 @@ export class PppoeController {
 
   @Post(':session/secrets/:name/disable')
   async disableSecret(@Param('session') s: string, @Param('name') name: string) {
-    const c = this.conn(s);
+    const c = await this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
     try {
       const found = await client.run('/ppp/secret/print', { '?name': name });
@@ -148,14 +137,18 @@ export class PppoeController {
   // Profiles
   @Get(':session/profiles')
   async getProfiles(@Param('session') s: string) {
-    const c = this.conn(s);
+    const c = await this.conn(s);
     const profiles = await this.mikrotikService.run(c.ip, c.user, c.password, '/ppp/profile/print', {}, c.port);
-    return profiles.map(p => this.mergeProfile(s, p));
+    const result = [];
+    for (const p of profiles) {
+      result.push(await this.mergeProfile(s, p));
+    }
+    return result;
   }
 
   @Get(':session/profiles/:name')
   async getProfile(@Param('session') s: string, @Param('name') name: string) {
-    const c = this.conn(s);
+    const c = await this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
     try { 
       const r = await client.run('/ppp/profile/print', { '?name': name }); 
@@ -167,7 +160,7 @@ export class PppoeController {
 
   @Post(':session/profiles')
   async addProfile(@Param('session') s: string, @Body() body: any) {
-    const c = this.conn(s);
+    const c = await this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
     try {
       const p: Record<string, string> = { name: body.name };
@@ -181,7 +174,7 @@ export class PppoeController {
       await client.run('/ppp/profile/add', p);
       
       const active = body.active !== undefined ? (body.active === 'true' || body.active === true) : true;
-      this.writeProfileMeta(s, body.name, active);
+      await this.writeProfileMeta(s, body.name, active);
       
       return { success: true };
     } catch (e: any) { return { success: false, error: e.message }; }
@@ -190,7 +183,7 @@ export class PppoeController {
 
   @Put(':session/profiles/:name')
   async editProfile(@Param('session') s: string, @Param('name') name: string, @Body() body: any) {
-    const c = this.conn(s);
+    const c = await this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
     try {
       const found = await client.run('/ppp/profile/print', { '?name': name });
@@ -206,7 +199,7 @@ export class PppoeController {
       await client.run('/ppp/profile/set', p);
       
       if (body.active !== undefined) {
-        this.writeProfileMeta(s, name, (body.active === 'true' || body.active === true));
+        await this.writeProfileMeta(s, name, (body.active === 'true' || body.active === true));
       }
       
       return { success: true };
@@ -216,7 +209,7 @@ export class PppoeController {
 
   @Delete(':session/profiles/:name')
   async deleteProfile(@Param('session') s: string, @Param('name') name: string) {
-    const c = this.conn(s);
+    const c = await this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
     try {
       const found = await client.run('/ppp/profile/print', { '?name': name });
@@ -227,8 +220,8 @@ export class PppoeController {
   }
 
   @Get(':session/pools')
-  getPools(@Param('session') s: string) {
-    const c = this.conn(s);
+  async getPools(@Param('session') s: string) {
+    const c = await this.conn(s);
     return this.mikrotikService.run(c.ip, c.user, c.password, '/ip/pool/print', {}, c.port);
   }
 }

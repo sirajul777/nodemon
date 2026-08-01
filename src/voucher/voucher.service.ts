@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { MikrotikService } from '../mikrotik/mikrotik.service';
 import { ConfigService } from '../config/config.service';
-import * as fs from 'fs';
-import * as path from 'path';
+import { ProfileMetaService } from '../database/profile-meta.service';
 
 export interface VoucherBatchRequest {
   sessionId: string;
@@ -31,6 +30,7 @@ export class VoucherService {
   constructor(
     private mikrotikService: MikrotikService,
     private configService: ConfigService,
+    private profileMetaService: ProfileMetaService,
   ) {}
 
   private randomStr(len: number, type: VoucherBatchRequest['charType'] = 'lowerdigit'): string {
@@ -63,7 +63,7 @@ export class VoucherService {
   }
 
   async generateBatch(req: VoucherBatchRequest): Promise<GeneratedVoucher[]> {
-    const s = this.configService.getDecryptedSession(req.sessionId);
+    const s = await this.configService.getDecryptedSession(req.sessionId);
     if (!s) throw new Error('Session not found');
 
     const client = await this.mikrotikService.createClient(s.ip, s.user, s.password, s.port || 8728);
@@ -126,22 +126,17 @@ export class VoucherService {
   }
 
   private async getProfileMeta(sessionId: string, profileName: string): Promise<{ price: number; validity: string } | null> {
-    const file = path.join(process.cwd(), 'data', 'profile-meta.json');
-    try {
-      if (fs.existsSync(file)) {
-        const meta = JSON.parse(fs.readFileSync(file, 'utf8'));
-        return meta[sessionId]?.[profileName] || null;
-      }
-    } catch {}
-    return null;
+    const meta = await this.profileMetaService.get('hotspot', sessionId, profileName);
+    if (!meta || meta.price === undefined) return null;
+    return { price: meta.price || 0, validity: meta.validity || '' };
   }
 
   async getProfiles(sessionId: string) {
-    const s = this.configService.getDecryptedSession(sessionId);
+    const s = await this.configService.getDecryptedSession(sessionId);
     if (!s) throw new Error('Session not found');
     const profiles = await this.mikrotikService.run(s.ip, s.user, s.password, '/ip/hotspot/user/profile/print', {}, s.port || 8728);
 
-    const meta = this.getAllProfileMeta(sessionId);
+    const meta = await this.getAllProfileMeta(sessionId);
     return profiles.map(p => ({
       ...p,
       price: meta[p.name]?.price || 0,
@@ -149,14 +144,13 @@ export class VoucherService {
     }));
   }
 
-  private getAllProfileMeta(sessionId: string): Record<string, { price: number; validity: string }> {
-    const file = path.join(process.cwd(), 'data', 'profile-meta.json');
-    try {
-      if (fs.existsSync(file)) {
-        const all = JSON.parse(fs.readFileSync(file, 'utf8'));
-        return all[sessionId] || {};
-      }
-    } catch {}
-    return {};
+  private async getAllProfileMeta(sessionId: string): Promise<Record<string, { price: number; validity: string }>> {
+    const all = await this.profileMetaService.getAllForSession('hotspot', sessionId);
+    const result: Record<string, { price: number; validity: string }> = {};
+    for (const [name, m] of Object.entries(all)) {
+      result[name] = { price: m.price || 0, validity: m.validity || '' };
+    }
+    return result;
   }
 }
+

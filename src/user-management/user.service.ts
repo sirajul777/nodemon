@@ -1,9 +1,10 @@
 import { Injectable } from "@nestjs/common";
-import * as fs from "fs";
-import * as path from "path";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
 import * as bcrypt from "bcrypt";
+import { UserEntity, UserRole, UserPermissions } from "../database/entities/user.entity";
 
-export type UserRole = "admin" | "reseller" | "collector";
+export type { UserRole };
 
 export interface AppUser {
   id: string;
@@ -13,25 +14,14 @@ export interface AppUser {
   role: UserRole;
   active: boolean;
   allowedSessions: string[]; // router sessions accessible (empty = all)
-  permissions: {
-    viewDashboard: boolean;
-    manageVoucher: boolean;
-    manageBilling: boolean;
-    manageReseller: boolean;
-    managePppoe: boolean;
-    manageHotspot: boolean;
-    viewReport: boolean;
-    manageSystem: boolean;
-  };
+  permissions: UserPermissions;
   createdAt: string;
   lastLogin?: string;
   note?: string;
 }
 
-const USER_FILE = path.join(process.cwd(), "data", "users.json");
-
 // Default permissions per role
-const ROLE_PERMISSIONS: Record<UserRole, AppUser["permissions"]> = {
+const ROLE_PERMISSIONS: Record<UserRole, UserPermissions> = {
   admin: {
     viewDashboard: true,
     manageVoucher: true,
@@ -68,6 +58,11 @@ const ROLE_PERMISSIONS: Record<UserRole, AppUser["permissions"]> = {
 export class UserService {
   private readonly SALT_ROUNDS = 10;
 
+  constructor(
+    @InjectRepository(UserEntity)
+    private readonly userRepo: Repository<UserEntity>
+  ) {}
+
   private async hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, this.SALT_ROUNDS);
   }
@@ -79,32 +74,28 @@ export class UserService {
     return bcrypt.compare(password, hash);
   }
 
-  private load(): AppUser[] {
-    try {
-      if (fs.existsSync(USER_FILE))
-        return JSON.parse(fs.readFileSync(USER_FILE, "utf8"));
-    } catch {}
-    return [];
-  }
-
-  private save(users: AppUser[]) {
-    const dir = path.dirname(USER_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(USER_FILE, JSON.stringify(users, null, 2));
+  private async toSafe(u: UserEntity): Promise<Omit<AppUser, "password">> {
+    const { password, ...safe } = u;
+    return safe as Omit<AppUser, "password">;
   }
 
   // ── CRUD ──────────────────────────────────────────────────────────
 
-  getAll(): Omit<AppUser, "password">[] {
-    return this.load().map(({ password, ...u }) => u);
+  async getAll(): Promise<Omit<AppUser, "password">[]> {
+    const users = await this.userRepo.find();
+    const result = [];
+    for (const u of users) {
+      result.push(await this.toSafe(u));
+    }
+    return result;
   }
 
-  getById(id: string): AppUser | null {
-    return this.load().find((u) => u.id === id) || null;
+  async getById(id: string): Promise<AppUser | null> {
+    return (await this.userRepo.findOne({ where: { id } })) || null;
   }
 
-  getByUsername(username: string): AppUser | null {
-    return this.load().find((u) => u.username === username) || null;
+  async getByUsername(username: string): Promise<AppUser | null> {
+    return (await this.userRepo.findOne({ where: { username } })) || null;
   }
 
   async create(data: {
@@ -113,16 +104,16 @@ export class UserService {
     name: string;
     role: UserRole;
     allowedSessions?: string[];
-    permissions?: Partial<AppUser["permissions"]>;
+    permissions?: Partial<UserPermissions>;
     note?: string;
   }): Promise<Omit<AppUser, "password">> {
-    const users = this.load();
-    if (users.find((u) => u.username === data.username)) {
+    const existing = await this.userRepo.findOne({ where: { username: data.username } });
+    if (existing) {
       throw new Error(`Username "${data.username}" sudah digunakan`);
     }
     const defaultPerms =
       ROLE_PERMISSIONS[data.role] || ROLE_PERMISSIONS.reseller;
-    const user: AppUser = {
+    const user = this.userRepo.create({
       id: `USR-${Date.now()}`,
       username: data.username,
       password: await this.hashPassword(data.password),
@@ -131,30 +122,25 @@ export class UserService {
       active: true,
       allowedSessions: data.allowedSessions || [],
       permissions: { ...defaultPerms, ...(data.permissions || {}) },
-      createdAt: new Date().toISOString(),
       note: data.note || ""
-    };
-    users.push(user);
-    this.save(users);
-    const { password, ...safe } = user;
-    return safe;
+    });
+    const saved = await this.userRepo.save(user);
+    return this.toSafe(saved);
   }
 
-  update(
+  async update(
     id: string,
     data: Partial<{
       name: string;
       role: UserRole;
       active: boolean;
       allowedSessions: string[];
-      permissions: Partial<AppUser["permissions"]>;
+      permissions: Partial<UserPermissions>;
       note: string;
     }>
-  ): Omit<AppUser, "password"> | null {
-    const users = this.load();
-    const idx = users.findIndex((u) => u.id === id);
-    if (idx < 0) return null;
-    const u = users[idx];
+  ): Promise<Omit<AppUser, "password"> | null> {
+    const u = await this.userRepo.findOne({ where: { id } });
+    if (!u) return null;
     if (data.name !== undefined) u.name = data.name;
     if (data.role !== undefined) {
       u.role = data.role;
@@ -170,10 +156,8 @@ export class UserService {
     if (data.allowedSessions !== undefined)
       u.allowedSessions = data.allowedSessions;
     if (data.note !== undefined) u.note = data.note;
-    users[idx] = u;
-    this.save(users);
-    const { password, ...safe } = u;
-    return safe;
+    const saved = await this.userRepo.save(u);
+    return this.toSafe(saved);
   }
 
   async changePassword(
@@ -181,53 +165,49 @@ export class UserService {
     oldPassword: string,
     newPassword: string
   ): Promise<boolean> {
-    const users = this.load();
-    const u = users.find((u) => u.id === id);
+    const u = await this.userRepo.findOne({ where: { id } });
     if (!u) return false;
 
     const isMatch = await this.comparePassword(oldPassword, u.password);
     if (!isMatch) return false;
 
     u.password = await this.hashPassword(newPassword);
-    this.save(users);
+    await this.userRepo.save(u);
     return true;
   }
 
   async resetPassword(id: string, newPassword: string): Promise<boolean> {
-    const users = this.load();
-    const u = users.find((u) => u.id === id);
+    const u = await this.userRepo.findOne({ where: { id } });
     if (!u) return false;
     u.password = await this.hashPassword(newPassword);
-    this.save(users);
+    await this.userRepo.save(u);
     return true;
   }
 
-  delete(id: string): boolean {
-    const users = this.load();
+  async delete(id: string): Promise<boolean> {
     // Prevent deleting last admin
-    const admins = users.filter((u) => u.role === "admin");
-    const target = users.find((u) => u.id === id);
+    const admins = await this.userRepo.find({ where: { role: "admin" } });
+    const target = await this.userRepo.findOne({ where: { id } });
     if (target?.role === "admin" && admins.length <= 1) {
       throw new Error("Tidak bisa menghapus admin terakhir");
     }
-    const newList = users.filter((u) => u.id !== id);
-    if (newList.length === users.length) return false;
-    this.save(newList);
-    return true;
+    const result = await this.userRepo.delete({ id });
+    return (result.affected || 0) > 0;
   }
 
-  toggleActive(id: string): boolean | null {
-    const users = this.load();
-    const u = users.find((u) => u.id === id);
+  async toggleActive(id: string): Promise<boolean | null> {
+    const u = await this.userRepo.findOne({ where: { id } });
     if (!u) return null;
     // Prevent deactivating last admin
     if (u.role === "admin" && u.active) {
-      const activeAdmins = users.filter((x) => x.role === "admin" && x.active);
+      const activeAdmins = await this.userRepo.find({
+        where: { role: "admin", active: true }
+      });
       if (activeAdmins.length <= 1)
         throw new Error("Tidak bisa menonaktifkan admin terakhir");
     }
     u.active = !u.active;
-    this.save(users);
+    await this.userRepo.save(u);
     return u.active;
   }
 
@@ -237,8 +217,7 @@ export class UserService {
     username: string,
     password: string
   ): Promise<Omit<AppUser, "password"> | null> {
-    const users = this.load();
-    const u = users.find((u) => u.username === username && u.active);
+    const u = await this.userRepo.findOne({ where: { username, active: true } });
     if (!u) return null;
 
     const isMatch = await this.comparePassword(password, u.password);
@@ -246,21 +225,20 @@ export class UserService {
 
     // Update lastLogin
     u.lastLogin = new Date().toISOString();
-    this.save(users);
-    const { password: _, ...safe } = u;
-    return safe;
+    await this.userRepo.save(u);
+    return this.toSafe(u);
   }
 
-  updateLastLogin(id: string) {
-    const users = this.load();
-    const u = users.find((u) => u.id === id);
+  async updateLastLogin(id: string): Promise<void> {
+    const u = await this.userRepo.findOne({ where: { id } });
     if (u) {
       u.lastLogin = new Date().toISOString();
-      this.save(users);
+      await this.userRepo.save(u);
     }
   }
 
-  getRoleDefaults(role: UserRole) {
+  getRoleDefaults(role: UserRole): UserPermissions {
     return ROLE_PERMISSIONS[role] || ROLE_PERMISSIONS.reseller;
   }
 }
+

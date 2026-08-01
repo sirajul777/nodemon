@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
-import * as fs from "fs";
-import * as path from "path";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { ResellerEntity } from "../database/entities/reseller.entity";
 
 export interface Reseller {
   id: string;
@@ -12,57 +13,71 @@ export interface Reseller {
   router?: string;
 }
 
-const DATA_FILE = path.join(process.cwd(), "data", "resellers.json");
-
 @Injectable()
 export class ResellerService {
-  private load(): Record<string, Reseller> {
-    try {
-      if (fs.existsSync(DATA_FILE)) {
-        return JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
-      }
-    } catch {}
-    return {};
+  constructor(
+    @InjectRepository(ResellerEntity)
+    private readonly resellerRepo: Repository<ResellerEntity>
+  ) {}
+
+  private async toModel(e: ResellerEntity): Promise<Reseller> {
+    return {
+      id: e.id,
+      name: e.name,
+      phone: e.phone || "",
+      address: e.address || "",
+      discount: e.discount || 0,
+      createdAt: e.createdAt,
+      router: e.router || ""
+    };
   }
 
-  private save(data: Record<string, Reseller>) {
-    const dir = path.dirname(DATA_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+  async getAll(sessionId: string): Promise<Reseller[]> {
+    const list = await this.resellerRepo.find({ where: { router: sessionId } });
+    const result = [];
+    for (const r of list) result.push(await this.toModel(r));
+    return result;
   }
 
-  getAll(sessionId: string): Reseller[] {
-    let data = [];
-    Object.values(this.load()).forEach((r) => {
-      if (r.router !== sessionId) return;
-      data.push(r);
-    });
-    return data;
+  async getById(id: string): Promise<Reseller | null> {
+    const e = await this.resellerRepo.findOne({ where: { id } });
+    return e ? this.toModel(e) : null;
   }
 
-  getById(id: string): Reseller | null {
-    return this.load()[id] || null;
-  }
-
-  save_reseller(r: Reseller): Reseller {
-    const data = this.load();
-    if (!r.id)
-      r.id = r.name
+  async save_reseller(r: Reseller): Promise<Reseller> {
+    let id = r.id;
+    if (!id)
+      id = r.name
         .toUpperCase()
         .replace(/[^A-Z0-9]/g, "_")
         .slice(0, 20);
     if (!r.createdAt) r.createdAt = new Date().toISOString();
-    data[r.id] = r;
-    this.save(data);
-    return r;
+
+    let entity = await this.resellerRepo.findOne({ where: { id } });
+    if (!entity) {
+      entity = this.resellerRepo.create({
+        id,
+        name: r.name,
+        phone: r.phone || "",
+        address: r.address || "",
+        discount: r.discount || 0,
+        createdAt: r.createdAt,
+        router: r.router || ""
+      });
+    } else {
+      entity.name = r.name;
+      entity.phone = r.phone || "";
+      entity.address = r.address || "";
+      entity.discount = r.discount || 0;
+      entity.router = r.router || "";
+    }
+    await this.resellerRepo.save(entity);
+    return this.toModel(entity);
   }
 
-  delete(id: string): boolean {
-    const data = this.load();
-    if (!data[id]) return false;
-    delete data[id];
-    this.save(data);
-    return true;
+  async delete(id: string): Promise<boolean> {
+    const result = await this.resellerRepo.delete({ id });
+    return (result.affected || 0) > 0;
   }
 
   /**
@@ -79,3 +94,4 @@ export class ResellerService {
     return comment.toUpperCase();
   }
 }
+

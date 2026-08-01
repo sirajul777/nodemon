@@ -1,7 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import * as fs from 'fs';
-import * as path from 'path';
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import * as crypto from 'crypto';
+import { RouterSessionEntity } from '../database/entities/router-session.entity';
+import { AppConfigEntity } from '../database/entities/config.entity';
 
 export interface RouterSession {
   id: string;
@@ -19,45 +21,18 @@ export interface RouterSession {
   livereport: string;
 }
 
-export interface AppConfig {
-  adminUser: string;
-  adminPass: string;
-  sessions: Record<string, RouterSession>;
-}
-
-const CONFIG_FILE = path.join(process.cwd(), 'data', 'config.json');
 const CIPHER_KEY = (process.env.CIPHER_KEY || 'mikhmon16bytekey').padEnd(16).slice(0, 16);
 
 @Injectable()
 export class ConfigService {
-  private config: AppConfig;
+  private readonly logger = new Logger(ConfigService.name);
 
-  constructor() {
-    this.load();
-  }
-
-  private load() {
-    try {
-      if (fs.existsSync(CONFIG_FILE)) {
-        this.config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-      } else {
-        this.config = {
-          adminUser: 'mikhmon',
-          adminPass: this.encrypt('1234'),
-          sessions: {},
-        };
-        this.save();
-      }
-    } catch {
-      this.config = { adminUser: 'mikhmon', adminPass: this.encrypt('1234'), sessions: {} };
-    }
-  }
-
-  private save() {
-    const dir = path.dirname(CONFIG_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(this.config, null, 2));
-  }
+  constructor(
+    @InjectRepository(RouterSessionEntity)
+    private readonly sessionRepo: Repository<RouterSessionEntity>,
+    @InjectRepository(AppConfigEntity)
+    private readonly configRepo: Repository<AppConfigEntity>,
+  ) {}
 
   encrypt(text: string): string {
     const iv = crypto.randomBytes(16);
@@ -83,41 +58,101 @@ export class ConfigService {
     }
   }
 
-  validateAdmin(user: string, pass: string): boolean {
-    return user === this.config.adminUser && pass === this.decrypt(this.config.adminPass);
+  // ── Admin Config (singleton row) ──────────────────────────────
+
+  private async getAdminConfig(): Promise<AppConfigEntity> {
+    let row = await this.configRepo.findOne({ where: { key: 'default' } });
+    if (!row) {
+      row = this.configRepo.create({
+        key: 'default',
+        adminUser: 'mikhmon',
+        adminPass: this.encrypt('1234'),
+        currency: 'Rp',
+      });
+      row = await this.configRepo.save(row);
+    }
+    return row;
   }
 
-  changeAdminPassword(username: string, newPassword: string): boolean {
-    if (username !== this.config.adminUser) return false;
-    this.config.adminPass = this.encrypt(newPassword);
-    this.save();
+  async validateAdmin(user: string, pass: string): Promise<boolean> {
+    const cfg = await this.getAdminConfig();
+    return user === cfg.adminUser && pass === this.decrypt(cfg.adminPass);
+  }
+
+  async changeAdminPassword(username: string, newPassword: string): Promise<boolean> {
+    const cfg = await this.getAdminConfig();
+    if (username !== cfg.adminUser) return false;
+    cfg.adminPass = this.encrypt(newPassword);
+    await this.configRepo.save(cfg);
     return true;
   }
 
-  getAdminUser(): string { return this.config.adminUser; }
-
-  getSessions(): Record<string, RouterSession> { return this.config.sessions; }
-
-  getSession(id: string): RouterSession | null {
-    return this.config.sessions[id] || null;
+  async getAdminUser(): Promise<string> {
+    const cfg = await this.getAdminConfig();
+    return cfg.adminUser;
   }
 
-  saveSession(session: RouterSession) {
-    this.config.sessions[session.id] = session;
-    this.save();
+  // ── Router Sessions ───────────────────────────────────────────
+
+  private toInterface(e: RouterSessionEntity): RouterSession {
+    return {
+      id: e.id,
+      name: e.name,
+      ip: e.ip,
+      port: e.port,
+      user: e.user,
+      password: e.password,
+      hotspotName: e.hotspotName,
+      dnsName: e.dnsName,
+      currency: e.currency,
+      reloadInterval: e.reloadInterval,
+      iface: e.iface,
+      idleTo: e.idleTo,
+      livereport: e.livereport,
+    };
   }
 
-  deleteSession(id: string) {
-    delete this.config.sessions[id];
-    this.save();
+  async getSessions(): Promise<Record<string, RouterSession>> {
+    const rows = await this.sessionRepo.find();
+    const result: Record<string, RouterSession> = {};
+    for (const r of rows) result[r.id] = this.toInterface(r);
+    return result;
   }
 
-  getAllSessions(): Record<string, RouterSession> {
-    return this.config.sessions;
+  async getSession(id: string): Promise<RouterSession | null> {
+    const row = await this.sessionRepo.findOne({ where: { id } });
+    return row ? this.toInterface(row) : null;
   }
 
-  getDecryptedSession(id: string): RouterSession | null {
-    const s = this.getSession(id);
+  async saveSession(session: RouterSession): Promise<void> {
+    const row = this.sessionRepo.create({
+      id: session.id,
+      name: session.name,
+      ip: session.ip,
+      port: session.port,
+      user: session.user,
+      password: session.password,
+      hotspotName: session.hotspotName || '',
+      dnsName: session.dnsName || '',
+      currency: session.currency || 'Rp',
+      reloadInterval: session.reloadInterval || 10,
+      iface: session.iface || 'ether1',
+      idleTo: session.idleTo || 0,
+      livereport: session.livereport || 'enable',
+    });
+    await this.sessionRepo.save(row);
+  }
+
+  async deleteSession(id: string): Promise<void> {
+    await this.sessionRepo.delete({ id });
+  }
+
+  async getAllSessions(): Promise<Record<string, RouterSession>> {
+    return this.getSessions();
+  }
+
+  async getDecryptedSession(id: string): Promise<RouterSession | null> {
+    const s = await this.getSession(id);
     if (!s) return null;
     return { ...s, password: this.decrypt(s.password) };
   }
@@ -126,3 +161,4 @@ export class ConfigService {
     return ['RP','Rp','rp','IDR','idr','RP.','Rp.','rp.','IDR.','idr.'].includes(currency);
   }
 }
+

@@ -29,8 +29,8 @@ export class BillingController {
     private readonly configSvc: ConfigService
   ) {}
 
-  private getConn(sessionId: string) {
-    const s = this.configSvc.getDecryptedSession(sessionId);
+  private async getConn(sessionId: string) {
+    const s = await this.configSvc.getDecryptedSession(sessionId);
     if (!s) throw new Error(`Session not found`);
     return {
       ip: s.ip,
@@ -53,8 +53,8 @@ export class BillingController {
   }
 
   @Get(":session/customers/:id")
-  getCustomer(@Param("id") id: string) {
-    return this.billingSvc.getCustomer(id) || { error: "Not found" };
+  async getCustomer(@Param("id") id: string) {
+    return (await this.billingSvc.getCustomer(id)) || { error: "Not found" };
   }
 
   @Post(":session/customers")
@@ -72,8 +72,8 @@ export class BillingController {
   }
 
   @Delete(":session/customers/:id")
-  deleteCustomer(@Param("id") id: string) {
-    return { success: this.billingSvc.deleteCustomer(id) };
+  async deleteCustomer(@Param("id") id: string) {
+    return { success: await this.billingSvc.deleteCustomer(id) };
   }
 
   // ── Invoices ─────────────────────────────────────────────────────
@@ -91,28 +91,28 @@ export class BillingController {
   }
 
   @Post(":session/invoices/:id/pay")
-  payInvoice(
+  async payInvoice(
     @Param("id") id: string,
     @Body() body: { paidBy?: string; note?: string }
   ) {
-    const inv = this.billingSvc.payInvoice(
+    const inv = await this.billingSvc.payInvoice(
       id,
       body.paidBy || "Admin",
       body.note
     );
     if (inv && body.paidBy) {
-      // Jalankan tracking uang tunai untuk kolektor[cite: 3]
-      this.billingSvc.trackCollectorCash(inv, body.paidBy);
+      // Jalankan tracking uang tunai untuk kolektor
+      await this.billingSvc.trackCollectorCash(inv, body.paidBy);
     }
     return inv ? { success: true, invoice: inv } : { error: "Not found" };
   }
 
   @Post(":session/invoices/manual")
-  createManual(
+  async createManual(
     @Param("session") session: string,
     @Body() body: { customerId: string; period?: string; dueDate?: string }
   ) {
-    const cust = this.billingSvc.getCustomer(body.customerId);
+    const cust = await this.billingSvc.getCustomer(body.customerId);
     if (!cust) return { error: "Customer not found" };
     return this.billingSvc.createInvoice(cust, body.period, body.dueDate);
   }
@@ -120,9 +120,9 @@ export class BillingController {
   // ── Auto actions ─────────────────────────────────────────────────
   @Post(":session/run-overdue")
   async runOverdue(@Param("session") session: string) {
-    const overdue = this.billingSvc.getOverdueCustomers(session);
+    const overdue = await this.billingSvc.getOverdueCustomers(session);
     if (!overdue.length) return { success: true, disabled: 0 };
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikSvc.createClient(
       ip,
       user,
@@ -155,7 +155,7 @@ export class BillingController {
             }
           }
           // Update customer status
-          this.billingSvc.saveCustomer({ ...customer, status: "suspended" });
+          await this.billingSvc.saveCustomer({ ...customer, status: "suspended" });
         } catch {}
       }
     } finally {
@@ -166,9 +166,9 @@ export class BillingController {
 
   @Post(":session/customers/:id/re-enable")
   async reEnable(@Param("session") session: string, @Param("id") id: string) {
-    const cust = this.billingSvc.getCustomer(id);
+    const cust = await this.billingSvc.getCustomer(id);
     if (!cust) return { error: "Not found" };
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikSvc.createClient(
       ip,
       user,
@@ -189,22 +189,21 @@ export class BillingController {
         if (u[0]?.[".id"])
           await client.run("/ip/hotspot/user/enable", { ".id": u[0][".id"] });
       }
-      this.billingSvc.saveCustomer({ ...cust, status: "active" });
+      await this.billingSvc.saveCustomer({ ...cust, status: "active" });
       return { success: true };
     } finally {
       client.close();
     }
   }
 
-  // Quick import from PPPoE secrets/hotspot users
   @Post(":session/invoices/:id/send-reminder")
   async sendReminder(
     @Param("session") session: string,
     @Param("id") id: string
   ) {
-    const inv = this.billingSvc.getInvoice(id);
+    const inv = await this.billingSvc.getInvoice(id);
     if (!inv) return { error: "Invoice not found" };
-    const cust = this.billingSvc.getCustomer(inv.customerId);
+    const cust = await this.billingSvc.getCustomer(inv.customerId);
     if (!cust?.telegramId)
       return { error: "Pelanggan tidak memiliki Telegram ID" };
     if (!this.telegramSvc)
@@ -241,7 +240,7 @@ export class BillingController {
     text += `📦 Paket: ${cust.profile}\n\nSilakan lakukan pembayaran. Terima kasih 🙏`;
 
     const ok = await this.telegramSvc.sendMessage(cust.telegramId, text);
-    if (ok) this.billingSvc.markReminderSent(id);
+    if (ok) await this.billingSvc.markReminderSent(id);
     return ok ? { success: true } : { error: "Gagal mengirim pesan Telegram" };
   }
 
@@ -250,7 +249,7 @@ export class BillingController {
     @Param("session") session: string,
     @Param("type") type: "pppoe" | "hotspot"
   ) {
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikSvc.createClient(
       ip,
       user,
@@ -279,8 +278,6 @@ export class BillingController {
     }
   }
 
-  // Tambahkan endpoint ini di billing.controller.ts
-
   @Get(":session/settlements")
   getSettlements(@Param("session") session: string) {
     return this.billingSvc.loadSettlements(session);
@@ -300,19 +297,17 @@ export class BillingController {
   }
 
   @Patch(":session/settlements/:id/verify")
-  verifySettlement(@Param("id") id: string) {
-    const success = this.billingSvc.verifySettlement(id);
+  async verifySettlement(@Param("id") id: string) {
+    const success = await this.billingSvc.verifySettlement(id);
     return { success };
   }
 
-  // Modifikasi fungsi payInvoice yang sudah ada untuk mendukung tracking cash[cite: 1]
-
   @Get(":session/collector/:name")
-  getCollectorProfile(
+  async getCollectorProfile(
     @Param("session") session: string,
     @Param("name") name: string
   ) {
-    const customers = this.billingSvc.loadCustomers(session);
+    const customers = await this.billingSvc.loadCustomers(session);
     // Mencari data kolektor dari daftar user/customer
     const collector = customers.find((c) => c.name === name);
 
@@ -321,27 +316,25 @@ export class BillingController {
     return {
       name: collector.name,
       unsettledCash: collector.unsettledCash || 0,
-      history: this.billingSvc
-        .loadSettlements(session)
-        .filter((s) => s.collectorName === name)
+      history: (await this.billingSvc.loadSettlements(session)).filter(
+        (s) => s.collectorName === name
+      )
     };
   }
 
-  // Di billing.controller_2.ts[cite: 5]
-
   @Get(":session/settlement/summary/:collectorName")
-  getSettlementSummary(
+  async getSettlementSummary(
     @Param("session") session: string,
     @Param("collectorName") collectorName: string
   ) {
     // 1. Ambil data customer untuk melihat saldo unsettledCash
-    const customers = this.billingSvc.loadCustomers(session);
+    const customers = await this.billingSvc.loadCustomers(session);
     const collector = customers.find((c) => c.name === collectorName);
 
     // 2. Ambil riwayat setoran khusus untuk kolektor ini
-    const history = this.billingSvc
-      .loadSettlements(session)
-      .filter((s) => s.collectorName === collectorName);
+    const history = (await this.billingSvc.loadSettlements(session)).filter(
+      (s) => s.collectorName === collectorName
+    );
 
     return {
       success: true,
@@ -357,3 +350,4 @@ export class BillingController {
     };
   }
 }
+

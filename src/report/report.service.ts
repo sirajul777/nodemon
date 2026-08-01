@@ -24,7 +24,7 @@ export class ReportService {
   ) {}
 
   private async getClient(sessionId: string) {
-    const s = this.configService.getDecryptedSession(sessionId);
+    const s = await this.configService.getDecryptedSession(sessionId);
     if (!s) throw new Error(`Session "${sessionId}" not found`);
     const client = await this.mikrotikService.createClient(s.ip, s.user, s.password, s.port || 8728);
     const rosVersion = await this.mikrotikService.getRosVersion(client);

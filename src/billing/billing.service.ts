@@ -1,10 +1,12 @@
 import { Injectable, Logger } from "@nestjs/common";
-import * as fs from "fs";
-import * as path from "path";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { BillingCustomerEntity, BillingType, BillingStatus } from "../database/entities/billing-customer.entity";
+import { InvoiceEntity, InvoiceStatus } from "../database/entities/invoice.entity";
+import { SettlementEntity } from "../database/entities/settlement.entity";
 
-export type BillingType = "hotspot" | "pppoe";
-export type BillingStatus = "active" | "suspended" | "expired" | "unpaid";
-export type InvoiceStatus = "unpaid" | "paid" | "overdue" | "cancelled";
+export type { BillingType, BillingStatus };
+export type { InvoiceStatus };
 
 export interface BillingCustomer {
   id: string;
@@ -58,104 +60,168 @@ export interface Invoice {
   reminderSent?: string[]; // ISO dates when reminder was sent
 }
 
-const DATA_DIR = path.join(process.cwd(), "data", "billing");
-
 @Injectable()
 export class BillingService {
   private readonly logger = new Logger(BillingService.name);
 
-  private file(name: string) {
-    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-    return path.join(DATA_DIR, name);
+  constructor(
+    @InjectRepository(BillingCustomerEntity)
+    private readonly customerRepo: Repository<BillingCustomerEntity>,
+    @InjectRepository(InvoiceEntity)
+    private readonly invoiceRepo: Repository<InvoiceEntity>,
+    @InjectRepository(SettlementEntity)
+    private readonly settlementRepo: Repository<SettlementEntity>
+  ) {}
+
+  private async customerToModel(e: BillingCustomerEntity): Promise<BillingCustomer> {
+    return {
+      id: e.id,
+      name: e.name,
+      phone: e.phone || "",
+      telegramId: e.telegramId || "",
+      address: e.address || "",
+      type: e.type,
+      mikrotikUser: e.mikrotikUser,
+      sessionId: e.sessionId,
+      profile: e.profile || "",
+      price: e.price || 0,
+      billDate: e.billDate || 1,
+      status: e.status,
+      unsettledCash: e.unsettledCash,
+      autoDisable: e.autoDisable !== false,
+      graceDays: e.graceDays ?? 3,
+      reminderDays: e.reminderDays || [7, 3, 1],
+      createdAt: e.createdAt,
+      note: e.note || ""
+    };
+  }
+
+  private async invoiceToModel(e: InvoiceEntity): Promise<Invoice> {
+    return {
+      id: e.id,
+      customerId: e.customerId,
+      customerName: e.customerName,
+      sessionId: e.sessionId,
+      type: e.type as BillingType,
+      mikrotikUser: e.mikrotikUser,
+      profile: e.profile || "",
+      amount: e.amount || 0,
+      period: e.period,
+      dueDate: e.dueDate,
+      status: e.status,
+      paidAt: e.paidAt,
+      paidBy: e.paidBy,
+      note: e.note,
+      createdAt: e.createdAt,
+      reminderSent: e.reminderSent || []
+    };
+  }
+
+  private async settlementToModel(e: SettlementEntity): Promise<Settlement> {
+    return {
+      id: e.id,
+      collectorId: e.collectorId,
+      collectorName: e.collectorName,
+      sessionId: e.sessionId,
+      amount: e.amount || 0,
+      status: e.status,
+      createdAt: e.createdAt,
+      verifiedAt: e.verifiedAt
+    };
   }
 
   // ── Customers ───────────────────────────────────────────────────
 
-  loadCustomers(sessionId?: string): BillingCustomer[] {
-    try {
-      const f = this.file("customers.json");
-      if (fs.existsSync(f)) {
-        const all: BillingCustomer[] = JSON.parse(fs.readFileSync(f, "utf8"));
-        return sessionId ? all.filter((c) => c.sessionId === sessionId) : all;
-      }
-    } catch {}
-    return [];
+  async loadCustomers(sessionId?: string): Promise<BillingCustomer[]> {
+    const where = sessionId ? { sessionId } : {};
+    const rows = await this.customerRepo.find({ where });
+    const result = [];
+    for (const r of rows) result.push(await this.customerToModel(r));
+    return result;
   }
 
-  getCustomer(id: string): BillingCustomer | null {
-    return this.loadCustomers().find((c) => c.id === id) || null;
+  async getCustomer(id: string): Promise<BillingCustomer | null> {
+    const e = await this.customerRepo.findOne({ where: { id } });
+    return e ? this.customerToModel(e) : null;
   }
 
-  saveCustomer(
+  async saveCustomer(
     data: Partial<BillingCustomer> & {
       name: string;
       mikrotikUser: string;
       sessionId: string;
     }
-  ): BillingCustomer {
-    const all = this.loadCustomers();
+  ): Promise<BillingCustomer> {
     const id = data.id || `CUST-${Date.now()}`;
-    const idx = all.findIndex((c) => c.id === id);
-    const item: BillingCustomer = {
-      id,
-      name: data.name,
-      phone: data.phone || "",
-      telegramId: data.telegramId || "",
-      address: data.address || "",
-      type: data.type || "pppoe",
-      mikrotikUser: data.mikrotikUser,
-      sessionId: data.sessionId,
-      profile: data.profile || "",
-      price: Number(data.price) || 0,
-      billDate: Number(data.billDate) || 1,
-      status: data.status || "active",
-      autoDisable: data.autoDisable !== false,
-      graceDays: Number(data.graceDays) ?? 3,
-      reminderDays: data.reminderDays || [7, 3, 1],
-      createdAt: data.createdAt || new Date().toISOString(),
-      note: data.note || ""
-    };
-    if (idx >= 0) all[idx] = item;
-    else all.push(item);
-    fs.writeFileSync(this.file("customers.json"), JSON.stringify(all, null, 2));
-    return item;
+    let entity = await this.customerRepo.findOne({ where: { id } });
+    if (!entity) {
+      entity = this.customerRepo.create({
+        id,
+        name: data.name,
+        phone: data.phone || "",
+        telegramId: data.telegramId || "",
+        address: data.address || "",
+        type: data.type || "pppoe",
+        mikrotikUser: data.mikrotikUser,
+        sessionId: data.sessionId,
+        profile: data.profile || "",
+        price: Number(data.price) || 0,
+        billDate: Number(data.billDate) || 1,
+        status: data.status || "active",
+        autoDisable: data.autoDisable !== false,
+        graceDays: Number(data.graceDays) ?? 3,
+        reminderDays: data.reminderDays || [7, 3, 1],
+        note: data.note || ""
+      });
+    } else {
+      if (data.name !== undefined) entity.name = data.name;
+      if (data.phone !== undefined) entity.phone = data.phone;
+      if (data.telegramId !== undefined) entity.telegramId = data.telegramId;
+      if (data.address !== undefined) entity.address = data.address;
+      if (data.type !== undefined) entity.type = data.type;
+      if (data.mikrotikUser !== undefined) entity.mikrotikUser = data.mikrotikUser;
+      if (data.sessionId !== undefined) entity.sessionId = data.sessionId;
+      if (data.profile !== undefined) entity.profile = data.profile;
+      if (data.price !== undefined) entity.price = Number(data.price) || 0;
+      if (data.billDate !== undefined) entity.billDate = Number(data.billDate) || 1;
+      if (data.status !== undefined) entity.status = data.status;
+      if (data.unsettledCash !== undefined) entity.unsettledCash = data.unsettledCash;
+      if (data.autoDisable !== undefined) entity.autoDisable = data.autoDisable;
+      if (data.graceDays !== undefined) entity.graceDays = Number(data.graceDays) ?? 3;
+      if (data.reminderDays !== undefined) entity.reminderDays = data.reminderDays;
+      if (data.note !== undefined) entity.note = data.note;
+    }
+    const saved = await this.customerRepo.save(entity);
+    return this.customerToModel(saved);
   }
 
-  deleteCustomer(id: string): boolean {
-    const all = this.loadCustomers();
-    const newList = all.filter((c) => c.id !== id);
-    if (newList.length === all.length) return false;
-    fs.writeFileSync(
-      this.file("customers.json"),
-      JSON.stringify(newList, null, 2)
-    );
-    return true;
+  async deleteCustomer(id: string): Promise<boolean> {
+    const result = await this.customerRepo.delete({ id });
+    return (result.affected || 0) > 0;
   }
 
   // ── Invoices ─────────────────────────────────────────────────────
 
-  loadInvoices(sessionId?: string, customerId?: string): Invoice[] {
-    try {
-      const f = this.file("invoices.json");
-      if (fs.existsSync(f)) {
-        let all: Invoice[] = JSON.parse(fs.readFileSync(f, "utf8"));
-        if (sessionId) all = all.filter((i) => i.sessionId === sessionId);
-        if (customerId) all = all.filter((i) => i.customerId === customerId);
-        return all.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-      }
-    } catch {}
-    return [];
+  async loadInvoices(sessionId?: string, customerId?: string): Promise<Invoice[]> {
+    let rows = await this.invoiceRepo.find();
+    if (sessionId) rows = rows.filter((i) => i.sessionId === sessionId);
+    if (customerId) rows = rows.filter((i) => i.customerId === customerId);
+    rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const result = [];
+    for (const r of rows) result.push(await this.invoiceToModel(r));
+    return result;
   }
 
-  getInvoice(id: string): Invoice | null {
-    return this.loadInvoices().find((i) => i.id === id) || null;
+  async getInvoice(id: string): Promise<Invoice | null> {
+    const e = await this.invoiceRepo.findOne({ where: { id } });
+    return e ? this.invoiceToModel(e) : null;
   }
 
-  createInvoice(
+  async createInvoice(
     customer: BillingCustomer,
     period?: string,
     dueDate?: string
-  ): Invoice {
+  ): Promise<Invoice> {
     const now = new Date();
     const mon = [
       "Januari",
@@ -173,8 +239,7 @@ export class BillingService {
     ];
     const per = period || `${mon[now.getMonth()]} ${now.getFullYear()}`;
     const due = dueDate || this.calcDueDate(customer.billDate);
-    const all = this.loadInvoices();
-    const inv: Invoice = {
+    const entity = this.invoiceRepo.create({
       id: `INV-${Date.now()}`,
       customerId: customer.id,
       customerName: customer.name,
@@ -186,52 +251,41 @@ export class BillingService {
       period: per,
       dueDate: due,
       status: "unpaid",
-      createdAt: new Date().toISOString(),
       reminderSent: []
-    };
-    all.unshift(inv);
-    fs.writeFileSync(this.file("invoices.json"), JSON.stringify(all, null, 2));
-    return inv;
+    });
+    const saved = await this.invoiceRepo.save(entity);
+    return this.invoiceToModel(saved);
   }
 
-  payInvoice(id: string, paidBy: string, note?: string): Invoice | null {
-    const allInvoices = this.loadInvoices();
-    const item = allInvoices.find((i) => i.id === id);
-
+  async payInvoice(id: string, paidBy: string, note?: string): Promise<Invoice | null> {
+    const item = await this.invoiceRepo.findOne({ where: { id } });
     if (!item || item.status === "paid") return null;
 
     item.status = "paid";
     item.paidAt = new Date().toISOString();
     item.paidBy = paidBy;
     if (note) item.note = note;
+    const saved = await this.invoiceRepo.save(item);
 
-    // Simpan invoice yang sudah dibayar
-    fs.writeFileSync(
-      this.file("invoices.json"),
-      JSON.stringify(allInvoices, null, 2)
-    );
+    // Otomatis tambahkan ke cash on hand kolektor
+    await this.trackCollectorCash(await this.invoiceToModel(saved), paidBy);
 
-    // Otomatis tambahkan ke cash on hand kolektor[cite: 7]
-    this.trackCollectorCash(item, paidBy);
-
-    return item;
+    return this.invoiceToModel(saved);
   }
 
-  markReminderSent(invoiceId: string) {
-    const all = this.loadInvoices();
-    const item = all.find((i) => i.id === invoiceId);
+  async markReminderSent(invoiceId: string): Promise<void> {
+    const item = await this.invoiceRepo.findOne({ where: { id: invoiceId } });
     if (!item) return;
     if (!item.reminderSent) item.reminderSent = [];
     item.reminderSent.push(new Date().toISOString());
-    fs.writeFileSync(this.file("invoices.json"), JSON.stringify(all, null, 2));
+    await this.invoiceRepo.save(item);
   }
 
-  updateInvoiceStatus(id: string, status: InvoiceStatus) {
-    const all = this.loadInvoices();
-    const item = all.find((i) => i.id === id);
+  async updateInvoiceStatus(id: string, status: InvoiceStatus): Promise<void> {
+    const item = await this.invoiceRepo.findOne({ where: { id } });
     if (!item) return;
     item.status = status;
-    fs.writeFileSync(this.file("invoices.json"), JSON.stringify(all, null, 2));
+    await this.invoiceRepo.save(item);
   }
 
   // ── Helpers ───────────────────────────────────────────────────────
@@ -251,9 +305,9 @@ export class BillingService {
     return Math.round((due.getTime() - now.getTime()) / 86400000);
   }
 
-  getStats(sessionId: string) {
-    const customers = this.loadCustomers(sessionId);
-    const invoices = this.loadInvoices(sessionId);
+  async getStats(sessionId: string) {
+    const customers = await this.loadCustomers(sessionId);
+    const invoices = await this.loadInvoices(sessionId);
     const unpaid = invoices.filter(
       (i) => i.status === "unpaid" || i.status === "overdue"
     );
@@ -279,14 +333,14 @@ export class BillingService {
   }
 
   // Auto-generate monthly invoices for all customers
-  generateMonthlyInvoices(sessionId: string): {
+  async generateMonthlyInvoices(sessionId: string): Promise<{
     created: number;
     skipped: number;
-  } {
-    const customers = this.loadCustomers(sessionId).filter(
+  }> {
+    const customers = (await this.loadCustomers(sessionId)).filter(
       (c) => c.status === "active"
     );
-    const existing = this.loadInvoices(sessionId);
+    const existing = await this.loadInvoices(sessionId);
     const mon = [
       "Januari",
       "Februari",
@@ -314,18 +368,18 @@ export class BillingService {
         skipped++;
         continue;
       }
-      this.createInvoice(cust, period);
+      await this.createInvoice(cust, period);
       created++;
     }
     return { created, skipped };
   }
 
   // Check overdue and return list to disable
-  getOverdueCustomers(
+  async getOverdueCustomers(
     sessionId: string
-  ): { customer: BillingCustomer; invoice: Invoice }[] {
-    const customers = this.loadCustomers(sessionId);
-    const invoices = this.loadInvoices(sessionId);
+  ): Promise<{ customer: BillingCustomer; invoice: Invoice }[]> {
+    const customers = await this.loadCustomers(sessionId);
+    const invoices = await this.loadInvoices(sessionId);
     const result: { customer: BillingCustomer; invoice: Invoice }[] = [];
     const now = new Date();
     now.setHours(0, 0, 0, 0);
@@ -338,7 +392,7 @@ export class BillingService {
       if (!cust || !cust.autoDisable) continue;
       const daysLate = Math.round((now.getTime() - due.getTime()) / 86400000);
       if (daysLate >= cust.graceDays) {
-        this.updateInvoiceStatus(inv.id, "overdue");
+        await this.updateInvoiceStatus(inv.id, "overdue");
         result.push({ customer: cust, invoice: inv });
       }
     }
@@ -346,11 +400,11 @@ export class BillingService {
   }
 
   // Get invoices due for reminder
-  getRemindableInvoices(
+  async getRemindableInvoices(
     sessionId: string
-  ): { customer: BillingCustomer; invoice: Invoice; daysLeft: number }[] {
-    const customers = this.loadCustomers(sessionId);
-    const invoices = this.loadInvoices(sessionId);
+  ): Promise<{ customer: BillingCustomer; invoice: Invoice; daysLeft: number }[]> {
+    const customers = await this.loadCustomers(sessionId);
+    const invoices = await this.loadInvoices(sessionId);
     const result: {
       customer: BillingCustomer;
       invoice: Invoice;
@@ -374,98 +428,70 @@ export class BillingService {
     return result;
   }
 
-  // Tambahkan fungsi ini di dalam class BillingService[cite: 3]
+  // ── Settlements ──────────────────────────────────────────────────
 
-  // Di billing.service_2.ts[cite: 7]
-
-  loadSettlements(sessionId?: string): Settlement[] {
-    try {
-      const f = this.file("settlements.json");
-      if (fs.existsSync(f)) {
-        const all: Settlement[] = JSON.parse(fs.readFileSync(f, "utf8"));
-        // Jika sessionId dikirim, filter. Jika tidak, kembalikan semua untuk diproses controller[cite: 7]
-        return sessionId ? all.filter((s) => s.sessionId === sessionId) : all;
-      }
-    } catch (e) {
-      this.logger.error(`Gagal memuat data setoran: ${e}`);
-    }
-    return [];
+  async loadSettlements(sessionId?: string): Promise<Settlement[]> {
+    const where = sessionId ? { sessionId } : {};
+    const rows = await this.settlementRepo.find({ where });
+    const result = [];
+    for (const r of rows) result.push(await this.settlementToModel(r));
+    return result;
   }
 
-  // Mencatat uang di tangan kolektor saat invoice dibayar[cite: 3]
-  // Di billing.service_2.ts
-  trackCollectorCash(invoice: Invoice, paidBy: string) {
-    const all = this.loadCustomers();
-    // Cari kolektor berdasarkan nama/ID (disesuaikan dengan sistem auth Anda)
-    // Untuk sementara, kita asumsikan data saldo disimpan di profil kolektor
+  // Mencatat uang di tangan kolektor saat invoice dibayar
+  async trackCollectorCash(invoice: Invoice, paidBy: string): Promise<void> {
+    const all = await this.loadCustomers();
+    // Cari kolektor berdasarkan nama/ID
     const collector = all.find((c) => c.name === paidBy);
 
     if (collector) {
       collector.unsettledCash = (collector.unsettledCash || 0) + invoice.amount;
-      fs.writeFileSync(
-        this.file("customers.json"),
-        JSON.stringify(all, null, 2)
-      );
+      await this.saveCustomer(collector);
       this.logger.log(`Cash added to ${paidBy}: Rp ${invoice.amount}`);
     }
   }
 
-  submitSettlement(
+  async submitSettlement(
     sessionId: string,
     collectorId: string,
     collectorName: string,
     amount: number
-  ): Settlement {
-    const all = this.loadSettlements();
-    const settle: Settlement = {
+  ): Promise<Settlement> {
+    const entity = this.settlementRepo.create({
       id: `SET-${Date.now()}`,
       collectorId,
       collectorName,
       sessionId,
       amount,
-      status: "pending",
-      createdAt: new Date().toISOString()
-    };
-    all.unshift(settle);
-    fs.writeFileSync(
-      this.file("settlements.json"),
-      JSON.stringify(all, null, 2)
-    );
-    return settle;
+      status: "pending"
+    });
+    const saved = await this.settlementRepo.save(entity);
+    return this.settlementToModel(saved);
   }
 
-  // Di billing.service_2.ts[cite: 7]
-  verifySettlement(id: string): boolean {
-    const settlements = this.loadSettlements();
-    const settleIdx = settlements.findIndex((s) => s.id === id);
-    if (settleIdx === -1) return false;
+  async verifySettlement(id: string): Promise<boolean> {
+    const settle = await this.settlementRepo.findOne({ where: { id } });
+    if (!settle) return false;
 
-    const settleData = settlements[settleIdx];
-    settlements[settleIdx].status = "verified";
-    settlements[settleIdx].verifiedAt = new Date().toISOString();
+    settle.status = "verified";
+    settle.verifiedAt = new Date().toISOString();
+    await this.settlementRepo.save(settle);
 
-    // Kurangi saldo di data customer/kolektor[cite: 7]
-    const customers = this.loadCustomers();
+    // Kurangi saldo di data customer/kolektor
+    const customers = await this.loadCustomers();
     const collectorIdx = customers.findIndex(
-      (c) => c.id === settleData.collectorId
+      (c) => c.id === settle.collectorId
     );
     if (collectorIdx !== -1) {
-      customers[collectorIdx].unsettledCash =
-        (customers[collectorIdx].unsettledCash || 0) - settleData.amount;
-      fs.writeFileSync(
-        this.file("customers.json"),
-        JSON.stringify(customers, null, 2)
-      );
+      const cust = customers[collectorIdx];
+      cust.unsettledCash = (cust.unsettledCash || 0) - settle.amount;
+      await this.saveCustomer(cust);
     }
-
-    fs.writeFileSync(
-      this.file("settlements.json"),
-      JSON.stringify(settlements, null, 2)
-    );
     return true;
   }
-  getUnpaidStats() {
-    const invoices = this.loadInvoices();
+
+  async getUnpaidStats() {
+    const invoices = await this.loadInvoices();
     const unpaid = invoices.filter(
       (i) => i.status === "unpaid" || i.status === "overdue"
     );
@@ -475,15 +501,13 @@ export class BillingService {
     };
   }
 
-  getUnsettledAmount(collectorId: string): number {
-    const invoices = this.loadInvoices();
-    // Hitung invoice yang sudah dibayar ke kolektor ini tapi belum disetor (unsettled)
-    // Kita asumsikan invoice 'paid' yang belum masuk ke settlement yang 'verified'
+  async getUnsettledAmount(collectorId: string): Promise<number> {
+    const invoices = await this.loadInvoices();
     const paidToMe = invoices.filter(
       (i) => i.paidBy === collectorId && i.status === "paid"
     );
 
-    const settlements = this.loadSettlements().filter(
+    const settlements = (await this.loadSettlements()).filter(
       (s) => s.collectorId === collectorId && s.status === "verified"
     );
     const totalPaid = paidToMe.reduce((sum, i) => sum + i.amount, 0);
@@ -492,18 +516,18 @@ export class BillingService {
     return totalPaid - totalSettled;
   }
 
-  getSettlementHistory(collectorId: string): Settlement[] {
-    return this.loadSettlements().filter((s) => s.collectorId === collectorId);
+  async getSettlementHistory(collectorId: string): Promise<Settlement[]> {
+    const all = await this.loadSettlements();
+    return all.filter((s) => s.collectorId === collectorId);
   }
 
-  createSettlementReport(data: {
+  async createSettlementReport(data: {
     collectorId: string;
     collectorName: string;
     amount: number;
     date: string;
-  }): Settlement {
-    const all = this.loadSettlements();
-    const settle: Settlement = {
+  }): Promise<Settlement> {
+    const entity = this.settlementRepo.create({
       id: `SET-${Date.now()}`,
       collectorId: data.collectorId,
       collectorName: data.collectorName,
@@ -511,12 +535,9 @@ export class BillingService {
       amount: data.amount,
       status: "pending",
       createdAt: data.date
-    };
-    all.unshift(settle);
-    fs.writeFileSync(
-      this.file("settlements.json"),
-      JSON.stringify(all, null, 2)
-    );
-    return settle;
+    });
+    const saved = await this.settlementRepo.save(entity);
+    return this.settlementToModel(saved);
   }
 }
+

@@ -23,12 +23,12 @@ export class BillingSchedulerService implements OnModuleInit {
   }
 
   async runDaily() {
-    const sessions: any = Object.values(this.configSvc.getSessions()) || [];
+    const sessions: any = Object.values(await this.configSvc.getSessions()) || [];
     for (const session of sessions) {
       try {
         await this.processSession(session.id);
       } catch (e) {
-        this.logger.error(`Billing error for ${sessions.id}: ${e}`);
+        this.logger.error(`Billing error for ${session?.id}: ${e}`);
       }
     }
   }
@@ -37,19 +37,19 @@ export class BillingSchedulerService implements OnModuleInit {
     const now = new Date();
     // Generate invoices on the 1st of each month at midnight
     if (now.getDate() === 1 && now.getHours() === 0) {
-      const result = this.billingSvc.generateMonthlyInvoices(sessionId);
+      const result = await this.billingSvc.generateMonthlyInvoices(sessionId);
       this.logger.log(
         `Auto-generated invoices for ${sessionId}: ${result.created} created`
       );
     }
 
     // Send reminders
-    const reminders = this.billingSvc.getRemindableInvoices(sessionId);
+    const reminders = await this.billingSvc.getRemindableInvoices(sessionId);
     for (const { customer, invoice, daysLeft } of reminders) {
       if (customer.telegramId && this.telegramService) {
         const msg = this.buildReminderMsg(customer, invoice, daysLeft);
         await this.telegramService.sendMessage(customer.telegramId, msg);
-        this.billingSvc.markReminderSent(invoice.id);
+        await this.billingSvc.markReminderSent(invoice.id);
         this.logger.log(
           `Reminder sent to ${customer.name} (${daysLeft} days left)`
         );
@@ -57,7 +57,7 @@ export class BillingSchedulerService implements OnModuleInit {
     }
 
     // Check overdue — actual disable is triggered via API, just mark here
-    const overdue = this.billingSvc.getOverdueCustomers(sessionId);
+    const overdue = await this.billingSvc.getOverdueCustomers(sessionId);
     if (overdue.length > 0) {
       this.logger.warn(`${overdue.length} overdue customers in ${sessionId}`);
     }
@@ -89,3 +89,4 @@ export class BillingSchedulerService implements OnModuleInit {
     return text;
   }
 }
+

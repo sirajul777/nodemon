@@ -12,8 +12,8 @@ export class BotResellerTelegramService {
   /**
    * Check if a Telegram user is a registered active reseller.
    */
-  getActiveReseller(telegramId: string) {
-    const r = this.resellerSvc.getByTelegramId(telegramId);
+  async getActiveReseller(telegramId: string) {
+    const r = await this.resellerSvc.getByTelegramId(telegramId);
     if (!r || r.status !== 'active') return null;
     return r;
   }
@@ -21,8 +21,8 @@ export class BotResellerTelegramService {
   /**
    * Handle /daftar command — register as reseller (requires admin approval).
    */
-  buildDaftarInfo(telegramId: string, username: string) {
-    const existing = this.resellerSvc.getByTelegramId(telegramId);
+  async buildDaftarInfo(telegramId: string, username: string) {
+    const existing = await this.resellerSvc.getByTelegramId(telegramId);
     if (existing) {
       return {
         text: `✅ Kamu sudah terdaftar sebagai reseller!\n\n👤 Nama: <b>${existing.name}</b>\n🆔 ID: <code>${existing.telegramId}</code>\n💰 Saldo: <b>Rp ${Math.round(existing.saldo).toLocaleString('id-ID')}</b>\n📦 Total Voucher: <b>${existing.totalVoucher}</b>\n📊 Status: <b>${existing.status === 'active' ? '🟢 Aktif' : '🔴 Nonaktif'}</b>`,
@@ -38,10 +38,10 @@ export class BotResellerTelegramService {
   /**
    * Handle /saldo command.
    */
-  buildSaldoInfo(telegramId: string) {
-    const r = this.resellerSvc.getByTelegramId(telegramId);
+  async buildSaldoInfo(telegramId: string) {
+    const r = await this.resellerSvc.getByTelegramId(telegramId);
     if (!r) return '❌ Kamu belum terdaftar sebagai reseller. Hubungi admin.';
-    const logs = this.resellerSvc.loadLogs(r.id).slice(0, 5);
+    const logs = (await this.resellerSvc.loadLogs(r.id)).slice(0, 5);
     let text = `💰 <b>Info Saldo Reseller</b>\n\n`;
     text += `👤 ${r.name}\n`;
     text += `💵 Saldo: <b>Rp ${Math.round(r.saldo).toLocaleString('id-ID')}</b>\n`;
@@ -62,8 +62,8 @@ export class BotResellerTelegramService {
    * Try to deduct saldo for a voucher purchase.
    * Returns { ok, reason } 
    */
-  canBuy(telegramId: string, price: number): { ok: boolean; reason?: string; reseller?: any } {
-    const r = this.resellerSvc.getByTelegramId(telegramId);
+  async canBuy(telegramId: string, price: number): Promise<{ ok: boolean; reason?: string; reseller?: any }> {
+    const r = await this.resellerSvc.getByTelegramId(telegramId);
     if (!r) return { ok: false, reason: 'Kamu belum terdaftar sebagai reseller.' };
     if (r.status !== 'active') return { ok: false, reason: 'Akun reseller kamu nonaktif. Hubungi admin.' };
 
@@ -82,8 +82,8 @@ export class BotResellerTelegramService {
   /**
    * Deduct saldo after successful purchase.
    */
-  processPurchase(telegramId: string, price: number, voucherName: string): boolean {
-    const r = this.resellerSvc.getByTelegramId(telegramId);
+  async processPurchase(telegramId: string, price: number, voucherName: string): Promise<boolean> {
+    const r = await this.resellerSvc.getByTelegramId(telegramId);
     if (!r) return false;
     const finalPrice = this.getResellerPrice(r, price);
     return this.resellerSvc.deductSaldo(telegramId, finalPrice, `Beli ${voucherName}`);

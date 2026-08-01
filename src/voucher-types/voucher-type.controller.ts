@@ -14,8 +14,8 @@ export class VoucherTypeController {
   getActive() { return this.vtService.getActive(); }
 
   @Get(':id')
-  getOne(@Param('id') id: string) {
-    const v = this.vtService.getById(id);
+  async getOne(@Param('id') id: string) {
+    const v = await this.vtService.getById(id);
     return v || { error: 'Not found' };
   }
 
@@ -31,13 +31,14 @@ export class VoucherTypeController {
   }
 
   @Delete(':id')
-  delete(@Param('id') id: string) {
-    return { success: this.vtService.delete(id) };
+  async delete(@Param('id') id: string) {
+    return { success: await this.vtService.delete(id) };
   }
 
   @Patch(':id/toggle')
-  toggle(@Param('id') id: string) {
-    const v = this.vtService.toggleActive(id);
+  async toggle(@Param('id') id: string) {
+    const v = await this.vtService.toggleActive(id);
     return v ? { success: true, active: v.active } : { error: 'Not found' };
   }
 }
+

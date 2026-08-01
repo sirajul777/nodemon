@@ -13,10 +13,10 @@ export class ConfigController {
   constructor(private readonly configService: ConfigService) {}
 
   @Get()
-  getSessions(@Req() req: RequestWithSession) {
+  async getSessions(@Req() req: RequestWithSession) {
     const s = req.session;
-    const allSessions = Object.values(this.configService.getSessions());
-    
+    const allSessions = Object.values(await this.configService.getSessions());
+
     // Jika bukan admin (misal reseller/collector), filter router yang diizinkan
     if (s.userRole && s.userRole !== 'admin') {
       const allowed = s.userPerms?.allowedSessions || [];
@@ -33,17 +33,17 @@ export class ConfigController {
   }
 
   @Get(':id')
-  getSession(@Param('id') id: string) {
-    const s = this.configService.getSession(id);
+  async getSession(@Param('id') id: string) {
+    const s = await this.configService.getSession(id);
     if (!s) return { error: 'Not found' };
     return { ...s, password: '***' };
   }
 
   @Post()
-  saveSession(@Body() body: any) {
+  async saveSession(@Body() body: any) {
     // If password is '***' (edit without changing password), keep existing
     let encryptedPassword: string;
-    const existing = this.configService.getSession(body.id);
+    const existing = await this.configService.getSession(body.id);
     if (body.password === '***' && existing) {
       encryptedPassword = existing.password; // keep old encrypted password
     } else {
@@ -65,18 +65,19 @@ export class ConfigController {
       idleTo: parseInt(body.idleTo) || 0,
       livereport: body.livereport || 'enable',
     };
-    this.configService.saveSession(session);
+    await this.configService.saveSession(session);
     return { success: true, session: { ...session, password: '***' } };
   }
 
   @Put(':id')
-  editSession(@Param('id') id: string, @Body() body: any) {
+  async editSession(@Param('id') id: string, @Body() body: any) {
     return this.saveSession({ ...body, id });
   }
 
   @Delete(':id')
-  deleteSession(@Param('id') id: string) {
-    this.configService.deleteSession(id);
+  async deleteSession(@Param('id') id: string) {
+    await this.configService.deleteSession(id);
     return { success: true };
   }
 }
+

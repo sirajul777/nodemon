@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import * as fs from 'fs';
-import * as path from 'path';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { BotResellerEntity } from '../database/entities/bot-reseller.entity';
+import { TopupLogEntity } from '../database/entities/topup-log.entity';
 
 export interface BotReseller {
   id: string;             // unique ID
   name: string;           // display name
   username?: string;      // telegram @username
-  telegramId: string; 
-  sessionId: string,    // telegram user ID (numeric string)
+  telegramId: string;
+  sessionId: string;      // telegram user ID (numeric string)
   saldo: number;          // current balance
   totalVoucher: number;   // total vouchers sold
   totalIncome: number;    // total income generated
@@ -20,6 +22,7 @@ export interface BotReseller {
 }
 
 export interface TopupLog {
+  id?: number;
   reselerId: string;
   amount: number;
   type: 'topup' | 'deduct' | 'purchase';
@@ -30,93 +33,113 @@ export interface TopupLog {
   balanceAfter: number;
 }
 
-const DATA_DIR   = path.join(process.cwd(), 'data');
-const RESELLER_FILE = path.join(DATA_DIR, 'bot-resellers.json');
-const TOPUP_FILE    = path.join(DATA_DIR, 'bot-topup-log.json');
-
 @Injectable()
 export class BotResellerService {
+  constructor(
+    @InjectRepository(BotResellerEntity)
+    private readonly resellerRepo: Repository<BotResellerEntity>,
+    @InjectRepository(TopupLogEntity)
+    private readonly logRepo: Repository<TopupLogEntity>
+  ) {}
 
-  private ensureDir() {
-    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  private async toModel(e: BotResellerEntity): Promise<BotReseller> {
+    return {
+      id: e.id,
+      name: e.name,
+      username: e.username || '',
+      telegramId: e.telegramId,
+      sessionId: e.sessionId || '',
+      saldo: e.saldo || 0,
+      totalVoucher: e.totalVoucher || 0,
+      totalIncome: e.totalIncome || 0,
+      status: e.status,
+      markup: e.markup || 0,
+      discount: e.discount || 0,
+      createdAt: e.createdAt,
+      lastActive: e.lastActive || '',
+      note: e.note || ''
+    };
   }
 
   // ── Reseller CRUD ──────────────────────────────────────────────
 
-  loadAll(): BotReseller[] {
-    try {
-      if (fs.existsSync(RESELLER_FILE))
-        return JSON.parse(fs.readFileSync(RESELLER_FILE, 'utf8'));
-    } catch {}
-    return [];
+  async loadAll(): Promise<BotReseller[]> {
+    const rows = await this.resellerRepo.find();
+    const result = [];
+    for (const r of rows) result.push(await this.toModel(r));
+    return result;
   }
 
-  private saveAll(list: BotReseller[]) {
-    this.ensureDir();
-    fs.writeFileSync(RESELLER_FILE, JSON.stringify(list, null, 2));
+  async getById(id: string): Promise<BotReseller | null> {
+    const e = await this.resellerRepo.findOne({ where: { id } });
+    return e ? this.toModel(e) : null;
   }
 
-  getById(id: string): BotReseller | null {
-    return this.loadAll().find(r => r.id === id) || null;
+  async getByTelegramId(telegramId: string): Promise<BotReseller | null> {
+    const e = await this.resellerRepo.findOne({ where: { telegramId } });
+    return e ? this.toModel(e) : null;
   }
 
-  getByTelegramId(telegramId: string): BotReseller | null {
-    return this.loadAll().find(r => r.telegramId === telegramId) || null;
+  async upsert(data: Partial<BotReseller> & { name: string; telegramId: string }): Promise<BotReseller> {
+    const id = data.id || `RS-${Date.now()}`;
+    let entity = await this.resellerRepo.findOne({ where: { id } });
+
+    if (!entity) {
+      entity = this.resellerRepo.create({
+        id,
+        name: data.name,
+        username: data.username || '',
+        telegramId: data.telegramId,
+        sessionId: data.sessionId || '',
+        saldo: data.saldo ?? 0,
+        totalVoucher: data.totalVoucher ?? 0,
+        totalIncome: data.totalIncome ?? 0,
+        status: data.status ?? 'active',
+        markup: data.markup ?? 0,
+        discount: data.discount ?? 0,
+        lastActive: data.lastActive,
+        note: data.note || ''
+      });
+    } else {
+      if (data.name !== undefined) entity.name = data.name;
+      if (data.username !== undefined) entity.username = data.username;
+      if (data.telegramId !== undefined) entity.telegramId = data.telegramId;
+      if (data.sessionId !== undefined) entity.sessionId = data.sessionId;
+      if (data.saldo !== undefined) entity.saldo = data.saldo;
+      if (data.totalVoucher !== undefined) entity.totalVoucher = data.totalVoucher;
+      if (data.totalIncome !== undefined) entity.totalIncome = data.totalIncome;
+      if (data.status !== undefined) entity.status = data.status;
+      if (data.markup !== undefined) entity.markup = data.markup;
+      if (data.discount !== undefined) entity.discount = data.discount;
+      if (data.lastActive !== undefined) entity.lastActive = data.lastActive;
+      if (data.note !== undefined) entity.note = data.note;
+    }
+    const saved = await this.resellerRepo.save(entity);
+    return this.toModel(saved);
   }
 
-  upsert(data: Partial<BotReseller> & { name: string; telegramId: string }): BotReseller {
-    const list = this.loadAll();
-    const id   = data.id || `RS-${Date.now()}`;
-    const idx  = list.findIndex(r => r.id === id);
-    const item: BotReseller = {
-      id,
-      name:         data.name,
-      username:     data.username || '',
-      telegramId:   data.telegramId,
-      sessionId: data.sessionId,
-      saldo:        data.saldo         ?? (idx >= 0 ? list[idx].saldo : 0),
-      totalVoucher: data.totalVoucher  ?? (idx >= 0 ? list[idx].totalVoucher : 0),
-      totalIncome:  data.totalIncome   ?? (idx >= 0 ? list[idx].totalIncome : 0),
-      status:       data.status        ?? 'active',
-      markup:       data.markup        ?? 0,
-      discount:     data.discount      ?? 0,
-      createdAt:    data.createdAt     || (idx >= 0 ? list[idx].createdAt : new Date().toISOString()),
-      lastActive:   data.lastActive,
-      note:         data.note || '',
-    };
-    if (idx >= 0) list[idx] = item; else list.unshift(item);
-    this.saveAll(list);
-    return item;
+  async delete(id: string): Promise<boolean> {
+    const result = await this.resellerRepo.delete({ id });
+    return (result.affected || 0) > 0;
   }
 
-  delete(id: string): boolean {
-    const list    = this.loadAll();
-    const newList = list.filter(r => r.id !== id);
-    if (newList.length === list.length) return false;
-    this.saveAll(newList);
-    return true;
-  }
-
-  toggleStatus(id: string): BotReseller | null {
-    const list = this.loadAll();
-    const item = list.find(r => r.id === id);
-    if (!item) return null;
-    item.status = item.status === 'active' ? 'inactive' : 'active';
-    this.saveAll(list);
-    return item;
+  async toggleStatus(id: string): Promise<BotReseller | null> {
+    const entity = await this.resellerRepo.findOne({ where: { id } });
+    if (!entity) return null;
+    entity.status = entity.status === 'active' ? 'inactive' : 'active';
+    const saved = await this.resellerRepo.save(entity);
+    return this.toModel(saved);
   }
 
   // ── Balance (Saldo) ────────────────────────────────────────────
 
-  topup(id: string, amount: number, note: string, by: string): { reseller: BotReseller; log: TopupLog } | null {
-    const list = this.loadAll();
-    const item = list.find(r => r.id === id);
-    if (!item) return null;
+  async topup(id: string, amount: number, note: string, by: string): Promise<{ reseller: BotReseller; log: TopupLog } | null> {
+    const entity = await this.resellerRepo.findOne({ where: { id } });
+    if (!entity) return null;
 
-    const balanceBefore = item.saldo;
-    item.saldo += amount;
-    const balanceAfter = item.saldo;
-    this.saveAll(list);
+    const balanceBefore = entity.saldo || 0;
+    entity.saldo = balanceBefore + amount;
+    await this.resellerRepo.save(entity);
 
     const log: TopupLog = {
       reselerId: id,
@@ -126,51 +149,64 @@ export class BotResellerService {
       by,
       at: new Date().toISOString(),
       balanceBefore,
-      balanceAfter,
+      balanceAfter: entity.saldo,
     };
-    this.addLog(log);
-    return { reseller: item, log };
+    await this.addLog(log);
+    return { reseller: await this.toModel(entity), log };
   }
 
-  deductSaldo(telegramId: string, amount: number, note: string): boolean {
-    const list = this.loadAll();
-    const item = list.find(r => r.telegramId === telegramId);
-    if (!item || item.saldo < amount) return false;
-    item.saldo -= amount;
-    item.totalVoucher++;
-    item.totalIncome += amount;
-    item.lastActive = new Date().toISOString();
-    this.saveAll(list);
-    this.addLog({
-      reselerId: item.id,
+  async deductSaldo(telegramId: string, amount: number, note: string): Promise<boolean> {
+    const entity = await this.resellerRepo.findOne({ where: { telegramId } });
+    if (!entity || (entity.saldo || 0) < amount) return false;
+    const balanceBefore = entity.saldo || 0;
+    entity.saldo = balanceBefore - amount;
+    entity.totalVoucher = (entity.totalVoucher || 0) + 1;
+    entity.totalIncome = (entity.totalIncome || 0) + amount;
+    entity.lastActive = new Date().toISOString();
+    await this.resellerRepo.save(entity);
+    await this.addLog({
+      reselerId: entity.id,
       amount: -amount,
       type: 'purchase',
       note,
       by: 'bot',
       at: new Date().toISOString(),
-      balanceBefore: item.saldo + amount,
-      balanceAfter: item.saldo,
+      balanceBefore: balanceBefore,
+      balanceAfter: entity.saldo,
     });
     return true;
   }
 
   // ── Topup Log ──────────────────────────────────────────────────
 
-  loadLogs(resellerId?: string): TopupLog[] {
-    try {
-      if (fs.existsSync(TOPUP_FILE)) {
-        const all: TopupLog[] = JSON.parse(fs.readFileSync(TOPUP_FILE, 'utf8'));
-        return resellerId ? all.filter(l => l.reselerId === resellerId) : all;
-      }
-    } catch {}
-    return [];
+  async loadLogs(resellerId?: string): Promise<TopupLog[]> {
+    const where = resellerId ? { reselerId: resellerId } : {};
+    const rows = await this.logRepo.find({ where, order: { id: 'DESC' } });
+    return rows.map(r => ({
+      id: r.id,
+      reselerId: r.reselerId,
+      amount: r.amount || 0,
+      type: r.type,
+      note: r.note,
+      by: r.by,
+      at: r.at,
+      balanceBefore: r.balanceBefore || 0,
+      balanceAfter: r.balanceAfter || 0
+    }));
   }
 
-  private addLog(log: TopupLog) {
-    this.ensureDir();
-    const logs = this.loadLogs();
-    logs.unshift(log);
-    if (logs.length > 1000) logs.splice(1000);
-    fs.writeFileSync(TOPUP_FILE, JSON.stringify(logs, null, 2));
+  private async addLog(log: TopupLog) {
+    const entity = this.logRepo.create({
+      reselerId: log.reselerId,
+      amount: log.amount,
+      type: log.type,
+      note: log.note,
+      by: log.by,
+      at: log.at,
+      balanceBefore: log.balanceBefore,
+      balanceAfter: log.balanceAfter
+    });
+    await this.logRepo.save(entity);
   }
 }
+

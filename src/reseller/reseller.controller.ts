@@ -21,8 +21,8 @@ export class ResellerController {
   }
 
   @Get(":id")
-  getOne(@Param("id") id: string) {
-    const r = this.resellerService.getById(id);
+  async getOne(@Param("id") id: string) {
+    const r = await this.resellerService.getById(id);
     return r || { error: "Not found" };
   }
 
@@ -32,7 +32,8 @@ export class ResellerController {
   }
 
   @Delete(":id")
-  delete(@Param("id") id: string) {
-    return { success: this.resellerService.delete(id) };
+  async delete(@Param("id") id: string) {
+    return { success: await this.resellerService.delete(id) };
   }
 }
+

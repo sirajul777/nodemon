@@ -20,6 +20,7 @@ import { AuthService } from "./auth/auth.service";
 import { UserService } from "./user-management/user.service";
 import { AppController } from "./app.controller";
 import { MobileAuthService } from "./mobile-api/mobile-api.service";
+import { DatabaseModule } from "./database/database.module";
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { MobileAuthService } from "./mobile-api/mobile-api.service";
     //   rootPath: join(__dirname, "..", "public"),
     //   exclude: ["/api/(.*)"] // Add this to ignore all routes starting with /api/
     // }),
+    DatabaseModule,
     ConfigModule,
     AuthModule,
     SessionModule,

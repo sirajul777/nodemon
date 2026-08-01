@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import * as fs from 'fs';
-import * as path from 'path';
-
-const LOCAL_PROFILE_META = path.join(process.cwd(), 'data', 'profile-meta.json');
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { VoucherBatchEntity, VoucherItemEntity } from '../database/entities/voucher-batch.entity';
+import { ProfileMetaService } from '../database/profile-meta.service';
 
 export interface VoucherItem {
   username: string;
@@ -35,59 +35,95 @@ export interface VoucherBatch {
   vouchers: VoucherItem[];
 }
 
-const DATA_DIR = path.join(process.cwd(), 'data', 'batches');
-
 @Injectable()
 export class VoucherBatchService {
+  constructor(
+    @InjectRepository(VoucherBatchEntity)
+    private readonly batchRepo: Repository<VoucherBatchEntity>,
+    private readonly profileMetaSvc: ProfileMetaService
+  ) {}
 
-  private batchFile(sessionId: string): string {
-    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-    return path.join(DATA_DIR, `${sessionId}.json`);
+  private async toModel(e: VoucherBatchEntity): Promise<VoucherBatch> {
+    return {
+      id: e.id,
+      profileName: e.profileName,
+      profileColor: e.profileColor || '#1f6feb',
+      price: e.price || 0,
+      totalPrice: e.totalPrice || 0,
+      validity: e.validity || '',
+      caption: e.caption || '',
+      sessionId: e.sessionId,
+      nasName: e.nasName || '',
+      createdBy: e.createdBy || '',
+      createdAt: e.createdAt,
+      resellerId: e.resellerId || '',
+      resellerName: e.resellerName || '',
+      vouchers: e.vouchers || []
+    };
   }
 
-  loadAll(sessionId: string): VoucherBatch[] {
-    try {
-      const f = this.batchFile(sessionId);
-      if (fs.existsSync(f)) return JSON.parse(fs.readFileSync(f, 'utf8'));
-    } catch {}
-    return [];
+  async loadAll(sessionId: string): Promise<VoucherBatch[]> {
+    const rows = await this.batchRepo.find({ where: { sessionId } });
+    const result = [];
+    for (const r of rows) result.push(await this.toModel(r));
+    return result;
   }
 
-  private saveAll(sessionId: string, batches: VoucherBatch[]): void {
-    fs.writeFileSync(this.batchFile(sessionId), JSON.stringify(batches, null, 2));
+  async getById(sessionId: string, batchId: string): Promise<VoucherBatch | null> {
+    const e = await this.batchRepo.findOne({ where: { id: batchId, sessionId } });
+    return e ? this.toModel(e) : null;
   }
 
-  getById(sessionId: string, batchId: string): VoucherBatch | null {
-    return this.loadAll(sessionId).find(b => b.id === batchId) || null;
+  async saveBatch(batch: VoucherBatch): Promise<VoucherBatch> {
+    let entity = await this.batchRepo.findOne({ where: { id: batch.id, sessionId: batch.sessionId } });
+    if (!entity) {
+      entity = this.batchRepo.create({
+        id: batch.id,
+        sessionId: batch.sessionId,
+        profileName: batch.profileName,
+        profileColor: batch.profileColor || '#1f6feb',
+        price: batch.price || 0,
+        totalPrice: batch.totalPrice || 0,
+        validity: batch.validity || '',
+        caption: batch.caption || '',
+        nasName: batch.nasName || '',
+        createdBy: batch.createdBy || '',
+        createdAt: batch.createdAt || new Date().toISOString(),
+        resellerId: batch.resellerId || '',
+        resellerName: batch.resellerName || '',
+        vouchers: batch.vouchers || []
+      });
+    } else {
+      entity.profileName = batch.profileName;
+      entity.profileColor = batch.profileColor || '#1f6feb';
+      entity.price = batch.price || 0;
+      entity.totalPrice = batch.totalPrice || 0;
+      entity.validity = batch.validity || '';
+      entity.caption = batch.caption || '';
+      entity.nasName = batch.nasName || '';
+      entity.createdBy = batch.createdBy || '';
+      entity.resellerId = batch.resellerId || '';
+      entity.resellerName = batch.resellerName || '';
+      entity.vouchers = batch.vouchers || [];
+    }
+    const saved = await this.batchRepo.save(entity);
+    return this.toModel(saved);
   }
 
-  saveBatch(batch: VoucherBatch): VoucherBatch {
-    const batches = this.loadAll(batch.sessionId);
-    const idx = batches.findIndex(b => b.id === batch.id);
-    if (idx >= 0) batches[idx] = batch;
-    else batches.unshift(batch);
-    this.saveAll(batch.sessionId, batches);
-    return batch;
+  async deleteBatch(sessionId: string, batchId: string): Promise<boolean> {
+    const result = await this.batchRepo.delete({ id: batchId, sessionId });
+    return (result.affected || 0) > 0;
   }
 
-  deleteBatch(sessionId: string, batchId: string): boolean {
-    const batches = this.loadAll(sessionId);
-    const newList = batches.filter(b => b.id !== batchId);
-    if (newList.length === batches.length) return false;
-    this.saveAll(sessionId, newList);
-    return true;
-  }
-
-  markUsed(sessionId: string, batchId: string, username: string, usedBy: string): boolean {
-    const batches = this.loadAll(sessionId);
-    const batch = batches.find(b => b.id === batchId);
+  async markUsed(sessionId: string, batchId: string, username: string, usedBy: string): Promise<boolean> {
+    const batch = await this.batchRepo.findOne({ where: { id: batchId, sessionId } });
     if (!batch) return false;
-    const vcr = batch.vouchers.find(v => v.username === username);
+    const vcr = (batch.vouchers || []).find(v => v.username === username);
     if (!vcr) return false;
     vcr.status = 'used';
     vcr.usedBy = usedBy;
     vcr.usedAt = new Date().toLocaleString('id-ID');
-    this.saveAll(sessionId, batches);
+    await this.batchRepo.save(batch);
     return true;
   }
 
@@ -97,13 +133,16 @@ export class VoucherBatchService {
     return { total, used, remaining: total - used, usedPct: Math.round(used / total * 100) };
   }
 
-  readLocalProfileMeta(sessionId: string): Record<string, { profileColor?: string; caption?: string }> {
-    try {
-      if (fs.existsSync(LOCAL_PROFILE_META)) {
-        const all = JSON.parse(fs.readFileSync(LOCAL_PROFILE_META, 'utf8'));
-        return all[sessionId] || {};
-      }
-    } catch {}
-    return {};
+  async readLocalProfileMeta(sessionId: string): Promise<Record<string, { profileColor?: string; caption?: string }>> {
+    const all = await this.profileMetaSvc.getAllForSession('hotspot', sessionId);
+    const result: Record<string, { profileColor?: string; caption?: string }> = {};
+    for (const [name, meta] of Object.entries(all)) {
+      result[name] = {
+        profileColor: meta.profileColor,
+        caption: meta.caption
+      };
+    }
+    return result;
   }
 }
+

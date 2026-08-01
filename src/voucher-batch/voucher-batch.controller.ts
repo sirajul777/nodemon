@@ -13,8 +13,8 @@ export class VoucherBatchController {
     private readonly configService: ConfigService,
   ) {}
 
-  private getConn(sessionId: string) {
-    const s = this.configService.getDecryptedSession(sessionId);
+  private async getConn(sessionId: string) {
+    const s = await this.configService.getDecryptedSession(sessionId);
     if (!s) throw new Error(`Session "${sessionId}" not found`);
     return { ip: s.ip, user: s.user, password: s.password, port: s.port || 8728 };
   }
@@ -37,14 +37,14 @@ export class VoucherBatchController {
   // ── CRUD ──────────────────────────────────────────────────────────────────────
 
   @Get(':session')
-  getAll(@Param('session') session: string) {
-    return this.batchService.loadAll(session)
-      .map(b => ({ ...b, stats: this.batchService.getStats(b) }));
+  async getAll(@Param('session') session: string) {
+    const batches = await this.batchService.loadAll(session);
+    return batches.map(b => ({ ...b, stats: this.batchService.getStats(b) }));
   }
 
   @Get(':session/:id')
-  getOne(@Param('session') session: string, @Param('id') id: string) {
-    const b = this.batchService.getById(session, id);
+  async getOne(@Param('session') session: string, @Param('id') id: string) {
+    const b = await this.batchService.getById(session, id);
     if (!b) return { error: 'Not found' };
     return { ...b, stats: this.batchService.getStats(b) };
   }
@@ -64,7 +64,7 @@ export class VoucherBatchController {
     @Param('id') id: string,
     @Query('deleteMikrotik') deleteMikrotik: string, // ?deleteMikrotik=true
   ) {
-    const batch = this.batchService.getById(session, id);
+    const batch = await this.batchService.getById(session, id);
     if (!batch) return { success: false, error: 'Batch tidak ditemukan' };
 
     let deletedFromMikrotik = 0;
@@ -72,7 +72,7 @@ export class VoucherBatchController {
 
     // Hapus user dari MikroTik jika diminta
     if (deleteMikrotik === 'true') {
-      const { ip, user, password, port } = this.getConn(session);
+      const { ip, user, password, port } = await this.getConn(session);
       const client = await this.mikrotikService.createClient(ip, user, password, port);
       try {
         for (const vcr of batch.vouchers) {
@@ -94,7 +94,7 @@ export class VoucherBatchController {
     }
 
     // Hapus batch dari lokal
-    const success = this.batchService.deleteBatch(session, id);
+    const success = await this.batchService.deleteBatch(session, id);
 
     return {
       success,
@@ -104,21 +104,21 @@ export class VoucherBatchController {
   }
 
   @Post(':session/:id/mark-used')
-  markUsed(
+  async markUsed(
     @Param('session') session: string,
     @Param('id') id: string,
     @Body() body: { username: string; usedBy: string },
   ) {
-    return { success: this.batchService.markUsed(session, id, body.username, body.usedBy) };
+    return { success: await this.batchService.markUsed(session, id, body.username, body.usedBy) };
   }
 
   @Post(':session/sync-used')
   async syncUsedFromMikrotik(@Param('session') session: string) {
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
 
     try {
-      const batches = this.batchService.loadAll(session);
+      const batches = await this.batchService.loadAll(session);
       if (!batches.length) return { success: true, updated: 0, message: 'Tidak ada batch' };
 
       // Ambil semua hotspot user dari MikroTik
@@ -161,7 +161,7 @@ export class VoucherBatchController {
 
         // Simpan batch jika ada perubahan
         if (batchChanged) {
-          this.batchService.saveBatch(batch);
+          await this.batchService.saveBatch(batch);
         }
       }
 
@@ -173,11 +173,11 @@ export class VoucherBatchController {
   }
   @Post(':session/auto-sync-used')
   async autoSyncUsed(@Param('session') session: string) {
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
 
     try {
-      const batches = this.batchService.loadAll(session);
+      const batches = await this.batchService.loadAll(session);
       if (!batches.length) return { success: true, updated: 0 };
 
       // Kumpulkan semua username dari batch yang masih available
@@ -231,7 +231,7 @@ export class VoucherBatchController {
 
       // Simpan hanya batch yang berubah
       for (const bi of changedBatches) {
-        this.batchService.saveBatch(batches[bi]);
+        await this.batchService.saveBatch(batches[bi]);
       }
 
       return { success: true, updated };
@@ -249,14 +249,14 @@ export class VoucherBatchController {
     @Body() body: { batchId?: string }, // kosong = sync semua batch
   ) {
     if (!session) return { success: false, error: 'Session tidak ditemukan' };
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
 
     try {
       // Ambil semua batch atau batch tertentu
       const batches = body.batchId
-        ? [this.batchService.getById(session, body.batchId)].filter(Boolean)
-        : this.batchService.loadAll(session);
+        ? [await this.batchService.getById(session, body.batchId)].filter(Boolean)
+        : await this.batchService.loadAll(session);
 
       if (!batches.length) return { success: false, error: 'Tidak ada batch ditemukan' };
 
@@ -365,7 +365,7 @@ export class VoucherBatchController {
 
   @Get(':session/import/profiles')
   async getImportProfiles(@Param('session') session: string) {
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
     try {
       // Fetch profiles + count users per profile (count-only per profile is fast)
@@ -387,7 +387,7 @@ export class VoucherBatchController {
           count = parseInt(cnt[0]?.ret || '0') || 0;
         } catch {}
 
-        const localMeta = this.batchService.readLocalProfileMeta(session);
+        const localMeta = await this.batchService.readLocalProfileMeta(session);
         const loc = localMeta[p.name] || {};
 
         result.push({
@@ -420,7 +420,7 @@ export class VoucherBatchController {
       monthsBack?: number;  // how many months of scripts to check (default 3)
     },
   ) {
-    const { ip, user, password, port } = this.getConn(session);
+    const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
 
     try {
@@ -437,7 +437,7 @@ export class VoucherBatchController {
       // 2. Get profile metadata
       const profiles = await client.run('/ip/hotspot/user/profile/print', { '?name': profileName });
       const ol = this.parseOnLogin(profiles[0]?.['on-login'] || '');
-      const localMeta = this.batchService.readLocalProfileMeta(session);
+      const localMeta = await this.batchService.readLocalProfileMeta(session);
       const loc = localMeta[profileName] || {};
       const color   = loc.profileColor || '#1f6feb';
       const caption = loc.caption || profileName;
@@ -467,7 +467,7 @@ export class VoucherBatchController {
 
       // 4. Get or create batch for this profile
       const batchId = `IMPORT-${profileName}-${session}`;
-      const existingBatch = this.batchService.getById(session, batchId);
+      const existingBatch = await this.batchService.getById(session, batchId);
       const existingVcrMap: Record<string, VoucherItem> = {};
       if (existingBatch) {
         for (const v of existingBatch.vouchers) existingVcrMap[v.username] = v;
@@ -514,7 +514,7 @@ export class VoucherBatchController {
         vouchers,
       };
 
-      this.batchService.saveBatch(batch);
+      await this.batchService.saveBatch(batch);
       const stats = this.batchService.getStats(batch);
 
       return {
@@ -533,3 +533,4 @@ export class VoucherBatchController {
     }
   }
 }
+

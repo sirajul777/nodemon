@@ -28,7 +28,7 @@ export class MobileAuthService {
       } catch {}
     }
     // Fall back to legacy config admin
-    if (this.configService.validateAdmin(username, password)) {
+    if (await this.configService.validateAdmin(username, password)) {
       return {
         userId: "legacy-admin",
         username,
@@ -68,9 +68,10 @@ export class MobileAuthService {
         );
     }
     // Legacy admin
-    if (this.configService.validateAdmin(username, oldPassword)) {
-      return this.configService.changeAdminPassword(username, newPassword);
+    if (await this.configService.validateAdmin(username, oldPassword)) {
+      return await this.configService.changeAdminPassword(username, newPassword);
     }
     return false;
   }
 }
+

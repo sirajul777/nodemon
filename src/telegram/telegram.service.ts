@@ -71,7 +71,7 @@ export class TelegramService implements OnModuleInit {
       dailyTimer: NodeJS.Timeout | null;
     }
   >();
-  // Per-user conversation state (chatId → state)
+  // Per-user conversation state (chatId state)
   private userStates = new Map<string, UserState>();
 
   private mikrotikService: any = null;
@@ -119,7 +119,7 @@ export class TelegramService implements OnModuleInit {
     setInterval(() => this.cleanupStates(), 10 * 60 * 1000);
   }
 
-  // ── Config ────────────────────────────────────────────
+  // Config
 
   private getOrCreateBotState(id: string) {
     if (!this.botStates.has(id)) {
@@ -174,7 +174,7 @@ export class TelegramService implements OnModuleInit {
     this.stopPolling(id);
   }
 
-  // ── Logs ──────────────────────────────────────────────
+  // Logs
 
   getLogs(sessionId?: string): LogEntry[] {
     try {
@@ -192,7 +192,7 @@ export class TelegramService implements OnModuleInit {
     fs.writeFileSync(file, JSON.stringify(logs, null, 2));
   }
 
-  // ── State management ──────────────────────────────────
+  // State management
 
   private setState(chatId: string, state: Partial<UserState>): void {
     const current = this.userStates.get(chatId) || { step: "", expiresAt: 0 };
@@ -252,7 +252,7 @@ export class TelegramService implements OnModuleInit {
     this.saveTopupRequests(requests);
   }
 
-  // ── Telegram API ──────────────────────────────────────
+  // Telegram API
 
   private async apiCall(
     token: string,
@@ -292,7 +292,7 @@ export class TelegramService implements OnModuleInit {
     });
   }
 
-  // ── Send message (sekarang butuh token eksplisit atau configId) ─
+  // Send message (sekarang butuh token eksplisit atau configId)
 
   async sendMessage(
     chatId: string,
@@ -386,7 +386,7 @@ export class TelegramService implements OnModuleInit {
     }
   }
 
-  // ── Polling ───────────────────────────────────────────
+  // Polling
 
   private async startPolling(configId: string): Promise<void> {
     const cfg = this.getConfig(configId);
@@ -448,7 +448,7 @@ export class TelegramService implements OnModuleInit {
     }
   }
 
-  // ── Message Handler ───────────────────────────────────
+  // Message Handler
 
   private async handleMessage(msg: any, cfg: TelegramConfig): Promise<void> {
     const chatId = String(msg.chat.id);
@@ -459,10 +459,12 @@ export class TelegramService implements OnModuleInit {
     if (!cfg) return;
 
     const isAdmin = chatId === cfg.chatId || cfg.allowedUsers?.includes(userId);
-    const resellerData = this.resellerSvc?.getByTelegramId(userId);
+    const resellerData = this.resellerSvc 
+      ? await this.resellerSvc.getByTelegramId(userId) 
+      : null;
     const isSeller = resellerData && resellerData.status === "active";
 
-    // Handle non-command text (e.g., user typed quantity during multi-step)
+    // Handle non-command text
     if (!text.startsWith("/")) {
       const state = this.getState(chatId);
       if (state?.step === "awaiting_qty") {
@@ -597,7 +599,7 @@ export class TelegramService implements OnModuleInit {
     }
   }
 
-  // ── Callback Query Handler (inline keyboard) ──────────
+  // Callback Query Handler (inline keyboard)
 
   private async handleCallback(cb: any, cfg: TelegramConfig): Promise<void> {
     const chatId = String(cb.message.chat.id);
@@ -730,7 +732,7 @@ export class TelegramService implements OnModuleInit {
     }
   }
 
-  // ── Callback: Pilih nominal topup ────────────────────────────
+  // Callback: Pilih nominal topup
   private async cbTopupSelectNominal(
     chatId: string,
     userId: string,
@@ -739,7 +741,9 @@ export class TelegramService implements OnModuleInit {
     amount: number,
     cfg: TelegramConfig
   ): Promise<void> {
-    const reseller = this.resellerSvc?.getByTelegramId(userId);
+    const reseller = this.resellerSvc 
+      ? await this.resellerSvc.getByTelegramId(userId) 
+      : null;
     if (!reseller) {
       await this.editMessage(chatId, msgId, "❌ Reseller tidak ditemukan.");
       return;
@@ -780,7 +784,9 @@ export class TelegramService implements OnModuleInit {
     amount: number,
     cfg: TelegramConfig
   ): Promise<void> {
-    const reseller = this.resellerSvc?.getByTelegramId(userId);
+    const reseller = this.resellerSvc 
+      ? await this.resellerSvc.getByTelegramId(userId) 
+      : null;
     if (!reseller) {
       await this.editMessage(chatId, msgId, "❌ Reseller tidak ditemukan.");
       return;
@@ -817,7 +823,7 @@ export class TelegramService implements OnModuleInit {
       cfg
     );
   }
-  // ── Callback: Custom nominal ──────────────────────────────────
+  // Callback: Custom nominal
   private async cbTopupCustom(
     chatId: string,
     userId: string,
@@ -844,7 +850,7 @@ export class TelegramService implements OnModuleInit {
       }
     );
   }
-  // ── Callback: Admin approve topup ────────────────────────────
+  // Callback: Admin approve topup
   private async cbTopupApprove(
     chatId: string,
     userId: string,
@@ -888,7 +894,7 @@ export class TelegramService implements OnModuleInit {
       return;
     }
 
-    const result = this.resellerSvc.topup(
+    const result = await this.resellerSvc.topup(
       req.resellerId,
       req.amount,
       `Topup via bot disetujui admin`,
@@ -935,7 +941,7 @@ export class TelegramService implements OnModuleInit {
     );
   }
 
-  // ── Callback: Admin reject topup ─────────────────────────────
+  // Callback: Admin reject topup
   private async cbTopupReject(
     chatId: string,
     userId: string,
@@ -993,7 +999,7 @@ export class TelegramService implements OnModuleInit {
     );
   }
 
-  // ── /beli and /generate - Show Profile Menu ───────────
+  // /beli and /generate - Show Profile Menu
 
   private async handleBeliMenu(
     chatId: string,
@@ -1039,8 +1045,8 @@ export class TelegramService implements OnModuleInit {
         _vt?: VoucherType;
       }> = [];
 
-      if (this.vtService) {
-        const vtList = this.vtService.getActive();
+if (this.vtService) {
+        const vtList = await this.vtService.getActive();
         if (vtList.length > 0) {
           items = vtList.map((vt) => ({
             id: vt.id,
@@ -1127,7 +1133,7 @@ export class TelegramService implements OnModuleInit {
     }
   }
 
-  // ── Callback: Profile selected ────────────────────────
+  // Callback: Profile selected
 
   private async cbSelectProfile(
     chatId: string,
@@ -1240,7 +1246,7 @@ export class TelegramService implements OnModuleInit {
     }
   }
 
-  // ── Callback: Ask custom qty ──────────────────────────
+  // Callback: Ask custom qty
 
   private async cbAskCustomQty(
     chatId: string,
@@ -1262,7 +1268,7 @@ export class TelegramService implements OnModuleInit {
     );
   }
 
-  // ── Handle qty typed by user ──────────────────────────
+  // Handle qty typed by user
 
   private async handleQtyInput(
     chatId: string,
@@ -1319,7 +1325,7 @@ export class TelegramService implements OnModuleInit {
     );
   }
 
-  // ── Callback: Qty selected (quick) ────────────────────
+  // Callback: Qty selected (quick)
 
   private async cbSelectQty(
     chatId: string,
@@ -1372,7 +1378,7 @@ export class TelegramService implements OnModuleInit {
     );
   }
 
-  // ── Callback: Confirm Beli ────────────────────────────
+  // Callback: Confirm Beli
 
   private async cbConfirmBeli(
     chatId: string,
@@ -1391,7 +1397,7 @@ export class TelegramService implements OnModuleInit {
     await this.executeBeli(chatId, userId, username, profileName, cfg, msgId);
   }
 
-  // ── Callback: Confirm Generate ────────────────────────
+  // Callback: Confirm Generate
 
   private async cbConfirmGenerate(
     chatId: string,
@@ -1411,14 +1417,14 @@ export class TelegramService implements OnModuleInit {
     await this.executeGenerate(chatId, username, profileName, qty, cfg);
   }
 
-  // ── Callback: Cancel ──────────────────────────────────
+  // Callback: Cancel
 
   private async cbCancel(chatId: string, msgId: number): Promise<void> {
     this.clearState(chatId);
     await this.editMessage(chatId, msgId, "❌ Dibatalkan.");
   }
 
-  // ── Execute: Create 1 voucher ─────────────────────────
+  // Execute: Create 1 voucher
 
   private async executeBeli(
     chatId: string,
@@ -1453,9 +1459,8 @@ export class TelegramService implements OnModuleInit {
         }
         const ol = this.parseOnLogin(profiles[0]["on-login"] || "");
         // 1. Ambil data dari JSON lokal berdasarkan profile
-        const vType = this.vtService
-          .getAll()
-          .find((v) => v.profile === profileName);
+const allVoucherTypes = await this.vtService.getAll();
+        const vType = allVoucherTypes.find((v) => v.profile === profileName);
 
         // 2. Tentukan Username & Password berdasarkan setting di JSON
         let uname, upass;
@@ -1534,12 +1539,14 @@ export class TelegramService implements OnModuleInit {
 
         // If reseller: deduct saldo
         if (this.resellerSvc) {
-          const reseller = this.resellerSvc.getByTelegramId(userId);
+          const reseller = this.resellerSvc 
+            ? await this.resellerSvc.getByTelegramId(userId) 
+            : null;
           if (reseller && reseller.status === "active") {
             const realprice = ol.price;
             const sellPrice = ol.sprice;
             if (reseller.saldo >= realprice) {
-              this.resellerSvc.deductSaldo(userId, realprice, profileName);
+              await this.resellerSvc.deductSaldo(userId, realprice, profileName);
             } else {
               // Saldo tidak cukup — hapus user yang baru dibuat
               try {
@@ -1578,7 +1585,7 @@ export class TelegramService implements OnModuleInit {
     }
   }
 
-  // ── Execute: Generate batch ───────────────────────────
+  // Execute: Generate batch
 
   private async executeGenerate(
     chatId: string,
@@ -1678,10 +1685,12 @@ export class TelegramService implements OnModuleInit {
     }
   }
 
-  // ── Command Handlers ──────────────────────────────────
+  // Command Handlers
 
   private async handleHelp(chatId: string, isAdmin: boolean): Promise<void> {
-    const reseller = this.resellerSvc?.getByTelegramId(chatId);
+    const reseller = this.resellerSvc 
+      ? await this.resellerSvc.getByTelegramId(chatId) 
+      : null;
     const isReseller = !!reseller && reseller.status === "active";
 
     let text = `🤖 <b>MikHMon Hotspot Bot</b>\n\n`;
@@ -1822,7 +1831,7 @@ export class TelegramService implements OnModuleInit {
     }
   }
 
-  // ── Reseller handlers ────────────────────────────────────────
+  // Reseller handlers
 
   private async handleDaftar(
     chatId: string,
@@ -1834,7 +1843,7 @@ export class TelegramService implements OnModuleInit {
       await this.sendMessage(chatId, "⚠️ Layanan reseller belum aktif.");
       return;
     }
-    const existing = this.resellerSvc.getByTelegramId(userId);
+    const existing = await this.resellerSvc.getByTelegramId(userId);
     if (existing) {
       const isIndo = true;
       const saldoStr = `Rp ${existing.saldo.toLocaleString("id-ID")}`;
@@ -1852,14 +1861,12 @@ export class TelegramService implements OnModuleInit {
     // Auto-register
     const displayName = username || `User${userId.slice(-4)}`;
     const cfg2 = this.getConfig();
-    this.resellerSvc.upsert({
+    await this.resellerSvc.upsert({
       name: displayName,
       username: username,
       telegramId: userId,
-      // sessionId: cfg.sessionId,
       saldo: 0,
       status: "active",
-      // allowedProfiles: [],
       markup: 0
     });
     this.addLog(username, "Daftar reseller baru");
@@ -1893,7 +1900,7 @@ export class TelegramService implements OnModuleInit {
       await this.sendMessage(chatId, "⚠️ Layanan reseller belum aktif.");
       return;
     }
-    const reseller = this.resellerSvc.getByTelegramId(userId);
+    const reseller = await this.resellerSvc.getByTelegramId(userId);
     if (!reseller) {
       await this.sendMessage(
         chatId,
@@ -1933,7 +1940,9 @@ export class TelegramService implements OnModuleInit {
 
     this.clearState(chatId);
 
-    const reseller = this.resellerSvc?.getByTelegramId(userId);
+    const reseller = this.resellerSvc 
+      ? await this.resellerSvc.getByTelegramId(userId) 
+      : null;
     if (!reseller) return;
 
     // Tampil konfirmasi
@@ -1961,7 +1970,7 @@ export class TelegramService implements OnModuleInit {
     );
   }
 
-  // ── Reseller request topup ────────────────────────────────────
+  // Reseller request topup
   private async handleTopupRequest(
     chatId: string,
     userId: string,
@@ -1974,7 +1983,7 @@ export class TelegramService implements OnModuleInit {
       return;
     }
 
-    const reseller = this.resellerSvc.getByTelegramId(userId);
+    const reseller = await this.resellerSvc.getByTelegramId(userId);
     if (!reseller) {
       await this.sendMessage(
         chatId,
@@ -2116,7 +2125,7 @@ export class TelegramService implements OnModuleInit {
     this.addLog(username, `Request topup Rp ${amount.toLocaleString("id-ID")}`);
   }
 
-  // ── Cek status topup ──────────────────────────────────────────
+  // Cek status topup
   private async handleCekTopup(
     chatId: string,
     userId: string,
@@ -2161,7 +2170,7 @@ export class TelegramService implements OnModuleInit {
       await this.sendMessage(chatId, "⚠️ Layanan reseller belum aktif.");
       return;
     }
-    const reseller = this.resellerSvc.getByTelegramId(userId);
+    const reseller = await this.resellerSvc.getByTelegramId(userId);
     if (!reseller) {
       await this.sendMessage(
         chatId,
@@ -2169,85 +2178,18 @@ export class TelegramService implements OnModuleInit {
       );
       return;
     }
-    const history = [...(reseller[0] || [])].reverse().slice(0, 20);
-    if (!history.length) {
+    const logs = await this.resellerSvc.loadLogs(reseller.id);
+    // Dedup purchase logs
+    const purchaseLogs = logs.filter(l => l.type === 'purchase').slice(0, 20);
+    if (!purchaseLogs.length) {
       await this.sendMessage(chatId, "📜 Belum ada riwayat pembelian.");
       return;
     }
-    let text = `📜 <b>Riwayat Pembelian (${history.length} terakhir)</b>\n\n`;
-    history.forEach((p, i) => {
-      text += `${i + 1}. <code>${p.username}</code> — ${p.profileName} — Rp ${p.paidSaldo.toLocaleString("id-ID")} — ${p.at}\n`;
+    let text = `📜 <b>Riwayat Pembelian (${purchaseLogs.length} terakhir)</b>\n\n`;
+    purchaseLogs.forEach((p, i) => {
+      text += `${i + 1}. <code>${p.note}</code> — Rp ${Math.abs(p.amount).toLocaleString('id-ID')} — ${new Date(p.at).toLocaleString('id-ID')}\n`;
     });
     await this.sendMessage(chatId, text);
-  }
-
-  private async handleTopupCmd(
-    chatId: string,
-    args: string[],
-    cfg: TelegramConfig
-  ): Promise<void> {
-    if (!this.resellerSvc) {
-      await this.sendMessage(chatId, "⚠️ Layanan reseller belum aktif.");
-      return;
-    }
-    // /topup [id_atau_telegramid] [jumlah] [catatan]
-    if (args.length < 2) {
-      await this.sendMessage(
-        chatId,
-        "❓ Format: /topup [ID_reseller] [jumlah] [catatan]\n\nContoh: /topup RS-123 50000 Transfer BRI"
-      );
-      return;
-    }
-    const idOrTgId = args[0];
-    const amount = parseInt(args[1]);
-    const note = args.slice(2).join(" ") || "Topup by admin";
-
-    if (isNaN(amount) || amount <= 0) {
-      await this.sendMessage(chatId, "❌ Jumlah harus berupa angka positif.");
-      return;
-    }
-
-    // Find by ID or telegramId
-    let reseller =
-      this.resellerSvc.getById(idOrTgId) ||
-      this.resellerSvc.getByTelegramId(idOrTgId);
-    if (!reseller) {
-      await this.sendMessage(
-        chatId,
-        `❌ Reseller dengan ID/TelegramID <code>${idOrTgId}</code> tidak ditemukan.\n\nKetik /resellers untuk melihat daftar.`
-      );
-      return;
-    }
-
-    const updated = this.resellerSvc.topup(reseller.id, amount, note, "Admin");
-    if (!updated) {
-      await this.sendMessage(chatId, "❌ Topup gagal.");
-      return;
-    }
-
-    const amtStr = `Rp ${amount.toLocaleString("id-ID")}`;
-    const newSaldo = `Rp ${updated.reseller.saldo.toLocaleString("id-ID")}`;
-
-    // Notify admin
-    await this.sendMessage(
-      chatId,
-      `✅ <b>Topup Berhasil</b>\n\n` +
-        `👤 Reseller: <b>${updated.reseller.name}</b>\n` +
-        `💰 Topup: <b>+${amtStr}</b>\n` +
-        `💳 Saldo baru: <b>${newSaldo}</b>\n` +
-        `📝 Catatan: ${note}`
-    );
-
-    // Notify reseller
-    await this.sendMessage(
-      updated.reseller.id,
-      `💰 <b>Saldo Ditopup!</b>\n\n` +
-        `✅ Tambah: <b>+${amtStr}</b>\n` +
-        `💳 Saldo sekarang: <b>${newSaldo}</b>\n` +
-        `📝 ${note}\n` +
-        `🕐 ${new Date().toLocaleString("id-ID")}\n\n` +
-        `Ketik /beli untuk mulai belanja!`
-    );
   }
 
   private async handleListResellers(
@@ -2258,7 +2200,7 @@ export class TelegramService implements OnModuleInit {
       await this.sendMessage(chatId, "⚠️ Layanan reseller belum aktif.");
       return;
     }
-    const resellers = this.resellerSvc.loadAll();
+    const resellers = await this.resellerSvc.loadAll();
     if (!resellers.length) {
       await this.sendMessage(chatId, "📭 Belum ada reseller terdaftar.");
       return;
@@ -2268,7 +2210,7 @@ export class TelegramService implements OnModuleInit {
       const saldo = `Rp ${r.saldo.toLocaleString("id-ID")}`;
       text += `${i + 1}. <b>${r.name}</b> ${r.username ? `(@${r.username})` : ""}\n`;
       text += `   🆔 <code>${r.id}</code> · TG: <code>${r.telegramId}</code>\n`;
-      text += `   💳 ${saldo} · 🎫 ${r.saldo} · ${r.status === "active" ? "✅" : "❌"}\n\n`;
+      text += `   💳 ${saldo} · 🎫 ${r.totalVoucher} · ${r.status === "active" ? "✅" : "❌"}\n\n`;
     });
     text += `\nUntuk topup: /topup [ID] [jumlah] [catatan]`;
     await this.sendMessage(chatId, text);
@@ -2499,28 +2441,7 @@ export class TelegramService implements OnModuleInit {
     }
   }
 
-  // ── Daily Report ──────────────────────────────────────
-
-  // private async handleSaldo(chatId: string, userId: string, cfg: TelegramConfig): Promise<void> {
-  //   if (!this.resellerTgSvc) { await this.sendMessage(chatId, '⚠️ Fitur reseller tidak tersedia.'); return; }
-  //   await this.sendMessage(chatId, this.resellerTgSvc.buildSaldoInfo(userId));
-  // }
-
-  // private async handleDaftar(chatId: string, userId: string, username: string, cfg: TelegramConfig): Promise<void> {
-  //   if (!this.resellerTgSvc) { await this.sendMessage(chatId, '⚠️ Fitur reseller tidak tersedia.'); return; }
-  //   const info = this.resellerTgSvc.buildDaftarInfo(userId, username);
-  //   await this.sendMessage(chatId, info.text);
-  // }
-
-  // private async handleRiwayat(chatId: string, userId: string, cfg: TelegramConfig): Promise<void> {
-  //   if (!this.resellerTgSvc) { await this.sendMessage(chatId, '⚠️ Fitur reseller tidak tersedia.'); return; }
-  //   const r = this.resellerTgSvc.getActiveReseller(userId);
-  //   if (!r) { await this.sendMessage(chatId, '❌ Kamu belum terdaftar sebagai reseller.'); return; }
-  //   // Reuse saldo info which includes recent logs
-  //   await this.sendMessage(chatId, this.resellerTgSvc.buildSaldoInfo(userId));
-  // }
-
-  // ── Daily report per bot ────────────────────────────────────
+  // Daily report per bot
 
   private scheduleDailyReport(configId: string): void {
     const state = this.getOrCreateBotState(configId);
@@ -2547,7 +2468,7 @@ export class TelegramService implements OnModuleInit {
     this.logger.log(`Bot [${configId}] daily report at ${cfg.dailyTime}`);
   }
 
-  // ── Helpers ───────────────────────────────────────────
+  // Helpers
 
   private randomStr(
     len: number,

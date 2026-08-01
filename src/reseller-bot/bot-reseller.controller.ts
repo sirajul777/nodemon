@@ -17,8 +17,8 @@ export class BotResellerController {
   getLogById(@Param('id') id: string) { return this.svc.loadLogs(id); }
 
   @Get(':id')
-  getOne(@Param('id') id: string) {
-    const r = this.svc.getById(id);
+  async getOne(@Param('id') id: string) {
+    const r = await this.svc.getById(id);
     return r || { error: 'Not found' };
   }
 
@@ -35,22 +35,23 @@ export class BotResellerController {
   }
 
   @Delete(':id')
-  delete(@Param('id') id: string) {
-    return { success: this.svc.delete(id) };
+  async delete(@Param('id') id: string) {
+    return { success: await this.svc.delete(id) };
   }
 
   @Patch(':id/toggle')
-  toggle(@Param('id') id: string) {
-    const r = this.svc.toggleStatus(id);
+  async toggle(@Param('id') id: string) {
+    const r = await this.svc.toggleStatus(id);
     return r ? { success: true, status: r.status } : { error: 'Not found' };
   }
 
   @Post(':id/topup')
-  topup(
+  async topup(
     @Param('id') id: string,
     @Body() body: { amount: number; note?: string; by?: string },
   ) {
-    const result = this.svc.topup(id, Number(body.amount), body.note || '', body.by || 'Admin');
+    const result = await this.svc.topup(id, Number(body.amount), body.note || '', body.by || 'Admin');
     return result ? { success: true, ...result } : { error: 'Reseller not found' };
   }
 }
+

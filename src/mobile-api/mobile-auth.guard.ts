@@ -2,11 +2,14 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
-  UnauthorizedException
+  UnauthorizedException,
+  Inject,
+  forwardRef
 } from "@nestjs/common";
-import * as path from "path";
-import * as fs from "fs";
 import * as crypto from "crypto";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { MobileTokenEntity } from "../database/entities/mobile-token.entity";
 
 // Tambah interface
 export interface MobileUserToken {
@@ -22,21 +25,21 @@ export interface MobileUserToken {
   lastUsed: string;
 }
 
-const USER_TOKEN_FILE = path.join(
-  process.cwd(),
-  "data",
-  "mobile-user-tokens.json"
-);
-
+@Injectable()
 export class MobileTokenService {
-  static generate(
+  constructor(
+    @InjectRepository(MobileTokenEntity)
+    private readonly tokenRepo: Repository<MobileTokenEntity>
+  ) {}
+
+  async generate(
     userId: string,
     username: string,
     name: string,
     role: string,
     permissions: any,
     allowedSessions: any
-  ): MobileUserToken {
+  ): Promise<MobileUserToken> {
     const token = crypto.randomBytes(32).toString("hex");
     const now = new Date();
     const exp = new Date(now);
@@ -55,49 +58,74 @@ export class MobileTokenService {
       lastUsed: now.toISOString()
     };
 
-    const tokens = MobileTokenService.loadAll();
     // Hapus token lama untuk user yang sama
-    const filtered = tokens.filter((t) => t.userId !== userId);
-    filtered.push(mToken);
-    MobileTokenService.saveAll(filtered);
+    await this.tokenRepo.delete({ userId });
+
+    const entity = this.tokenRepo.create({
+      token,
+      userId,
+      username,
+      name,
+      role,
+      permissions,
+      sessionId: allowedSessions[0],
+      createdAt: now.toISOString(),
+      expiresAt: exp.toISOString(),
+      lastUsed: now.toISOString()
+    });
+    await this.tokenRepo.save(entity);
     return mToken;
   }
 
-  static verify(token: string): MobileUserToken | null {
-    const tokens = MobileTokenService.loadAll();
-    const t = tokens.find((t) => t.token === token);
+  async verify(token: string): Promise<MobileUserToken | null> {
+    const t = await this.tokenRepo.findOne({ where: { token } });
     if (!t) return null;
     if (new Date(t.expiresAt) < new Date()) return null;
+
     t.lastUsed = new Date().toISOString();
-    MobileTokenService.saveAll(tokens);
-    return t;
+    await this.tokenRepo.save(t);
+
+    return {
+      token: t.token,
+      userId: t.userId,
+      username: t.username,
+      name: t.name,
+      role: t.role,
+      permissions: t.permissions,
+      sessionId: t.sessionId,
+      createdAt: t.createdAt,
+      expiresAt: t.expiresAt,
+      lastUsed: t.lastUsed
+    };
   }
 
-  static revoke(token: string): boolean {
-    const tokens = MobileTokenService.loadAll();
-    const newList = tokens.filter((t) => t.token !== token);
-    MobileTokenService.saveAll(newList);
-    return newList.length < tokens.length;
+  async revoke(token: string): Promise<boolean> {
+    const result = await this.tokenRepo.delete({ token });
+    return (result.affected || 0) > 0;
   }
 
-  static loadAll(): MobileUserToken[] {
-    try {
-      if (fs.existsSync(USER_TOKEN_FILE))
-        return JSON.parse(fs.readFileSync(USER_TOKEN_FILE, "utf8"));
-    } catch {}
-    return [];
-  }
-
-  static saveAll(tokens: MobileUserToken[]) {
-    const dir = path.dirname(USER_TOKEN_FILE);
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(USER_TOKEN_FILE, JSON.stringify(tokens, null, 2));
+  async loadAll(): Promise<MobileUserToken[]> {
+    const rows = await this.tokenRepo.find();
+    return rows.map((t) => ({
+      token: t.token,
+      userId: t.userId,
+      username: t.username,
+      name: t.name,
+      role: t.role,
+      permissions: t.permissions,
+      sessionId: t.sessionId,
+      createdAt: t.createdAt,
+      expiresAt: t.expiresAt,
+      lastUsed: t.lastUsed
+    }));
   }
 }
 
 // Guard baru yang support kedua jenis token (reseller & user)
 @Injectable()
 export class MobileAuthGuard implements CanActivate {
+  constructor(private readonly tokenService: MobileTokenService) {}
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest();
 
@@ -112,16 +140,13 @@ export class MobileAuthGuard implements CanActivate {
     }
 
     // 2. Verifikasi token menggunakan Service
-    // Karena logic verify Anda sudah mengembalikan objek MobileUserToken,
-    // kita cukup panggil satu kali saja.
-    const decodedToken = MobileTokenService.verify(token);
+    const decodedToken = await this.tokenService.verify(token);
 
     if (!decodedToken) {
       throw new UnauthorizedException("Sesi telah berakhir atau tidak valid");
     }
 
     // 3. Tempelkan data ke objek Request
-    // Ini kuncinya agar Controller bisa tahu SIAPA yang sedang login.
     req.user = {
       id: decodedToken.userId,
       username: decodedToken.username,
@@ -132,8 +157,7 @@ export class MobileAuthGuard implements CanActivate {
 
     // Anda juga bisa menyimpan metadata token jika diperlukan
     req.mobileToken = decodedToken;
-    console.log(decodedToken);
-
     return true;
   }
 }
+
