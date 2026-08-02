@@ -206,7 +206,7 @@ export class BillingService {
     let rows = await this.invoiceRepo.find();
     if (sessionId) rows = rows.filter((i) => i.sessionId === sessionId);
     if (customerId) rows = rows.filter((i) => i.customerId === customerId);
-    rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    rows.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     const result = [];
     for (const r of rows) result.push(await this.invoiceToModel(r));
     return result;

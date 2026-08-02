@@ -424,7 +424,15 @@ export class DatabaseSeedService implements OnApplicationBootstrap {
     if (!data?.length) return;
     const count = await this.tokenRepo.count();
     if (count > 0) return;
+    let seeded = 0;
     for (const t of data) {
+      // Skip entries missing required NOT NULL fields to avoid crashing the seed
+      if (!t.token || !t.userId || !t.username || !t.name || !t.role) {
+        this.logger.warn(
+          `Skipping mobile token with missing required fields: ${JSON.stringify(t)}`
+        );
+        continue;
+      }
       await this.tokenRepo.save({
         token: t.token,
         userId: t.userId,
@@ -434,11 +442,12 @@ export class DatabaseSeedService implements OnApplicationBootstrap {
         permissions: t.permissions || null,
         sessionId: t.sessionId || null,
         createdAt: t.createdAt || new Date().toISOString(),
-        expiresAt: t.expiresAt,
-        lastUsed: t.lastUsed,
+        expiresAt: t.expiresAt || new Date(Date.now() + 30 * 86400000).toISOString(),
+        lastUsed: t.lastUsed || null,
       });
+      seeded++;
     }
-    this.logger.log(`Seeded: ${data.length} mobile_tokens`);
+    this.logger.log(`Seeded: ${seeded} mobile_tokens`);
   }
 
   // ── 11. Telegram Config ────────────────────────────────────────
