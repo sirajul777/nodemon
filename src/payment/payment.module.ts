@@ -5,12 +5,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { PaymentConfigModule } from './payment-config.module';
 import { MidtransModule } from './midtrans/midtrans.module';
 import { DuitkuModule } from './duitku/duitku.module';
+import { PayhookModule } from './payhook/payhook.module';
 import { PaymentConfigService } from './payment-config.service';
 import { PaymentService } from './payment.service';
 import { PaymentStatusListener } from './payment-status.listener';
 import { PaymentController } from './payment.controller';
 import { PaymentTransaction as MidtransPaymentTransaction } from './midtrans/entities/payment-transaction.entity';
 import { PaymentTransaction as DuitkuPaymentTransaction } from './duitku/entities/payment-transaction.entity';
+import { PaymentTransaction as PayhookPaymentTransaction } from './payhook/entities/payment-transaction.entity';
 import { BillingModule } from '../billing/billing.module';
 
 @Module({
@@ -21,6 +23,7 @@ import { BillingModule } from '../billing/billing.module';
     TypeOrmModule.forFeature([
       MidtransPaymentTransaction,
       DuitkuPaymentTransaction,
+      PayhookPaymentTransaction,
     ]),
     /**
      * Wire both gateway modules using the DB-backed config (no env vars).
@@ -37,6 +40,12 @@ import { BillingModule } from '../billing/billing.module';
       inject: [PaymentConfigService],
       useFactory: async (config: PaymentConfigService) =>
         config.getDuitkuOptions(),
+    }),
+    PayhookModule.forRootAsync({
+      imports: [PaymentConfigModule],
+      inject: [PaymentConfigService],
+      useFactory: async (config: PaymentConfigService) =>
+        config.getPayhookOptions(),
     }),
   ],
   controllers: [PaymentController],

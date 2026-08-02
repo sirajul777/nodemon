@@ -5926,7 +5926,9 @@ async function loadPayments() {
           const gwBadge =
             t.gateway === "midtrans"
               ? '<span class="badge b-bl">Midtrans</span>'
-              : '<span class="badge b-pu">Duitku</span>';
+              : t.gateway === "payhook"
+                ? '<span class="badge b-gr">PayHook</span>'
+                : '<span class="badge b-pu">Duitku</span>';
           return `<tr>
       <td>${gwBadge}</td>
       <td><code style="font-size:.76rem">${t.orderId}</code></td>
@@ -5959,7 +5961,7 @@ async function showPaymentDetail(gateway, orderId) {
 
   body.innerHTML = `
     <div style="background:var(--card2);border-radius:8px;padding:10px 12px;margin-bottom:10px">
-      ${row("Gateway", t.gateway === "midtrans" ? "Midtrans" : "Duitku")}
+      ${row("Gateway", t.gateway === "midtrans" ? "Midtrans" : t.gateway === "payhook" ? "PayHook" : "Duitku")}
       ${row("Order ID", `<code>${t.orderId}</code>`)}
       ${row("Keperluan", P_PURPOSE_LABEL[t.purpose] || t.purpose)}
       ${row("Referensi", `<code>${t.referenceId}</code>`)}
@@ -6045,6 +6047,15 @@ async function loadPaymentSettings() {
   setVal("ps-midtrans-server", c.midtransServerKey || "");
   setVal("ps-midtrans-client", c.midtransClientKey || "");
   setStatus("ps-midtrans-status", c.midtransEnabled);
+
+  setChecked("ps-payhook-enabled", c.payhookEnabled);
+  setVal("ps-payhook-env", c.payhookEnv || "sandbox");
+  setVal("ps-payhook-apikey", c.payhookApiKey || "");
+  setVal("ps-payhook-secret", c.payhookSecretKey || "");
+  setVal("ps-payhook-partner", c.payhookPartnerCode || "");
+  setVal("ps-payhook-callback", c.payhookCallbackUrl || "");
+  setVal("ps-payhook-method", c.payhookDefaultMethod || "QRIS");
+  setStatus("ps-payhook-status", c.payhookEnabled);
 }
 
 async function savePaymentSettings() {
@@ -6068,7 +6079,21 @@ async function savePaymentSettings() {
     midtransServerKey:
       document.getElementById("ps-midtrans-server")?.value || "",
     midtransClientKey:
-      document.getElementById("ps-midtrans-client")?.value || ""
+      document.getElementById("ps-midtrans-client")?.value || "",
+    payhookEnabled:
+      document.getElementById("ps-payhook-enabled")?.checked || false,
+    payhookEnv:
+      document.getElementById("ps-payhook-env")?.value || "sandbox",
+    payhookApiKey:
+      document.getElementById("ps-payhook-apikey")?.value || "",
+    payhookSecretKey:
+      document.getElementById("ps-payhook-secret")?.value || "",
+    payhookPartnerCode:
+      document.getElementById("ps-payhook-partner")?.value || "",
+    payhookCallbackUrl:
+      document.getElementById("ps-payhook-callback")?.value || "",
+    payhookDefaultMethod:
+      document.getElementById("ps-payhook-method")?.value || "QRIS"
   };
 
   showL();

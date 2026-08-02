@@ -16,6 +16,7 @@
         <select id="ps-default">
           <option value="duitku">Duitku</option>
           <option value="midtrans">Midtrans</option>
+          <option value="payhook">PayHook</option>
         </select>
       </div>
 
@@ -83,6 +84,48 @@
         </div>
       </div>
 
+      <hr style="border-color: var(--border); margin: 18px 0" />
+
+<!-- PayHook -->
+      <div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px">
+          <input type="checkbox" id="ps-payhook-enabled" style="width: auto; accent-color: var(--acc2)" />
+          <b><i class="fa fa-qrcode"></i> PayHook (QRIS / GoPay)</b>
+          <select id="ps-payhook-env" style="max-width: 100px">
+            <option value="sandbox">Sandbox</option>
+            <option value="production">Production</option>
+          </select>
+          <span id="ps-payhook-status" class="badge b-mu">Nonaktif</span>
+        </div>
+        <div class="g2">
+          <div class="fg">
+            <label>API Key</label>
+            <input id="ps-payhook-apikey" type="password" placeholder="API Key" />
+          </div>
+          <div class="fg">
+            <label>Secret Key</label>
+            <input id="ps-payhook-secret" type="password" placeholder="Secret Key" />
+          </div>
+        </div>
+        <div class="g2">
+          <div class="fg">
+            <label>Partner Code</label>
+            <input id="ps-payhook-partner" placeholder="Partner Code" />
+          </div>
+          <div class="fg">
+            <label>Callback URL</label>
+            <input id="ps-payhook-callback" placeholder="https://contoh.com/payments/payhook/callback" />
+          </div>
+        </div>
+        <div class="fg" style="max-width: 200px">
+          <label>Metode (default)</label>
+          <select id="ps-payhook-method">
+            <option value="QRIS">QRIS</option>
+            <option value="gopay">GoPay (QR Dinamis)</option>
+          </select>
+        </div>
+      </div>
+
       <div style="margin-top: 20px; display: flex; gap: 8px">
         <button class="btn b-p" onclick="savePaymentSettings()" style="justify-content: center">
           <i class="fa fa-save"></i> Simpan Konfigurasi
@@ -103,12 +146,14 @@
           <label>Nominal (Rp)</label>
           <input id="ps-test-amount" type="number" min="1000" value="10000" />
         </div>
-        <div class="fg">
+<div class="fg">
           <label>Gateway</label>
           <select id="ps-test-gateway">
             <option value="">Default</option>
-            <option value="midtrans">Midtrans</option>
-            <option value="duitku">Duitku</option>
+            <option value="midtrans">Midtrans (QRIS)</option>
+            <option value="duitku">Duitku (QRIS)</option>
+            <option value="payhook">PayHook (QRIS)</option>
+            <option value="payhook_gopay">PayHook (GoPay)</option>
           </select>
         </div>
         <button class="btn b-p" onclick="testPayment()"><i class="fa fa-flask"></i> Uji Coba</button>

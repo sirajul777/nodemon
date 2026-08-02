@@ -48,5 +48,29 @@ export class PaymentConfigEntity {
 
   @Column({ default: 10 })
   duitkuExpiryMinutes: number;
+
+  // ── PayHook ─────────────────────────────────────────────────
+  @Column({ default: false })
+  payhookEnabled: boolean;
+
+  @Column({ default: 'sandbox' })
+  payhookEnv: string;
+
+  @Column({ type: 'text', nullable: true })
+  payhookApiKey: string;
+
+  @Column({ type: 'text', nullable: true })
+  payhookSecretKey: string;
+
+  @Column({ type: 'text', nullable: true })
+  payhookPartnerCode: string;
+
+  @Column({ type: 'text', nullable: true })
+  payhookCallbackUrl: string;
+
+  @Column({ default: 'QRIS' })
+  payhookDefaultMethod: string;
 }
+
+
 

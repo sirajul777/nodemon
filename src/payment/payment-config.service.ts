@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { PaymentConfigEntity } from './payment-config.entity';
 import { MidtransModuleOptions } from './midtrans/interfaces/midtrans-module-options.interface';
 import { DuitkuModuleOptions } from './duitku/interfaces/duitku-module-options.interface';
+import { PayhookModuleOptions } from './payhook/interfaces/payhook-module-options.interface';
 
 /** Mask a secret so it can be safely shown in the UI. */
 function mask(value?: string | null): string {
@@ -40,6 +41,13 @@ export class PaymentConfigService {
       duitkuCallbackUrl: null,
       duitkuReturnUrl: null,
       duitkuExpiryMinutes: 10,
+      payhookEnabled: false,
+      payhookEnv: 'sandbox',
+      payhookApiKey: null,
+      payhookSecretKey: null,
+      payhookPartnerCode: null,
+      payhookCallbackUrl: null,
+      payhookDefaultMethod: 'QRIS',
     };
 
     try {
@@ -65,7 +73,11 @@ export class PaymentConfigService {
     const row = await this.getConfig();
 
     if (data.defaultProvider !== undefined) {
-      if (data.defaultProvider === 'midtrans' || data.defaultProvider === 'duitku') {
+      if (
+        data.defaultProvider === 'midtrans' ||
+        data.defaultProvider === 'duitku' ||
+        data.defaultProvider === 'payhook'
+      ) {
         row.defaultProvider = data.defaultProvider;
       }
     }
@@ -98,6 +110,24 @@ export class PaymentConfigService {
       if (!isNaN(mins)) row.duitkuExpiryMinutes = Math.min(60, Math.max(10, Math.round(mins)));
     }
 
+    if (data.payhookEnabled !== undefined) row.payhookEnabled = !!data.payhookEnabled;
+    if (data.payhookEnv !== undefined) {
+      row.payhookEnv = data.payhookEnv === 'production' ? 'production' : 'sandbox';
+    }
+    if (data.payhookApiKey !== undefined && !String(data.payhookApiKey).includes('****')) {
+      row.payhookApiKey = data.payhookApiKey;
+    }
+    if (data.payhookSecretKey !== undefined && !String(data.payhookSecretKey).includes('****')) {
+      row.payhookSecretKey = data.payhookSecretKey;
+    }
+    if (data.payhookPartnerCode !== undefined && !String(data.payhookPartnerCode).includes('****')) {
+      row.payhookPartnerCode = data.payhookPartnerCode;
+    }
+    if (data.payhookCallbackUrl !== undefined) row.payhookCallbackUrl = data.payhookCallbackUrl;
+    if (data.payhookDefaultMethod !== undefined) {
+      row.payhookDefaultMethod = data.payhookDefaultMethod || 'QRIS';
+    }
+
     const saved = await this.configRepo.save(row);
     this.logger.log('Payment gateway config updated');
     return saved;
@@ -122,6 +152,16 @@ export class PaymentConfigService {
       duitkuCallbackUrl: c.duitkuCallbackUrl || '',
       duitkuReturnUrl: c.duitkuReturnUrl || '',
       duitkuExpiryMinutes: c.duitkuExpiryMinutes,
+      payhookEnabled: c.payhookEnabled,
+      payhookEnv: c.payhookEnv,
+      payhookApiKey: mask(c.payhookApiKey),
+      payhookSecretKey: mask(c.payhookSecretKey),
+      payhookHasApiKey: !!c.payhookApiKey,
+      payhookHasSecretKey: !!c.payhookSecretKey,
+      payhookPartnerCode: mask(c.payhookPartnerCode),
+      payhookHasPartnerCode: !!c.payhookPartnerCode,
+      payhookCallbackUrl: c.payhookCallbackUrl || '',
+      payhookDefaultMethod: c.payhookDefaultMethod || 'QRIS',
     };
   }
 
@@ -146,6 +186,20 @@ export class PaymentConfigService {
       callbackUrl: c.duitkuCallbackUrl || '',
       returnUrl: c.duitkuReturnUrl || '',
       defaultExpiryMinutes: c.duitkuExpiryMinutes || 10,
+    };
+  }
+
+/** Options object for PayhookModule.forRootAsync — reads from DB only. */
+  async getPayhookOptions(): Promise<PayhookModuleOptions> {
+    const c = await this.getConfig();
+    const method = c.payhookDefaultMethod || 'QRIS';
+    return {
+      apiKey: c.payhookApiKey || '',
+      secretKey: c.payhookSecretKey || '',
+      partnerCode: c.payhookPartnerCode || '',
+      env: c.payhookEnv === 'production' ? 'production' : 'sandbox',
+      callbackUrl: c.payhookCallbackUrl || '',
+      defaultMethod: method as 'QRIS' | 'gopay',
     };
   }
 }

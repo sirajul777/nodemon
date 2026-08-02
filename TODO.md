@@ -36,3 +36,38 @@
 - [x] Reseller login → 403 on users/billing/report; allowed on voucher/manageReseller; sessions list filtered properly
 - [x] Test user cleaned up; no stray processes left
 
+---
+
+# PayHook Payment Gateway Integration — DONE
+
+## New module (src/payment/payhook/) — mirrors midtrans/duitku conventions
+- [x] `payhook.constants.ts` — module token, base URLs (sandbox/production), endpoints, QRIS method enum, status/purpose/event enums
+- [x] `interfaces/payhook-module-options.interface.ts` — options + async options factory
+- [x] `dto/create-payment.dto.ts` — purpose, referenceId, amount, productDetails, customer
+- [x] `dto/payhook-callback.dto.ts` — order_id, status, signature, amount, reference
+- [x] `entities/payment-transaction.entity.ts` — SQLite-compatible `payhook_payment_transactions` table
+- [x] `events/payment-status-changed.event.ts` — emitted on paid/failed
+- [x] `payhook.util.ts` — HMAC-SHA256 signature builder, order-id generator
+- [x] `payhook.service.ts` — create QRIS payment, check status, verify+handle callback, emit events
+- [x] `payhook.controller.ts` — `/payments/payhook` (POST create), `/payments/payhook/callback` (POST), `/payments/payhook/status/:orderId` (GET)
+- [x] `payhook.module.ts` — forRoot/forRootAsync, HttpModule + TypeORM forFeature
+
+## Wiring into existing payment system
+- [x] `payment-config.entity.ts` — added payhookEnabled/Env/ApiKey/SecretKey/PartnerCode/CallbackUrl/DefaultMethod columns
+- [x] `payment-config.service.ts` — getConfig defaults, saveConfig (masked-secret safe), getConfigMasked, getPayhookOptions()
+- [x] `payment.module.ts` — import PayhookModule.forRootAsync + PayhookPaymentTransaction in forFeature
+- [x] `payment.service.ts` — unified list/stats/getTransaction + getPaymentMethods includes payhook; byGateway.payhook in stats
+- [x] `payment.controller.ts` — payhook create-test + check-status branches
+- [x] `payment-status.listener.ts` — PAYHOOK_EVENTS.PAID → mark billing invoice paid; PAYHOOK_EVENTS.FAILED → log
+- [x] `seed.service.ts` — seed payhook defaults (disabled, sandbox, QRIS)
+
+## UI
+- [x] `views/page/payment/settings.eta` — PayHook gateway section (toggle, env, API/Secret keys, partner code, callback URL, method QRIS) + default provider + test-gateway options
+- [x] `public/assets/app.js` — loadPaymentSettings/savePaymentSettings handle payhook fields; payments table + detail show PayHook badge
+
+## Verification
+- [x] Clean `npm run build` (nest build) succeeds
+- [x] App boots — PayhookModule initialized, routes `/payments/payhook`, `/payments/payhook/callback`, `/payments/payhook/status/:orderId` mapped
+- [x] `/api/payments/config` exposes payhook config (masked secrets, has-key flags, default QRIS)
+- [x] `/api/payments/stats` includes `byGateway.payhook`
+
