@@ -3,9 +3,13 @@ import { VoucherBatchService, VoucherBatch, VoucherItem } from './voucher-batch.
 import { MikrotikService } from '../mikrotik/mikrotik.service';
 import { ConfigService } from '../config/config.service';
 import { AuthGuard } from '../auth/auth.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermission } from '../auth/permissions.decorator';
 
 @Controller('api/batches')
 @UseGuards(AuthGuard)
+@UseGuards(PermissionsGuard)
+@RequirePermission('manageVoucher')
 export class VoucherBatchController {
   constructor(
     private readonly batchService: VoucherBatchService,

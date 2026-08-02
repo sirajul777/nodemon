@@ -3,9 +3,12 @@ import { MikrotikService } from './mikrotik.service';
 import { ConfigService } from '../config/config.service';
 import { ProfileMetaService } from '../database/profile-meta.service';
 import { AuthGuard } from '../auth/auth.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermission } from '../auth/permissions.decorator';
 
 @Controller('api/mikrotik')
 @UseGuards(AuthGuard)
+@UseGuards(PermissionsGuard)
 export class MikrotikController {
   constructor(
     private readonly mikrotikService: MikrotikService,
@@ -117,6 +120,7 @@ export class MikrotikController {
   // ── Connection test ───────────────────────────────────────────────────────────
 
   @Get(':session/connect/test')
+  @RequirePermission('viewDashboard')
   async testConnect(@Param('session') session: string) {
     try {
       const { ip, user, password, port } = await this.getConn(session);
@@ -142,6 +146,7 @@ export class MikrotikController {
   // ── Dashboard ─────────────────────────────────────────────────────────────────
 
   @Get(':session/dashboard')
+  @RequirePermission('viewDashboard')
   async dashboard(@Param('session') session: string) {
     const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
@@ -173,6 +178,7 @@ export class MikrotikController {
   // ── Hotspot Users ─────────────────────────────────────────────────────────────
 
   @Get(':session/hotspot/active')
+  @RequirePermission('viewDashboard')
   async hotspotActive(@Param('session') session: string, @Query('server') server?: string) {
     const { ip, user, password, port } = await this.getConn(session);
     const params: Record<string, string> = {};
@@ -181,6 +187,7 @@ export class MikrotikController {
   }
 
   @Get(':session/hotspot/users')
+  @RequirePermission('viewDashboard')
   async hotspotUsers(
     @Param('session') session: string,
     @Query('profile') profile?: string,
@@ -194,6 +201,7 @@ export class MikrotikController {
   }
 
   @Post(':session/hotspot/users')
+  @RequirePermission('manageHotspot')
   async addHotspotUser(@Param('session') session: string, @Body() body: any) {
     const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
@@ -211,6 +219,7 @@ export class MikrotikController {
   }
 
   @Delete(':session/hotspot/users/:name')
+  @RequirePermission('manageHotspot')
   async removeHotspotUser(@Param('session') session: string, @Param('name') name: string) {
     const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
@@ -222,6 +231,7 @@ export class MikrotikController {
   }
 
   @Post(':session/hotspot/users/bulk-delete')
+  @RequirePermission('manageHotspot')
   async bulkRemoveHotspotUsers(@Param('session') session: string, @Body() body: { names: string[] }) {
     const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
@@ -237,6 +247,7 @@ export class MikrotikController {
   // ── Hotspot Profiles ──────────────────────────────────────────────────────────
 
   @Get(':session/hotspot/profiles')
+  @RequirePermission('viewDashboard')
   async hotspotProfiles(@Param('session') session: string) {
     const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
@@ -255,6 +266,7 @@ export class MikrotikController {
   }
 
   @Get(':session/hotspot/profiles/:name')
+  @RequirePermission('viewDashboard')
   async getProfile(@Param('session') session: string, @Param('name') name: string) {
     const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
@@ -266,6 +278,7 @@ export class MikrotikController {
   }
 
   @Post(':session/hotspot/profiles')
+  @RequirePermission('manageHotspot')
   async addProfile(@Param('session') session: string, @Body() body: any) {
     const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
@@ -302,6 +315,7 @@ export class MikrotikController {
   }
 
   @Put(':session/hotspot/profiles/:name')
+  @RequirePermission('manageHotspot')
   async editProfile(@Param('session') session: string, @Param('name') name: string, @Body() body: any) {
     const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);
@@ -420,6 +434,7 @@ export class MikrotikController {
   }
 
   @Delete(':session/hotspot/profiles/:name')
+  @RequirePermission('manageHotspot')
   async deleteProfile(@Param('session') session: string, @Param('name') name: string) {
     const { ip, user, password, port } = await this.getConn(session);
     const client = await this.mikrotikService.createClient(ip, user, password, port);

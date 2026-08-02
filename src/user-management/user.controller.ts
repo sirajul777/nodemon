@@ -1,9 +1,13 @@
 import { Controller, Get, Post, Put, Delete, Patch, Param, Body, Req, UseGuards } from '@nestjs/common';
 import { UserService, UserRole } from './user.service';
 import { AuthGuard } from '../auth/auth.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermission } from '../auth/permissions.decorator';
 
 @Controller('api/users')
 @UseGuards(AuthGuard)
+@UseGuards(PermissionsGuard)
+@RequirePermission('manageSystem')
 export class UserController {
   constructor(
     private readonly userSvc: UserService,

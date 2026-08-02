@@ -228,9 +228,8 @@ async function checkAuth() {
       document.getElementById("tb-av").textContent = dispName[0].toUpperCase();
 
       // Terapkan isolasi menu berdasarkan role/permission
-      if (d.role && d.role !== "admin") {
-        applyRoleNav(d.role, d.permissions);
-      }
+      // Dipanggil untuk SEMUA role (termasuk admin) agar reset menu selalu terjadi
+      applyRoleNav(d.role, d.permissions);
 
       // Restore last session and page
       CS = localStorage.getItem("mikhmon_cs") || "";
@@ -256,7 +255,18 @@ async function checkAuth() {
 }
 
 function applyRoleNav(role, perms) {
-  if (!perms) return;
+  // SELALU reset semua menu ke terlihat dulu — mencegah sidebar "bekas" menempel
+  // saat pindah user (misal reseller logout → admin login)
+  document.querySelectorAll("nav a").forEach((a) => {
+    a.style.display = "";
+  });
+  document.querySelectorAll(".sb-section").forEach((sec) => {
+    sec.style.display = "block";
+  });
+
+  // Admin mendapat semua menu
+  if (!role || role === "admin") return;
+
   // Mapping permission key ke ID element nav
   const map = {
     viewDashboard: "nav-dashboard",
@@ -266,26 +276,26 @@ function applyRoleNav(role, perms) {
       "nav-batch-list",
       "nav-voucher-settings"
     ],
-    manageBilling: ["nav-billing", "nav-invoices"],
+    manageBilling: ["nav-billing", "nav-invoices", "nav-payments"],
+    manageReseller: ["nav-tg-reseller"],
     managePppoe: ["nav-ppp-active", "nav-ppp-users", "nav-ppp-profiles"],
     manageHotspot: ["nav-hs-active", "nav-hs-users", "nav-hs-profiles"],
     viewReport: ["nav-selling", "nav-resume", "nav-live"],
-    manageSystem: ["nav-user-management", "nav-sessions", "nav-mobile-api"]
+    manageSystem: [
+      "nav-user-management",
+      "nav-sessions",
+      "nav-mobile-api",
+      "nav-payment-settings",
+      "nav-tg-tools"
+    ]
   };
 
   Object.keys(map).forEach((k) => {
     const ids = Array.isArray(map[k]) ? map[k] : [map[k]];
-    const show = perms[k] === true;
+    const show = perms && perms[k] === true;
     ids.forEach((id) => {
       const el = document.getElementById(id);
-      if (el) {
-        el.style.display = show ? "flex" : "none";
-        // Sembunyikan sb-section jika semua item di bawahnya sembunyi
-        const prev = el.previousElementSibling;
-        if (prev && prev.classList.contains("sb-section") && !show) {
-          // Logika sederhana: cek sibling selanjutnya, jika semuanya tersembunyi, sembunyikan section
-        }
-      }
+      if (el) el.style.display = show ? "" : "none";
     });
   });
 
@@ -320,7 +330,7 @@ async function doLogin() {
     const dispName = d.username || "Admin";
     document.getElementById("tb-un").textContent = dispName;
     document.getElementById("tb-av").textContent = dispName[0].toUpperCase();
-    if (d.role && d.role !== "admin") applyRoleNav(d.role, d.permissions);
+    applyRoleNav(d.role, d.permissions);
 
     await loadSessions();
     const lastPg =
@@ -377,6 +387,8 @@ const PN = {
   "user-management": "User Management",
   "change-password": "Ganti Password",
   "mobile-api": "Mobile API Docs",
+  payments: "Transaksi Pembayaran",
+  "payment-settings": "Payment Settings",
   sessions: "Sessions"
 };
 
@@ -444,6 +456,14 @@ function loadPage(pg) {
   }
   if (pg === "billing") {
     loadBilling();
+    return;
+  }
+  if (pg === "payments") {
+    loadPayments();
+    return;
+  }
+  if (pg === "payment-settings") {
+    loadPaymentSettings();
     return;
   }
   if (!CS) return;
@@ -5850,4 +5870,266 @@ function cleanPhoneNumber(phone) {
     )
     .replace(/[\s\-().]/g, "")
     .trim();
+}
+
+// ════════════════════════════════════════════════
+// PAYMENTS — unified gateway management
+// ════════════════════════════════════════════════
+let currentPayment = null; // { gateway, orderId }
+
+const P_STATUS_BADGE = {
+  pending: '<span class="badge b-yl">Pending</span>',
+  paid: '<span class="badge b-gr">Lunas</span>',
+  failed: '<span class="badge b-rd">Gagal</span>',
+  expired: '<span class="badge b-mu">Kadaluarsa</span>'
+};
+const P_PURPOSE_LABEL = {
+  billing_invoice: "Tagihan",
+  voucher_purchase: "Voucher",
+  reseller_topup: "Topup Reseller",
+  other: "Lainnya"
+};
+
+async function loadPayments() {
+  const gateway = document.getElementById("pm-gateway-filter")?.value || "";
+  const status = document.getElementById("pm-status-filter")?.value || "";
+  let q = "";
+  if (gateway) q += `&gateway=${gateway}`;
+  if (status) q += `&status=${status}`;
+
+  const [list, stats] = await Promise.all([
+    req(`/payments?limit=100${q}`),
+    req("/payments/stats")
+  ]);
+
+  // Stats
+  if (stats) {
+    const pendingEl = document.getElementById("pm-pending");
+    const paidEl = document.getElementById("pm-paid");
+    const failedEl = document.getElementById("pm-failed");
+    const todayEl = document.getElementById("pm-today-inc");
+    if (pendingEl) pendingEl.textContent = stats.pending || 0;
+    if (paidEl) paidEl.textContent = stats.paid || 0;
+    if (failedEl)
+      failedEl.textContent = (stats.failed || 0) + (stats.expired || 0);
+    if (todayEl)
+      todayEl.textContent =
+        "Rp " + Math.round(stats.todayIncome || 0).toLocaleString("id-ID");
+  }
+
+  const tb = document.getElementById("t-payments");
+  if (!tb) return;
+  const txs = list?.transactions || [];
+  tb.innerHTML = txs.length
+    ? txs
+        .map((t) => {
+          const gwBadge =
+            t.gateway === "midtrans"
+              ? '<span class="badge b-bl">Midtrans</span>'
+              : '<span class="badge b-pu">Duitku</span>';
+          return `<tr>
+      <td>${gwBadge}</td>
+      <td><code style="font-size:.76rem">${t.orderId}</code></td>
+      <td>${P_PURPOSE_LABEL[t.purpose] || t.purpose}</td>
+      <td><code style="font-size:.76rem">${t.referenceId}</code></td>
+      <td style="text-align:right;font-weight:600;color:var(--green)">Rp ${Math.round(t.amount || 0).toLocaleString("id-ID")}</td>
+      <td>${t.method || "—"}</td>
+      <td>${P_STATUS_BADGE[t.status] || t.status}</td>
+      <td style="font-size:.76rem;color:var(--muted)">${t.createdAt ? new Date(t.createdAt).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" }) : "—"}</td>
+      <td><button class="btn b-s b-sm" onclick="showPaymentDetail('${t.gateway}','${t.orderId}')"><i class="fa fa-eye"></i></button></td>
+    </tr>`;
+        })
+        .join("")
+    : '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:24px">Belum ada transaksi pembayaran</td></tr>';
+}
+
+async function showPaymentDetail(gateway, orderId) {
+  currentPayment = { gateway, orderId };
+  const d = await req(`/payments/${gateway}/${orderId}`);
+  if (!d?.success || !d.transaction) {
+    toast("Transaksi tidak ditemukan", true);
+    return;
+  }
+  const t = d.transaction;
+  const body = document.getElementById("pmd-body");
+  if (!body) return;
+
+  const row = (k, v) =>
+    `<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">${k}</span><b style="text-align:right">${v || "—"}</b></div>`;
+
+  body.innerHTML = `
+    <div style="background:var(--card2);border-radius:8px;padding:10px 12px;margin-bottom:10px">
+      ${row("Gateway", t.gateway === "midtrans" ? "Midtrans" : "Duitku")}
+      ${row("Order ID", `<code>${t.orderId}</code>`)}
+      ${row("Keperluan", P_PURPOSE_LABEL[t.purpose] || t.purpose)}
+      ${row("Referensi", `<code>${t.referenceId}</code>`)}
+      ${row("Nominal", "Rp " + Math.round(t.amount || 0).toLocaleString("id-ID"))}
+      ${row("Status", P_STATUS_BADGE[t.status] || t.status)}
+      ${row("Metode", t.method || "—")}
+      ${row("Dibuat", t.createdAt ? new Date(t.createdAt).toLocaleString("id-ID") : "—")}
+      ${row("Dibayar", t.paidAt ? new Date(t.paidAt).toLocaleString("id-ID") : "—")}
+    </div>
+    <div style="background:var(--card2);border-radius:8px;padding:10px 12px;font-size:.78rem;overflow-x:auto">
+      <div style="color:var(--muted);margin-bottom:5px">Raw payload:</div>
+      <pre style="font-size:.7rem;max-height:140px;overflow-y:auto;white-space:pre-wrap">${JSON.stringify(t.rawPayload || {}, null, 2)}</pre>
+    </div>`;
+  document.getElementById("m-payment-detail").classList.add("show");
+}
+
+async function checkPaymentStatusNow() {
+  if (!currentPayment) return;
+  const btn = document.getElementById("pmd-check-btn");
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Checking...';
+  }
+  const d = await fetch(
+    `${API}/payments/${currentPayment.gateway}/${currentPayment.orderId}/check`,
+    { method: "POST", credentials: "include" }
+  ).then((r) => r.json());
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa fa-refresh"></i> Check Status';
+  }
+  if (d?.success) {
+    toast(`Status: ${d.status}`);
+    // Refresh detail + list
+    showPaymentDetail(currentPayment.gateway, currentPayment.orderId);
+    loadPayments();
+  } else {
+    toast("Gagal check status: " + (d?.error || "error"), true);
+  }
+}
+
+// ── Payment Settings ──────────────────────────────────────────
+async function loadPaymentSettings() {
+  const d = await req("/payments/config");
+  if (!d?.success) {
+    toast("Gagal memuat konfigurasi", true);
+    return;
+  }
+  const c = d.config || {};
+
+  const errEl = document.getElementById("ps-err");
+  if (errEl) errEl.textContent = "";
+
+  const setVal = (id, v) => {
+    const el = document.getElementById(id);
+    if (el) el.value = v ?? "";
+  };
+  const setChecked = (id, v) => {
+    const el = document.getElementById(id);
+    if (el) el.checked = !!v;
+  };
+  const setStatus = (id, enabled) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.textContent = enabled ? "Aktif" : "Nonaktif";
+      el.className = "badge " + (enabled ? "b-gr" : "b-mu");
+    }
+  };
+
+  setVal("ps-default", c.defaultProvider || "duitku");
+
+  setChecked("ps-duitku-enabled", c.duitkuEnabled);
+  setVal("ps-duitku-env", c.duitkuEnv || "sandbox");
+  setVal("ps-duitku-merchant", c.duitkuMerchantCode || "");
+  setVal("ps-duitku-apikey", c.duitkuApiKey || "");
+  setVal("ps-duitku-callback", c.duitkuCallbackUrl || "");
+  setVal("ps-duitku-return", c.duitkuReturnUrl || "");
+  setVal("ps-duitku-expiry", c.duitkuExpiryMinutes || 10);
+  setStatus("ps-duitku-status", c.duitkuEnabled);
+
+  setChecked("ps-midtrans-enabled", c.midtransEnabled);
+  setVal("ps-midtrans-env", c.midtransEnv || "sandbox");
+  setVal("ps-midtrans-server", c.midtransServerKey || "");
+  setVal("ps-midtrans-client", c.midtransClientKey || "");
+  setStatus("ps-midtrans-status", c.midtransEnabled);
+}
+
+async function savePaymentSettings() {
+  const body = {
+    defaultProvider: document.getElementById("ps-default")?.value || "duitku",
+    duitkuEnabled:
+      document.getElementById("ps-duitku-enabled")?.checked || false,
+    duitkuEnv:
+      document.getElementById("ps-duitku-env")?.value || "sandbox",
+    duitkuMerchantCode: document.getElementById("ps-duitku-merchant")?.value || "",
+    duitkuApiKey: document.getElementById("ps-duitku-apikey")?.value || "",
+    duitkuCallbackUrl:
+      document.getElementById("ps-duitku-callback")?.value || "",
+    duitkuReturnUrl: document.getElementById("ps-duitku-return")?.value || "",
+    duitkuExpiryMinutes:
+      Number(document.getElementById("ps-duitku-expiry")?.value) || 10,
+    midtransEnabled:
+      document.getElementById("ps-midtrans-enabled")?.checked || false,
+    midtransEnv:
+      document.getElementById("ps-midtrans-env")?.value || "sandbox",
+    midtransServerKey:
+      document.getElementById("ps-midtrans-server")?.value || "",
+    midtransClientKey:
+      document.getElementById("ps-midtrans-client")?.value || ""
+  };
+
+  showL();
+  try {
+    const d = await fetch(`${API}/payments/config`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    }).then((r) => r.json());
+    if (d?.success) {
+      toast("✓ Konfigurasi payment tersimpan!");
+      loadPaymentSettings();
+    } else {
+      toast("Gagal menyimpan: " + (d?.error || "error"), true);
+    }
+  } catch (e) {
+    toast("Error: " + e.message, true);
+  } finally {
+    hideL();
+  }
+}
+
+async function testPayment() {
+  const amount = Number(document.getElementById("ps-test-amount")?.value) || 10000;
+  const gateway = document.getElementById("ps-test-gateway")?.value || "";
+  const resultEl = document.getElementById("ps-test-result");
+  if (resultEl) {
+    resultEl.innerHTML =
+      '<i class="fa fa-spinner fa-spin"></i> Membuat transaksi uji...';
+  }
+  showL();
+  try {
+    const d = await fetch(`${API}/payments/test`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount, gateway })
+    }).then((r) => r.json());
+    if (resultEl) {
+      if (d?.success) {
+        let html =
+          `<div style="background:var(--card2);border-radius:8px;padding:12px;font-size:.8rem">` +
+          `<div style="font-weight:600;margin-bottom:6px"><i class="fa fa-check-circle" style="color:var(--green)"></i> Transaksi dibuat (${gateway || "default"})</div>` +
+          `<div>Order ID: <code>${d.orderId || d.merchantOrderId || "—"}</code></div>` +
+          `<div>Nominal: <b style="color:var(--green)">Rp ${Math.round(d.amount || 0).toLocaleString("id-ID")}</b></div>`;
+        if (d.qrCodeUrl)
+          html += `<div style="margin-top:8px"><img src="${d.qrCodeUrl}" alt="QRIS" style="max-width:220px;width:100%;border-radius:8px;background:#fff;padding:8px" /></div>`;
+        if (d.paymentUrl)
+          html += `<div style="margin-top:8px"><a class="btn b-p" href="${d.paymentUrl}" target="_blank" style="display:inline-block">Buka Halaman Pembayaran</a></div>`;
+        html += "</div>";
+        resultEl.innerHTML = html;
+      } else {
+        resultEl.innerHTML = `<span style="color:var(--red)">✗ ${d?.error || "Gagal membuat transaksi"}</span>`;
+      }
+    }
+    loadPayments();
+  } catch (e) {
+    if (resultEl)
+      resultEl.innerHTML = `<span style="color:var(--red)">✗ Error: ${e.message}</span>`;
+  } finally {
+    hideL();
+  }
 }

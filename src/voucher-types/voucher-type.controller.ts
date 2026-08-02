@@ -1,9 +1,13 @@
 import { Controller, Get, Post, Put, Delete, Patch, Param, Body, UseGuards } from '@nestjs/common';
 import { VoucherTypeService, VoucherType } from './voucher-type.service';
 import { AuthGuard } from '../auth/auth.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermission } from '../auth/permissions.decorator';
 
 @Controller('api/voucher-types')
 @UseGuards(AuthGuard)
+@UseGuards(PermissionsGuard)
+@RequirePermission('manageVoucher')
 export class VoucherTypeController {
   constructor(private readonly vtService: VoucherTypeService) {}
 

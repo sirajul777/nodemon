@@ -1,9 +1,13 @@
 import { Controller, Get, Post, Put, Delete, Patch, Param, Body, UseGuards } from '@nestjs/common';
 import { BotResellerService, BotReseller } from './bot-reseller.service';
 import { AuthGuard } from '../auth/auth.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermission } from '../auth/permissions.decorator';
 
 @Controller('api/bot-resellers')
 @UseGuards(AuthGuard)
+@UseGuards(PermissionsGuard)
+@RequirePermission('manageReseller')
 export class BotResellerController {
   constructor(private readonly svc: BotResellerService) {}
 

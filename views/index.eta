@@ -71,6 +71,12 @@
         <!-- ══ INVOICES ══ -->
 <%~ include("./page/billing/invoice") %>
 
+        <!-- ══ PAYMENT MANAGE ══ -->
+<%~ include("./page/payment/manage") %>
+
+        <!-- ══ PAYMENT SETTINGS ══ -->
+<%~ include("./page/payment/settings") %>
+
         <!-- ══ BOT RESELLER ══ -->
 
         <!-- ══ SESSIONS ══ -->

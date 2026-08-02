@@ -1,0 +1,82 @@
+  <div class="page" id="page-payment-manage">
+    <div class="grid g4" style="margin-bottom: 14px">
+      <div class="sbc c-yellow" style="padding: 12px">
+        <div>
+          <div class="sbc-val" id="pm-pending" style="font-size: 1.25rem">0</div>
+          <div class="sbc-lbl">Pending</div>
+        </div>
+      </div>
+      <div class="sbc c-green" style="padding: 12px">
+        <div>
+          <div class="sbc-val" id="pm-paid" style="font-size: 1.25rem">0</div>
+          <div class="sbc-lbl">Lunas</div>
+        </div>
+      </div>
+      <div class="sbc c-red" style="padding: 12px">
+        <div>
+          <div class="sbc-val" id="pm-failed" style="font-size: 1.25rem">0</div>
+          <div class="sbc-lbl">Gagal / Kadaluarsa</div>
+        </div>
+      </div>
+      <div class="sbc c-cyan" style="padding: 12px">
+        <div>
+          <div class="sbc-val" id="pm-today-inc" style="font-size: 0.9rem; padding-top: 5px">Rp 0</div>
+          <div class="sbc-lbl">Pemasukan Hari Ini</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd" style="flex-wrap: wrap; gap: 8px">
+        <span><i class="fa fa-credit-card"></i> Transaksi Pembayaran</span>
+        <div class="ml" style="display: flex; gap: 7px; flex-wrap: wrap">
+          <select id="pm-gateway-filter" onchange="loadPayments()" style="max-width: 130px">
+            <option value="">Semua Gateway</option>
+            <option value="midtrans">Midtrans</option>
+            <option value="duitku">Duitku</option>
+          </select>
+          <select id="pm-status-filter" onchange="loadPayments()" style="max-width: 130px">
+            <option value="">Semua Status</option>
+            <option value="pending">Pending</option>
+            <option value="paid">Lunas</option>
+            <option value="failed">Gagal</option>
+            <option value="expired">Kadaluarsa</option>
+          </select>
+          <button class="btn b-s b-sm" onclick="loadPayments()"><i class="fa fa-refresh"></i> Muat Ulang</button>
+        </div>
+      </div>
+      <div style="overflow-x: auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Gateway</th>
+              <th>Order ID</th>
+              <th>Keperluan</th>
+              <th>Referensi</th>
+              <th style="text-align: right">Nominal</th>
+              <th>Metode</th>
+              <th>Status</th>
+              <th>Waktu Dibuat</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="t-payments"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Transaction detail modal -->
+    <div class="ov" id="m-payment-detail">
+      <div class="modal" style="width: 640px; max-height: 90vh; overflow-y: auto">
+        <h3><i class="fa fa-credit-card"></i> Detail Transaksi</h3>
+        <div id="pmd-body" style="font-size: 0.82rem"></div>
+        <div class="mfoot">
+          <button class="btn b-s" onclick="closeM('m-payment-detail')">Tutup</button>
+          <button class="btn b-p" id="pmd-check-btn" onclick="checkPaymentStatusNow()">
+            <i class="fa fa-refresh"></i> Check Status
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+

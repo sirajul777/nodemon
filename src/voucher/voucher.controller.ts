@@ -1,10 +1,14 @@
 import { Controller, Get, Post, Body, Param, UseGuards, Res } from '@nestjs/common';
 import { VoucherService, VoucherBatchRequest } from './voucher.service';
 import { AuthGuard } from '../auth/auth.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermission } from '../auth/permissions.decorator';
 import { Response } from 'express';
 
 @Controller('api/voucher')
 @UseGuards(AuthGuard)
+@UseGuards(PermissionsGuard)
+@RequirePermission('manageVoucher')
 export class VoucherController {
   constructor(private readonly voucherService: VoucherService) {}
 

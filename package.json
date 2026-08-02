@@ -17,6 +17,7 @@
     "@nestjs/serve-static": "^4.0.0",
     "@nestjs/typeorm": "^11.0.3",
     "@types/session-file-store": "^1.2.6",
+    "axios": "^1.19.0",
     "bcrypt": "^6.0.0",
     "better-sqlite3": "^12.11.1",
     "class-transformer": "^0.5.1",

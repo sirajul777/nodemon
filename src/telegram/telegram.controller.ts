@@ -14,8 +14,12 @@ import { ConfigService } from "../config/config.service";
 import { VoucherTypeService } from "../voucher-types/voucher-type.service";
 import { BotResellerService } from "../reseller-bot/bot-reseller.service";
 import { AuthGuard } from "../auth/auth.guard";
+import { PermissionsGuard } from "../auth/permissions.guard";
+import { RequirePermission } from "../auth/permissions.decorator";
 
 @Controller("api/telegram")
+@UseGuards(PermissionsGuard)
+@RequirePermission("manageSystem")
 export class TelegramController implements OnModuleInit {
   constructor(
     private readonly telegramService: TelegramService,

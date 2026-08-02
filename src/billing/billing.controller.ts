@@ -14,9 +14,13 @@ import { BillingService, BillingCustomer } from "./billing.service";
 import { MikrotikService } from "../mikrotik/mikrotik.service";
 import { ConfigService } from "../config/config.service";
 import { AuthGuard } from "../auth/auth.guard";
+import { PermissionsGuard } from "../auth/permissions.guard";
+import { RequirePermission } from "../auth/permissions.decorator";
 
 @Controller("api/billing")
 @UseGuards(AuthGuard)
+@UseGuards(PermissionsGuard)
+@RequirePermission("manageBilling")
 export class BillingController {
   private telegramSvc: any = null;
   setTelegramService(tg: any) {

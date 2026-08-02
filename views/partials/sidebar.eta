@@ -136,6 +136,15 @@
     <a href="#" onclick="go('invoices')" id="nav-invoices"
       ><i class="fa fa-list-alt"></i> Tagihan / Invoice</a
     >
+
+    <div class="sb-section">Pembayaran</div>
+    <a href="#" onclick="go('payments')" id="nav-payments"
+      ><i class="fa fa-credit-card"></i> Transaksi Pembayaran</a
+    >
+    <a href="#" onclick="go('payment-settings')" id="nav-payment-settings"
+      ><i class="fa fa-cog"></i> Payment Settings</a
+    >
+
     <div class="sb-section">System</div>
     <a href="#" onclick="go('user-management')" id="nav-user-management"
       ><i class="fa fa-users-cog fa-users"></i> User Management</a

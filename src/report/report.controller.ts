@@ -1,9 +1,13 @@
 import { Controller, Get, Delete, Param, Query, UseGuards } from '@nestjs/common';
 import { ReportService } from './report.service';
 import { AuthGuard } from '../auth/auth.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermission } from '../auth/permissions.decorator';
 
 @Controller('api/report')
 @UseGuards(AuthGuard)
+@UseGuards(PermissionsGuard)
+@RequirePermission('viewReport')
 export class ReportController {
   constructor(private readonly reportService: ReportService) {}
 

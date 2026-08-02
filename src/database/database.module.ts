@@ -1,6 +1,23 @@
 import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
+import { DatabaseSeedService } from './seed.service';
+import { AppConfigEntity } from './entities/config.entity';
+import { RouterSessionEntity } from './entities/router-session.entity';
+import { UserEntity } from './entities/user.entity';
+import { ResellerEntity } from './entities/reseller.entity';
+import { BillingCustomerEntity } from './entities/billing-customer.entity';
+import { InvoiceEntity } from './entities/invoice.entity';
+import { SettlementEntity } from './entities/settlement.entity';
+import { VoucherBatchEntity } from './entities/voucher-batch.entity';
+import { VoucherTypeEntity } from './entities/voucher-type.entity';
+import { BotResellerEntity } from './entities/bot-reseller.entity';
+import { TopupLogEntity } from './entities/topup-log.entity';
+import { MobileTokenEntity } from './entities/mobile-token.entity';
+import { TelegramConfigEntity } from './entities/telegram-config.entity';
+import { TopupRequestEntity } from './entities/topup-request.entity';
+import { ProfileMetaEntity } from './entities/profile-meta.entity';
+import { PaymentConfigEntity } from '../payment/payment-config.entity';
 
 @Global()
 @Module({
@@ -29,8 +46,27 @@ import { join } from 'path';
         };
       },
     }),
+    TypeOrmModule.forFeature([
+      AppConfigEntity,
+      RouterSessionEntity,
+      UserEntity,
+      ResellerEntity,
+      BillingCustomerEntity,
+      InvoiceEntity,
+      SettlementEntity,
+      VoucherBatchEntity,
+      VoucherTypeEntity,
+      BotResellerEntity,
+      TopupLogEntity,
+      MobileTokenEntity,
+      TelegramConfigEntity,
+      TopupRequestEntity,
+      ProfileMetaEntity,
+      PaymentConfigEntity,
+    ]),
   ],
-  exports: [TypeOrmModule],
+  providers: [DatabaseSeedService],
+  exports: [TypeOrmModule, DatabaseSeedService],
 })
 export class DatabaseModule {}
 

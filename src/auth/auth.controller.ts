@@ -27,6 +27,12 @@ export class AuthController {
     (req.session as any).userId = result.id;
     (req.session as any).userRole = result.role;
     (req.session as any).userPerms = result.permissions;
+    // Store which router sessions this user is allowed to access (empty = all)
+    (req.session as any).allowedSessions = Array.isArray(
+      result.allowedSessions
+    )
+      ? result.allowedSessions
+      : [];
 
     req.session.save((err) => {
       if (err)
@@ -61,7 +67,8 @@ export class AuthController {
       authenticated: true,
       username: user,
       role: (req.session as any).userRole || "admin",
-      permissions: (req.session as any).userPerms || null
+      permissions: (req.session as any).userPerms || null,
+      allowedSessions: (req.session as any).allowedSessions || []
     };
   }
 

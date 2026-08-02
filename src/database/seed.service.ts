@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as bcrypt from 'bcrypt';
 
 import { AppConfigEntity } from './entities/config.entity';
 import { RouterSessionEntity } from './entities/router-session.entity';
@@ -19,12 +20,33 @@ import { MobileTokenEntity } from './entities/mobile-token.entity';
 import { TelegramConfigEntity } from './entities/telegram-config.entity';
 import { TopupRequestEntity } from './entities/topup-request.entity';
 import { ProfileMetaEntity } from './entities/profile-meta.entity';
+import { PaymentConfigEntity } from '../payment/payment-config.entity';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 
 @Injectable()
-export class DatabaseSeedService {
+export class DatabaseSeedService implements OnApplicationBootstrap {
   private readonly logger = new Logger(DatabaseSeedService.name);
+
+  /**
+   * Auto-run seeding on every app startup.
+   * - Runs after the DB connection + all modules are initialized.
+   * - Idempotent: every table seeder skips when the target table already has
+   *   rows, so it never overwrites existing data.
+   * - Scans these locations for legacy MikHMon JSON data (drop files there and restart):
+   *   data/config.json, data/users.json, data/resellers.json,
+   *   data/billing/customers.json, data/billing/invoices.json, data/billing/settlements.json,
+   *   data/voucher-types.json, data/batches/*.json, data/bot-resellers.json,
+   *   data/bot-topup-log.json, data/mobile-user-tokens.json, data/topup-requests.json,
+   *   data/profile-meta.json, data/pppoe-profile-meta.json, telegram.json (project root)
+   */
+  async onApplicationBootstrap() {
+    try {
+      await this.seed();
+    } catch (e: any) {
+      this.logger.error(`Seeding failed: ${e.message}`, e.stack);
+    }
+  }
 
   constructor(
     @InjectRepository(AppConfigEntity) private configRepo: Repository<AppConfigEntity>,
@@ -42,6 +64,7 @@ export class DatabaseSeedService {
     @InjectRepository(TelegramConfigEntity) private tgRepo: Repository<TelegramConfigEntity>,
     @InjectRepository(TopupRequestEntity) private topupReqRepo: Repository<TopupRequestEntity>,
     @InjectRepository(ProfileMetaEntity) private metaRepo: Repository<ProfileMetaEntity>,
+    @InjectRepository(PaymentConfigEntity) private payConfigRepo: Repository<PaymentConfigEntity>,
   ) {}
 
   async seed() {
@@ -58,6 +81,7 @@ export class DatabaseSeedService {
     await this.seedTelegramConfig();
     await this.seedTopupRequests();
     await this.seedProfileMeta();
+    await this.seedPaymentConfig();
     this.logger.log('✅ Database seeding complete (JSON → SQLite)');
   }
 
@@ -128,16 +152,45 @@ export class DatabaseSeedService {
   }
 
   // ── 3. Users (users.json) ──────────────────────────────────────
+  // Multi-user table uses bcrypt hashes (see UserService.validate), so any
+  // plain-text passwords from legacy JSON are hashed on import. If no
+  // users.json exists, a default admin (mikhmon / 1234) is created so the
+  // users table is never empty and login works via the multi-user system.
   private async seedUsers() {
-    const users = this.readJSON(path.join(DATA_DIR, 'users.json'));
-    if (!users?.length) return;
     const count = await this.userRepo.count();
     if (count > 0) return;
-    for (const u of users) {
+
+    const imported = this.readJSON(path.join(DATA_DIR, 'users.json'));
+    const list = (Array.isArray(imported) && imported.length
+      ? imported
+      : [{
+          id: 'USR-ADMIN',
+          username: 'mikhmon',
+          password: '1234',
+          name: 'mikhmon',
+          role: 'admin',
+          active: true,
+          allowedSessions: [],
+          permissions: {
+            viewDashboard: true,
+            manageVoucher: true,
+            manageBilling: true,
+            manageReseller: true,
+            managePppoe: true,
+            manageHotspot: true,
+            viewReport: true,
+            manageSystem: true,
+          },
+        }]) as any[];
+
+    for (const u of list) {
+      const plain = String(u.password || '');
+      const isBcrypt = /^\$2[aby]\$\d{2}\$/.test(plain);
+      const passHash = isBcrypt ? plain : await bcrypt.hash(plain, 10);
       await this.userRepo.save({
-        id: u.id,
+        id: u.id || `USR-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         username: u.username,
-        password: u.password,
+        password: passHash,
         name: u.name || u.username,
         role: u.role || 'reseller',
         active: u.active !== false,
@@ -148,7 +201,7 @@ export class DatabaseSeedService {
         note: u.note || null,
       });
     }
-    this.logger.log(`Seeded: ${users.length} users`);
+    this.logger.log(`Seeded: ${list.length} users`);
   }
 
   // ── 4. Resellers (resellers.json) ──────────────────────────────
@@ -433,6 +486,22 @@ export class DatabaseSeedService {
       });
     }
     this.logger.log(`Seeded: ${data.length} topup_requests`);
+  }
+
+  // ── 14. Payment Config ─────────────────────────────────────────
+  private async seedPaymentConfig() {
+    const count = await this.payConfigRepo.count();
+    if (count > 0) return;
+    await this.payConfigRepo.save({
+      key: 'default',
+      defaultProvider: 'duitku',
+      midtransEnabled: false,
+      midtransEnv: 'sandbox',
+      duitkuEnabled: false,
+      duitkuEnv: 'sandbox',
+      duitkuExpiryMinutes: 10,
+    });
+    this.logger.log('Seeded: payment_config');
   }
 
   // ── 13. Profile Meta (hotspot + pppoe) ─────────────────────────

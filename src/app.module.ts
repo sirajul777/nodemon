@@ -16,6 +16,7 @@ import { BotResellerModule } from "./reseller-bot/bot-reseller.module";
 import { BillingModule } from "./billing/billing.module";
 import { MobileApiModule } from "./mobile-api/mobile-api.module";
 import { UserModule } from "./user-management/user.module";
+import { PaymentModule } from "./payment/payment.module";
 import { AuthService } from "./auth/auth.service";
 import { UserService } from "./user-management/user.service";
 import { AppController } from "./app.controller";
@@ -43,7 +44,8 @@ import { DatabaseModule } from "./database/database.module";
     BotResellerModule,
     BillingModule,
     MobileApiModule,
-    UserModule
+    UserModule,
+    PaymentModule
   ],
   controllers: [AppController]
 })

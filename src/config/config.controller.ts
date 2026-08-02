@@ -1,6 +1,8 @@
-import { Controller, Get, Post, Put, Body, Delete, Param, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Delete, Param, UseGuards, Req, ForbiddenException } from '@nestjs/common';
 import { ConfigService, RouterSession } from './config.service';
 import { AuthGuard } from '../auth/auth.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermission } from '../auth/permissions.decorator';
 import { Request } from 'express';
 
 interface RequestWithSession extends Request {
@@ -19,8 +21,9 @@ export class ConfigController {
 
     // Jika bukan admin (misal reseller/collector), filter router yang diizinkan
     if (s.userRole && s.userRole !== 'admin') {
-      const allowed = s.userPerms?.allowedSessions || [];
-      if (allowed && allowed.length > 0) {
+      // allowedSessions now stored directly on the session at login
+      const allowed = s.allowedSessions || [];
+      if (Array.isArray(allowed) && allowed.length > 0) {
         return allSessions
           .filter(sess => allowed.includes(sess.id))
           .map(sess => ({ ...sess, password: '***' }));
@@ -33,13 +36,25 @@ export class ConfigController {
   }
 
   @Get(':id')
-  async getSession(@Param('id') id: string) {
-    const s = await this.configService.getSession(id);
-    if (!s) return { error: 'Not found' };
-    return { ...s, password: '***' };
+  async getSession(@Param('id') id: string, @Req() req: RequestWithSession) {
+    const s = req.session;
+    const sess = await this.configService.getSession(id);
+    if (!sess) return { error: 'Not found' };
+
+    // Non-admin users can only view sessions they are allowed to access
+    if (s.userRole && s.userRole !== 'admin') {
+      const allowed = s.allowedSessions || [];
+      if (Array.isArray(allowed) && allowed.length > 0 && !allowed.includes(id)) {
+        throw new ForbiddenException('Anda tidak memiliki akses ke router ini');
+      }
+    }
+
+    return { ...sess, password: '***' };
   }
 
   @Post()
+  @UseGuards(PermissionsGuard)
+  @RequirePermission('manageSystem')
   async saveSession(@Body() body: any) {
     // If password is '***' (edit without changing password), keep existing
     let encryptedPassword: string;
@@ -70,11 +85,15 @@ export class ConfigController {
   }
 
   @Put(':id')
+  @UseGuards(PermissionsGuard)
+  @RequirePermission('manageSystem')
   async editSession(@Param('id') id: string, @Body() body: any) {
     return this.saveSession({ ...body, id });
   }
 
   @Delete(':id')
+  @UseGuards(PermissionsGuard)
+  @RequirePermission('manageSystem')
   async deleteSession(@Param('id') id: string) {
     await this.configService.deleteSession(id);
     return { success: true };

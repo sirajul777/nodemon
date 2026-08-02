@@ -1,41 +1,38 @@
-# TODO: SQLite Database Integration Refactor
+# Multi-Login Permission-to-View Fix
 
-## Progress Tracking
+## Root Causes
+1. **Frontend `applyRoleNav()`** only runs when role ≠ admin, never resets hidden nav first, and has an incomplete menu→permission map → stale/hidden sidebar when switching between users (multi-login), and Payment/Telegram menus never gated.
+2. **Backend `ConfigController.getSessions()`** filters using `s.userPerms?.allowedSessions` (a permissions object) instead of the actual user's `allowedSessions` — router access filtering never worked; `allowedSessions` was never stored in the session at login.
+3. **No backend permission enforcement** — `AuthGuard` only checks "is logged in"; any user can call admin APIs directly.
 
-- [x] 1. Install dependencies (`@nestjs/typeorm`, `typeorm`, `better-sqlite3`)
-- [x] 2. Create `src/database/database.module.ts` (TypeORM root config - SQLite)
-- [x] 3. Create entity files for all 15 data models
-- [x] 4. Create `src/database/database.seed.service.ts` (JSON → DB migration)
-- [x] 5. Refactor `ConfigService` (router sessions + admin) → DB
-- [x] 6. Refactor `UserService` → DB
-- [x] 7. Refactor `ResellerService` → DB
-- [x] 8. Refactor `BillingService` (customers/invoices/settlements) → DB
-- [x] 9. Refactor `VoucherBatchService` → DB
-- [x] 10. Refactor `VoucherTypeService` → DB
-- [x] 11. Refactor `BotResellerService` (resellers + topup logs) → DB
-- [x] 12. Refactor `TelegramService` → DB (async BotResellerService calls)
-- [x] 13. Refactor `MobileTokenService` + `MobileAuthGuard` → DB
-- [x] 14. Refactor profile-meta (hotspot/pppoe) reads/writes → DB
-- [x] 14b. Refactor MikrotikController + PppoeController profile-meta → DB (done)
-- [x] 15. Wire up `AppModule` imports + `TypeOrmModule.forFeature` in modules
-- [x] 16. Update `package.json`, `.env`, `.env.example`, `docker-compose.yml`
-- [x] 17. Build, run, and verify migration + endpoints
+## Plan & Status
 
-## Remaining Work
+### Backend
+- [x] Create `src/auth/permissions.decorator.ts` (`@RequirePermission`)
+- [x] Create `src/auth/permissions.guard.ts` (`PermissionsGuard`, admin bypass, 403)
+- [x] `auth.controller.ts`: store `allowedSessions` in session at login; return in `/me`
+- [x] `config.controller.ts`: fix `getSessions()` filter + gate session writes (`manageSystem`) + allowedSessions check on GET :id
 
-- [x] All services converted to DB-backed async implementations
-- [x] Controllers updated to `await` all async service calls
-- [x] TypeScript build passes cleanly (`tsc --noEmit` exit code 0)
-- [x] Missing payment deps installed (`class-validator`, `@nestjs/axios`, `@nestjs/event-emitter`)
+### Permissions applied to controllers
+- [x] user-management → manageSystem
+- [x] telegram → manageSystem
+- [x] payment → manageBilling (list/stats/detail/check), manageSystem (config/test)
+- [x] sessions/config → manageSystem (write)
+- [x] mikrotik → viewDashboard (dashboard/monitoring), manageHotspot (hotspot ops)
+- [x] pppoe → managePppoe
+- [x] voucher-batch, voucher, voucher-types → manageVoucher
+- [x] reseller → manageReseller/manageVoucher (read), manageReseller (write)
+- [x] bot-resellers → manageReseller
+- [x] billing → manageBilling
+- [x] report → viewReport
 
-## Summary
+### Frontend
+- [x] `public/assets/app.js`: rewrite `applyRoleNav()` → reset-all-then-apply for EVERY role, complete map (add manageReseller, payments, payment-settings, telegram menus); `checkAuth()`/`doLogin()` call it for all roles
 
-The app has been fully migrated from synchronous JSON-file storage to a SQLite database via TypeORM:
-
-- **Database**: SQLite via `better-sqlite3`, configured in `src/database/database.module.ts`
-- **Entities**: 15 TypeORM entities under `src/database/entities/`
-- **Seeding**: `src/database/seed.service.ts` migrates existing `data/*.json` files → SQLite on startup
-- **Services**: All services (Config, User, Reseller, Billing, VoucherBatch, VoucherType, BotReseller, MobileToken, ProfileMeta) now use `@InjectRepository` + async TypeORM methods
-- **Controllers**: All controllers `await` the now-async service methods
-- **Build**: `npx tsc --noEmit` passes with exit code 0
+### Verification
+- [x] Clean `npm run build` compiles (dist/main.js emitted)
+- [x] App boots with all routes mapped (SQLite on port 4000)
+- [x] Admin login → full access
+- [x] Reseller login → 403 on users/billing/report; allowed on voucher/manageReseller; sessions list filtered properly
+- [x] Test user cleaned up; no stray processes left
 

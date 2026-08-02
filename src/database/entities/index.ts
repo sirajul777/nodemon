@@ -13,6 +13,7 @@ import { MobileTokenEntity } from './mobile-token.entity';
 import { TelegramConfigEntity } from './telegram-config.entity';
 import { TopupRequestEntity } from './topup-request.entity';
 import { ProfileMetaEntity } from './profile-meta.entity';
+import { PaymentConfigEntity } from '../../payment/payment-config.entity';
 
 export const entities = [
   AppConfigEntity,
@@ -48,5 +49,6 @@ export {
   TelegramConfigEntity,
   TopupRequestEntity,
   ProfileMetaEntity,
+  PaymentConfigEntity,
 };
 

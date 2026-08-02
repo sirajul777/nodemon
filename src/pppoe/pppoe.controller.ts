@@ -3,9 +3,12 @@ import { MikrotikService } from '../mikrotik/mikrotik.service';
 import { ConfigService } from '../config/config.service';
 import { ProfileMetaService } from '../database/profile-meta.service';
 import { AuthGuard } from '../auth/auth.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermission } from '../auth/permissions.decorator';
 
 @Controller('api/pppoe')
 @UseGuards(AuthGuard)
+@UseGuards(PermissionsGuard)
 export class PppoeController {
   constructor(
     private mikrotikService: MikrotikService,
@@ -35,12 +38,14 @@ export class PppoeController {
 
   // Active connections
   @Get(':session/active')
+  @RequirePermission('viewDashboard')
   async getActive(@Param('session') s: string) {
     const c = await this.conn(s);
     return this.mikrotikService.run(c.ip, c.user, c.password, '/ppp/active/print', {}, c.port);
   }
 
   @Delete(':session/active/:id')
+  @RequirePermission('managePppoe')
   async disconnectActive(@Param('session') s: string, @Param('id') id: string) {
     const c = await this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
@@ -50,6 +55,7 @@ export class PppoeController {
 
   // Secrets (PPPoE users)
   @Get(':session/secrets')
+  @RequirePermission('viewDashboard')
   async getSecrets(@Param('session') s: string, @Query('profile') profile?: string) {
     const c = await this.conn(s);
     const params: Record<string, string> = {};
@@ -58,6 +64,7 @@ export class PppoeController {
   }
 
   @Get(':session/secrets/:name')
+  @RequirePermission('viewDashboard')
   async getSecret(@Param('session') s: string, @Param('name') name: string) {
     const c = await this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
@@ -66,6 +73,7 @@ export class PppoeController {
   }
 
   @Post(':session/secrets')
+  @RequirePermission('managePppoe')
   async addSecret(@Param('session') s: string, @Body() body: any) {
     const c = await this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
@@ -81,6 +89,7 @@ export class PppoeController {
   }
 
   @Put(':session/secrets/:name')
+  @RequirePermission('managePppoe')
   async editSecret(@Param('session') s: string, @Param('name') name: string, @Body() body: any) {
     const c = await this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
@@ -101,6 +110,7 @@ export class PppoeController {
   }
 
   @Delete(':session/secrets/:name')
+  @RequirePermission('managePppoe')
   async deleteSecret(@Param('session') s: string, @Param('name') name: string) {
     const c = await this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
@@ -113,6 +123,7 @@ export class PppoeController {
   }
 
   @Post(':session/secrets/:name/enable')
+  @RequirePermission('managePppoe')
   async enableSecret(@Param('session') s: string, @Param('name') name: string) {
     const c = await this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
@@ -124,6 +135,7 @@ export class PppoeController {
   }
 
   @Post(':session/secrets/:name/disable')
+  @RequirePermission('managePppoe')
   async disableSecret(@Param('session') s: string, @Param('name') name: string) {
     const c = await this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
@@ -136,6 +148,7 @@ export class PppoeController {
 
   // Profiles
   @Get(':session/profiles')
+  @RequirePermission('viewDashboard')
   async getProfiles(@Param('session') s: string) {
     const c = await this.conn(s);
     const profiles = await this.mikrotikService.run(c.ip, c.user, c.password, '/ppp/profile/print', {}, c.port);
@@ -147,6 +160,7 @@ export class PppoeController {
   }
 
   @Get(':session/profiles/:name')
+  @RequirePermission('viewDashboard')
   async getProfile(@Param('session') s: string, @Param('name') name: string) {
     const c = await this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
@@ -159,6 +173,7 @@ export class PppoeController {
   }
 
   @Post(':session/profiles')
+  @RequirePermission('managePppoe')
   async addProfile(@Param('session') s: string, @Body() body: any) {
     const c = await this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
@@ -182,6 +197,7 @@ export class PppoeController {
   }
 
   @Put(':session/profiles/:name')
+  @RequirePermission('managePppoe')
   async editProfile(@Param('session') s: string, @Param('name') name: string, @Body() body: any) {
     const c = await this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
@@ -208,6 +224,7 @@ export class PppoeController {
   }
 
   @Delete(':session/profiles/:name')
+  @RequirePermission('managePppoe')
   async deleteProfile(@Param('session') s: string, @Param('name') name: string) {
     const c = await this.conn(s);
     const client = await this.mikrotikService.createClient(c.ip, c.user, c.password, c.port);
@@ -220,6 +237,7 @@ export class PppoeController {
   }
 
   @Get(':session/pools')
+  @RequirePermission('viewDashboard')
   async getPools(@Param('session') s: string) {
     const c = await this.conn(s);
     return this.mikrotikService.run(c.ip, c.user, c.password, '/ip/pool/print', {}, c.port);

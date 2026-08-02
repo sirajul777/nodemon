@@ -27,7 +27,7 @@ export class PaymentTransaction {
   @Column({ nullable: true })
   transactionId: string;
 
-  @Column({ type: 'enum', enum: PaymentPurpose })
+  @Column({ type: 'simple-enum', enum: PaymentPurpose })
   purpose: PaymentPurpose;
 
   /** The id of whatever this payment is for: invoice id, voucher order id, reseller id, etc. */
@@ -43,7 +43,7 @@ export class PaymentTransaction {
   @Column({ type: 'text', nullable: true })
   qrCodeUrl: string;
 
-  @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING })
+  @Column({ type: 'simple-enum', enum: PaymentStatus, default: PaymentStatus.PENDING })
   status: PaymentStatus;
 
   /** Raw transaction_status string from Midtrans, kept for audit/debugging. */
@@ -63,15 +63,15 @@ export class PaymentTransaction {
   productDetails: string;
 
   /** Raw notification payload from Midtrans, kept for audit/debugging. */
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   rawNotification: Record<string, any>;
 
-  @Column({ type: 'timestamptz', nullable: true })
+  @Column({ nullable: true })
   paidAt: Date;
 
-  @CreateDateColumn({ type: 'timestamptz' })
+  @CreateDateColumn()
   createdAt: Date;
 
-  @UpdateDateColumn({ type: 'timestamptz' })
+  @UpdateDateColumn()
   updatedAt: Date;
 }
