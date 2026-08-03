@@ -17,6 +17,7 @@ import { MikrotikService } from '../../mikrotik/mikrotik.service';
 import { VoucherTypeService } from '../../voucher-types/voucher-type.service';
 import { TelegramService } from '../../telegram/telegram.service';
 import { PaymentConfigService } from '../payment-config.service';
+import { QrisService } from './qris.service';
 
 /**
  * Manages the QRIS GoPay Merchant voucher-selling flow described in the
@@ -50,11 +51,12 @@ export class VoucherOrderService {
     private readonly orderRepo: Repository<VoucherOrderEntity>,
     @InjectRepository(PayhookCallbackLogEntity)
     private readonly logRepo: Repository<PayhookCallbackLogEntity>,
-    @Optional() private readonly configService?: ConfigService,
+@Optional() private readonly configService?: ConfigService,
     @Optional() private readonly mikrotikService?: MikrotikService,
     @Optional() private readonly voucherTypeService?: VoucherTypeService,
     @Optional() private readonly telegramService?: TelegramService,
-    @Optional() private readonly paymentConfigService?: PaymentConfigService
+    @Optional() private readonly paymentConfigService?: PaymentConfigService,
+    @Optional() private readonly qrisService?: QrisService
   ) {}
 
   // ── Config helpers ────────────────────────────────────────────────
@@ -74,16 +76,53 @@ async getUniqueDigits(): Promise<number> {
     return isNaN(n) ? 3 : Math.min(5, Math.max(2, n));
   }
 
-  private getExpiryMinutes(): number {
-    // Default 15 minutes.
-    return 15;
+private async getExpiryMinutes(): Promise<number> {
+    let cfg: any = null;
+    if (this.paymentConfigService) {
+      try {
+        cfg = await this.paymentConfigService.getConfig();
+      } catch {
+        cfg = null;
+      }
+    }
+    const v = cfg?.payhookQrisExpiryMinutes;
+    const n = parseInt(v, 10);
+    return isNaN(n) ? 15 : Math.min(60, Math.max(5, n));
   }
 
-  private getQrStringFor(order: VoucherOrderEntity): string {
-    // Placeholder: if a real GoPay Merchant / dynamic QR provider is
-    // configured, return its QR payload here. For now we return a static
-    // merchant QR string if configured in payment config, else null.
-    return (order as any).__qrOverride || null;
+  /** Static GoPay Merchant QRIS from payment config (used to build dynamic QR). */
+  private async getStaticQrString(): Promise<string> {
+    let cfg: any = null;
+    if (this.paymentConfigService) {
+      try {
+        cfg = await this.paymentConfigService.getConfig();
+      } catch {
+        cfg = null;
+      }
+    }
+    return cfg?.payhookStaticQris || '';
+  }
+
+  /**
+   * Build a dynamic QRIS payload for a given order (price + unique code).
+   * Falls back to the provided qrString or the static merchant QR if no
+   * dynamic QR generator is available.
+   */
+  private async buildDynamicQr(
+    order: VoucherOrderEntity,
+    qrString?: string
+  ): Promise<string> {
+    if (qrString) return qrString;
+    // Try generating a dynamic QRIS from the static merchant QR.
+    const staticQr = await this.getStaticQrString();
+    if (staticQr && this.qrisService) {
+      try {
+        return this.qrisService.buildDynamicQris(staticQr, order.uniqueAmount);
+      } catch (e: any) {
+        this.logger.warn(`[QRIS] dynamic QR generation failed: ${e.message}`);
+      }
+    }
+    return staticQr || '';
   }
 
   // ── Order creation ────────────────────────────────────────────────
@@ -147,7 +186,7 @@ if (voucherTypeId && this.voucherTypeService) {
     const orderId = `QR${Date.now()}${Math.floor(Math.random() * 90 + 10)}`;
 
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + this.getExpiryMinutes() * 60000);
+    const expiresAt = new Date(now.getTime() + (await this.getExpiryMinutes()) * 60000);
 
     const order = this.orderRepo.create({
       orderId,
@@ -158,7 +197,7 @@ if (voucherTypeId && this.voucherTypeService) {
       price,
       uniqueCode,
       uniqueAmount,
-      qrString: qrString || this.getQrStringFor({} as VoucherOrderEntity) || '',
+      qrString: await this.buildDynamicQr({ uniqueAmount } as VoucherOrderEntity, qrString),
       customerName: customerName || '',
       phone: phone || '',
       status: 'pending',

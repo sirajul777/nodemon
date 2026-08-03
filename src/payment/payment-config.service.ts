@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { PaymentConfigEntity } from './payment-config.entity';
 import { MidtransModuleOptions } from './midtrans/interfaces/midtrans-module-options.interface';
 import { DuitkuModuleOptions } from './duitku/interfaces/duitku-module-options.interface';
-import { PayhookModuleOptions } from './payhook/interfaces/payhook-module-options.interface';
 
 /** Mask a secret so it can be safely shown in the UI. */
 function mask(value?: string | null): string {
@@ -40,18 +39,12 @@ export class PaymentConfigService {
       duitkuApiKey: null,
       duitkuCallbackUrl: null,
       duitkuReturnUrl: null,
-      duitkuExpiryMinutes: 10,
-payhookEnabled: false,
-      payhookEnv: 'sandbox',
-      payhookApiKey: null,
-      payhookSecretKey: null,
-      payhookPartnerCode: null,
-      payhookCallbackUrl: null,
-      payhookDefaultMethod: 'QRIS',
+duitkuExpiryMinutes: 10,
       payhookUniqueDigits: 3,
       payhookQrisExpiryMinutes: 15,
       payhookWaEnabled: false,
       payhookWalledGardenHosts: 'cdn.jsdelivr.net, voucher.sysbill.ink',
+      payhookStaticQris: null,
     };
 
     try {
@@ -76,11 +69,10 @@ payhookEnabled: false,
   async saveConfig(data: Partial<PaymentConfigEntity>): Promise<PaymentConfigEntity> {
     const row = await this.getConfig();
 
-    if (data.defaultProvider !== undefined) {
+if (data.defaultProvider !== undefined) {
       if (
         data.defaultProvider === 'midtrans' ||
-        data.defaultProvider === 'duitku' ||
-        data.defaultProvider === 'payhook'
+        data.defaultProvider === 'duitku'
       ) {
         row.defaultProvider = data.defaultProvider;
       }
@@ -114,25 +106,7 @@ payhookEnabled: false,
       if (!isNaN(mins)) row.duitkuExpiryMinutes = Math.min(60, Math.max(10, Math.round(mins)));
     }
 
-    if (data.payhookEnabled !== undefined) row.payhookEnabled = !!data.payhookEnabled;
-    if (data.payhookEnv !== undefined) {
-      row.payhookEnv = data.payhookEnv === 'production' ? 'production' : 'sandbox';
-    }
-    if (data.payhookApiKey !== undefined && !String(data.payhookApiKey).includes('****')) {
-      row.payhookApiKey = data.payhookApiKey;
-    }
-    if (data.payhookSecretKey !== undefined && !String(data.payhookSecretKey).includes('****')) {
-      row.payhookSecretKey = data.payhookSecretKey;
-    }
-    if (data.payhookPartnerCode !== undefined && !String(data.payhookPartnerCode).includes('****')) {
-      row.payhookPartnerCode = data.payhookPartnerCode;
-    }
-    if (data.payhookCallbackUrl !== undefined) row.payhookCallbackUrl = data.payhookCallbackUrl;
-if (data.payhookDefaultMethod !== undefined) {
-      row.payhookDefaultMethod = data.payhookDefaultMethod || 'QRIS';
-    }
-
-    // ── QRIS GoPay Merchant fields ──────────────────────────
+// ── QRIS GoPay Merchant fields ──────────────────────────
     if (data.payhookUniqueDigits !== undefined) {
       const d = Number(data.payhookUniqueDigits);
       if (!isNaN(d)) row.payhookUniqueDigits = Math.min(5, Math.max(2, Math.round(d)));
@@ -144,6 +118,9 @@ if (data.payhookDefaultMethod !== undefined) {
     if (data.payhookWaEnabled !== undefined) row.payhookWaEnabled = !!data.payhookWaEnabled;
     if (data.payhookWalledGardenHosts !== undefined) {
       row.payhookWalledGardenHosts = data.payhookWalledGardenHosts || '';
+    }
+    if (data.payhookStaticQris !== undefined && !String(data.payhookStaticQris).includes('****')) {
+      row.payhookStaticQris = data.payhookStaticQris || null;
     }
 
     const saved = await this.configRepo.save(row);
@@ -169,21 +146,12 @@ if (data.payhookDefaultMethod !== undefined) {
       duitkuHasApiKey: !!c.duitkuApiKey,
       duitkuCallbackUrl: c.duitkuCallbackUrl || '',
       duitkuReturnUrl: c.duitkuReturnUrl || '',
-      duitkuExpiryMinutes: c.duitkuExpiryMinutes,
-      payhookEnabled: c.payhookEnabled,
-      payhookEnv: c.payhookEnv,
-      payhookApiKey: mask(c.payhookApiKey),
-      payhookSecretKey: mask(c.payhookSecretKey),
-      payhookHasApiKey: !!c.payhookApiKey,
-      payhookHasSecretKey: !!c.payhookSecretKey,
-      payhookPartnerCode: mask(c.payhookPartnerCode),
-      payhookHasPartnerCode: !!c.payhookPartnerCode,
-payhookCallbackUrl: c.payhookCallbackUrl || '',
-      payhookDefaultMethod: c.payhookDefaultMethod || 'QRIS',
+duitkuExpiryMinutes: c.duitkuExpiryMinutes,
       payhookUniqueDigits: c.payhookUniqueDigits,
       payhookQrisExpiryMinutes: c.payhookQrisExpiryMinutes,
       payhookWaEnabled: c.payhookWaEnabled,
       payhookWalledGardenHosts: c.payhookWalledGardenHosts || '',
+      payhookStaticQris: c.payhookStaticQris || '',
     };
   }
 
@@ -211,18 +179,5 @@ payhookCallbackUrl: c.payhookCallbackUrl || '',
     };
   }
 
-/** Options object for PayhookModule.forRootAsync — reads from DB only. */
-  async getPayhookOptions(): Promise<PayhookModuleOptions> {
-    const c = await this.getConfig();
-    const method = c.payhookDefaultMethod || 'QRIS';
-    return {
-      apiKey: c.payhookApiKey || '',
-      secretKey: c.payhookSecretKey || '',
-      partnerCode: c.payhookPartnerCode || '',
-      env: c.payhookEnv === 'production' ? 'production' : 'sandbox',
-      callbackUrl: c.payhookCallbackUrl || '',
-      defaultMethod: method as 'QRIS' | 'gopay',
-    };
-  }
 }
 

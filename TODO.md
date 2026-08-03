@@ -1,55 +1,51 @@
-# QRIS GoPay Merchant + PayHook (Android App) — Voucher Auto-Selling
+# ✅ PayHook Module Replacement — Complete
 
-## Goal
-Implement the article's flow: **Voucher Hotspot Mikrotik Tanpa Payment Gateway dengan QRIS GoPay Merchant** using the **PayHook Android app** (notification-reader → webhook to our server), **QRIS Dinamis via GoPay Merchant**, and **unique nominal matching** so payments can be auto-verified and vouchers auto-created on Mikrotik — without a conventional payment gateway.
+The PayHook API gateway integration (app.payhook.id create/check/callback) has been replaced with the voucher-system's QRIS GoPay Merchant unique-amount flow (PayHook Android app webhook → amount matching → MikroTik voucher provisioning).
 
-## Plan
+## Steps Completed
 
-### 1. Entities (new)
-- [x] `src/payment/payhook/entities/voucher-order.entity.ts` — `voucher_orders` table
-- [x] `src/payment/payhook/entities/payhook-callback-log.entity.ts` — `payhook_callback_logs` table
+- [x] 1. Create `src/payment/payhook/qris.service.ts` (ported from voucher-system `qris.service.ts`)
+- [x] 2. Rewrite `src/payment/payhook/payhook.module.ts` to a static module (remove forRoot/forRootAsync, HttpModule, PayhookService, PaymentTransaction)
+- [x] 3. Delete PayHook API gateway files:
+  - `src/payment/payhook/payhook.service.ts`
+  - `src/payment/payhook/payhook.controller.ts`
+  - `src/payment/payhook/payhook.constants.ts`
+  - `src/payment/payhook/payhook.util.ts`
+  - `src/payment/payhook/entities/payment-transaction.entity.ts`
+  - `src/payment/payhook/dto/create-payment.dto.ts`
+  - `src/payment/payhook/dto/payhook-callback.dto.ts`
+  - `src/payment/payhook/events/payment-status-changed.event.ts`
+  - `src/payment/payhook/interfaces/payhook-module-options.interface.ts`
+- [x] 4. Update `src/payment/payhook/voucher-order.service.ts` to use QrisService for dynamic QRIS generation
+- [x] 5. Update `src/payment/payment.module.ts` (remove PayhookModule.forRootAsync, PayhookPaymentTransaction)
+- [x] 6. Update `src/payment/payment.service.ts` (remove payhookRepo/toPayhookRecord)
+- [x] 7. Update `src/payment/payment.controller.ts` (remove payhookService/createQrisPayment/checkStatus)
+- [x] 8. Update `src/payment/payment-status.listener.ts` (remove PAYHOOK_EVENTS/PayhookPurpose listeners)
+- [x] 9. Update `src/payment/payment-config.service.ts` (remove PayhookModuleOptions/getPayhookOptions)
+- [x] 10. Update `src/payment/payment-config.entity.ts` (remove PayHook gateway fields, keep QRIS GoPay Merchant fields)
+- [x] 11. Update `src/database/seed.service.ts` (remove payhook gateway config defaults)
+- [x] 12. Update `views/page/payment/settings.eta` (remove PayHook API gateway fields, keep QRIS GoPay Merchant config)
+- [x] 13. Update `public/assets/app.js` (remove PayHook API gateway fields from config load/save, remove payhook gateway badge from payments list)
+- [x] 14. Build & verify (`npm run build`) — ✅ SUCCESS
 
-### 2. DTO
-- [x] `src/payment/payhook/dto/payhook-app-webhook.dto.ts` — PayHook Android-app webhook DTO
+## What was replaced
+**Old**: PayHook API gateway (calls `app.payhook.id` API for payment creation, status checking, callback verification — required API key, secret key, partner code)
 
-### 3. Services
-- [x] `src/payment/payhook/voucher-order.service.ts` — core service (create, process webhook, manual verify, queries)
-- [x] `src/payment/payhook/interfaces/notifier.interface.ts` — notification abstraction
+**New**: QRIS GoPay Merchant unique-amount flow:
+- Static QRIS string (from GoPay Merchant scan) stored in payment config
+- Dynamic QRIS generated via `QrisService.buildDynamicQris()` (EMV QR standard)
+- Unique amount (price + N-digit code) for each order for automatic matching
+- PayHook Android app webhook receiver at `POST /payments/payhook/app-webhook`
+- Voucher order management (create, settle, manual verify, monitoring)
+- QRIS Monitor dashboard for admins
 
-### 4. Controller
-- [x] `src/payment/payhook/voucher-order.controller.ts` — all endpoints (webhook, order CRUD, admin monitors)
-
-### 5. Views
-- [x] `views/page/payment/qris-checkout.eta` — customer-facing checkout page
-- [x] `views/page/payment/qris-monitor.eta` — admin callback monitor + order list
-
-### 6. Config
-- [x] `payment-config.entity.ts` — added QRIS fields (payhookUniqueDigits, payhookQrisExpiryMinutes, payhookWaEnabled, payhookWalledGardenHosts)
-- [x] `payment-config.service.ts` — saveConfig + getConfigMasked updated
-- [x] `seed.service.ts` — seeding new config fields
-
-### 7. Wiring
-- [x] `src/database/entities/index.ts` — register new entities
-- [x] `src/payment/payhook/payhook.module.ts` — forFeature new entities + providers
-- [x] `src/payment/payment.module.ts` — import MikrotikModule, VoucherTypeModule, ConfigModule + register VoucherOrderService/Controller
-- [x] `views/index.eta` — include qris-checkout + qris-monitor pages
-- [x] `views/partials/sidebar.eta` — add "QRIS Monitor" nav item
-- [x] `public/assets/app.js` — QRIS monitor functions, load/save payment settings for QRIS fields
-- [x] `views/page/payment/settings.eta` — QRIS config section in settings page
-
-### 8. Notification helpers
-- [x] Telegram send via existing TelegramService (lazy injection in voucher-order.service.ts)
-- [x] WhatsApp via deep-link helper (documented; no API token needed)
-
-## Verification
-- [x] `npm run build` compiles (exit 0)
-- [x] App boots; `voucher_orders` + `payhook_callback_logs` tables auto-created
-- [x] DI wiring fixed — `VoucherOrderService`/`VoucherOrderController` moved to `PayhookModule` (which has the TypeORM repositories); removed duplicate registration from `PaymentModule`
-- [x] `VoucherOrderService` now injects collaborator services (ConfigService, MikrotikService, VoucherTypeService, TelegramService, PaymentConfigService) via Nest DI instead of the unused lazy `setDeps()`
-- [x] Boot log confirms all QRIS routes mapped (`/payments/payhook/app-webhook`, `/api/qris/orders`, `/qris/checkout/:orderId`, `/qris/status/:orderId`, `/api/qris/orders`, `/api/qris/orders/:id`, `/api/qris/orders/:id/verify`, `/api/qris/callbacks`, `/api/qris/stats`)
-- [x] Eta template runtime fix — `qris-checkout.eta` now uses `it.order`/`it.notFound` (Eta v4 data is accessed via the `it` object, not bare variable names). Removed `qris-checkout` from `index.eta` SPA shell (it's a standalone customer-facing page rendered via `@Render`). SPA `/` and `/qris/checkout/:orderId` both return HTTP 200.
-- [ ] Create order → unique amount computed → checkout page renders
-- [ ] Simulated PayHook app webhook (script) → order marked paid → voucher created (or logged if no router) → notifier called
-- [ ] Manual verify works
-- [ ] Admin callback monitor lists entries
+## Key endpoints kept
+| Endpoint | Description |
+|---|---|
+| `POST /payments/payhook/app-webhook` | PayHook Android app webhook |
+| `POST /api/qris/orders` | Create voucher order |
+| `GET /qris/status/:orderId` | Poll order status |
+| `POST /api/qris/orders/:id/verify` | Manual verify (admin) |
+| `GET /api/qris/callbacks` | Callback logs (admin) |
+| `GET /api/qris/stats` | Summary stats (admin) |
 

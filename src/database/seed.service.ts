@@ -508,14 +508,12 @@ export class DatabaseSeedService implements OnApplicationBootstrap {
       midtransEnv: 'sandbox',
       duitkuEnabled: false,
       duitkuEnv: 'sandbox',
-      duitkuExpiryMinutes: 10,
-payhookEnabled: false,
-      payhookEnv: 'sandbox',
-      payhookDefaultMethod: 'QRIS',
+duitkuExpiryMinutes: 10,
       payhookUniqueDigits: 3,
       payhookQrisExpiryMinutes: 15,
       payhookWaEnabled: false,
       payhookWalledGardenHosts: 'cdn.jsdelivr.net, voucher.sysbill.ink',
+      payhookStaticQris: null,
     });
     this.logger.log('Seeded: payment_config');
   }

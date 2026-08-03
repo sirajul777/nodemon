@@ -16,7 +16,6 @@
         <select id="ps-default">
           <option value="duitku">Duitku</option>
           <option value="midtrans">Midtrans</option>
-          <option value="payhook">PayHook</option>
         </select>
       </div>
 
@@ -86,71 +85,35 @@
 
       <hr style="border-color: var(--border); margin: 18px 0" />
 
-<!-- PayHook -->
+<!-- QRIS GoPay Merchant (PayHook Android app) -->
       <div>
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px">
-          <input type="checkbox" id="ps-payhook-enabled" style="width: auto; accent-color: var(--acc2)" />
-          <b><i class="fa fa-qrcode"></i> PayHook (QRIS / GoPay)</b>
-          <select id="ps-payhook-env" style="max-width: 100px">
-            <option value="sandbox">Sandbox</option>
-            <option value="production">Production</option>
-          </select>
-          <span id="ps-payhook-status" class="badge b-mu">Nonaktif</span>
+          <b><i class="fa fa-qrcode"></i> QRIS GoPay Merchant (Tanpa Payment Gateway)</b>
         </div>
-        <div class="g2">
-          <div class="fg">
-            <label>API Key</label>
-            <input id="ps-payhook-apikey" type="password" placeholder="API Key" />
-          </div>
-          <div class="fg">
-            <label>Secret Key</label>
-            <input id="ps-payhook-secret" type="password" placeholder="Secret Key" />
-          </div>
+        <p style="color: var(--muted); font-size: 0.8rem; margin-bottom: 10px">
+          Gunakan GoPay Merchant + PayHook Android app untuk menerima pembayaran QRIS tanpa payment gateway. Pelanggan membayar nominal unik (harga + kode unik), PayHook meneruskan notifikasi ke server.
+        </p>
+        <div class="fg">
+          <label>QRIS Statis GoPay Merchant (string hasil decode)</label>
+          <input id="ps-payhook-static-qris" placeholder="000201010212..." />
         </div>
-        <div class="g2">
+        <div class="g3">
           <div class="fg">
-            <label>Partner Code</label>
-            <input id="ps-payhook-partner" placeholder="Partner Code" />
+            <label>Digit Kode Unik</label>
+            <input id="ps-payhook-unique-digits" type="number" min="2" max="5" placeholder="3" />
           </div>
           <div class="fg">
-            <label>Callback URL</label>
-            <input id="ps-payhook-callback" placeholder="https://contoh.com/payments/payhook/callback" />
+            <label>QRIS Expiry (menit)</label>
+            <input id="ps-payhook-qris-expiry" type="number" min="5" max="60" placeholder="15" />
+          </div>
+          <div class="fg" style="display: flex; align-items: center; gap: 6px; padding-top: 22px">
+            <input type="checkbox" id="ps-payhook-wa-enabled" style="width: auto; accent-color: var(--acc2)" />
+            <label style="margin: 0">WA Notifikasi Customer</label>
           </div>
         </div>
-<div class="fg" style="max-width: 200px">
-          <label>Metode (default)</label>
-          <select id="ps-payhook-method">
-            <option value="QRIS">QRIS</option>
-            <option value="gopay">GoPay (QR Dinamis)</option>
-          </select>
-        </div>
-
-        <!-- QRIS GoPay Merchant (PayHook Android app) -->
-        <div style="margin-top: 16px; padding: 12px; background: var(--card3); border-radius: 8px">
-          <div style="font-weight: 600; margin-bottom: 8px">
-            <i class="fa fa-qrcode"></i> QRIS GoPay Merchant (Tanpa Payment Gateway)
-          </div>
-          <p style="color: var(--muted); font-size: 0.8rem; margin-bottom: 10px">
-            Gunakan GoPay Merchant + PayHook Android app untuk menerima pembayaran QRIS tanpa payment gateway. Pelanggan membayar nominal unik (harga + kode unik), PayHook meneruskan notifikasi ke server.
-          </p>
-          <div class="g3">
-            <div class="fg">
-              <label>Digit Kode Unik</label>
-              <input id="ps-payhook-unique-digits" type="number" min="2" max="5" placeholder="3" />
-            </div>
-            <div class="fg">
-              <label>QRIS Expiry (menit)</label>
-              <input id="ps-payhook-qris-expiry" type="number" min="5" max="60" placeholder="15" />
-            </div>
-            <div class="fg" style="display: flex; align-items: center; gap: 6px; padding-top: 22px">
-              <input type="checkbox" id="ps-payhook-wa-enabled" style="width: auto; accent-color: var(--acc2)" />
-              <label style="margin: 0">WA Notifikasi Customer</label>
-            </div>
-          </div>
-          <div class="fg">
-            <label>Walled Garden Hosts (dipisah koma, untuk hotspot)</label>
-            <input id="ps-payhook-walled-garden" placeholder="cdn.jsdelivr.net, voucher.sysbill.ink" />
-          </div>
+        <div class="fg">
+          <label>Walled Garden Hosts (dipisah koma, untuk hotspot)</label>
+          <input id="ps-payhook-walled-garden" placeholder="cdn.jsdelivr.net, voucher.sysbill.ink" />
         </div>
       </div>
 
@@ -174,14 +137,12 @@
           <label>Nominal (Rp)</label>
           <input id="ps-test-amount" type="number" min="1000" value="10000" />
         </div>
-<div class="fg">
+        <div class="fg">
           <label>Gateway</label>
           <select id="ps-test-gateway">
             <option value="">Default</option>
             <option value="midtrans">Midtrans (QRIS)</option>
             <option value="duitku">Duitku (QRIS)</option>
-            <option value="payhook">PayHook (QRIS)</option>
-            <option value="payhook_gopay">PayHook (GoPay)</option>
           </select>
         </div>
         <button class="btn b-p" onclick="testPayment()"><i class="fa fa-flask"></i> Uji Coba</button>

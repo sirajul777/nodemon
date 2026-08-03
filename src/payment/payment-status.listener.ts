@@ -3,15 +3,13 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { BillingService } from '../billing/billing.service';
 import { PaymentStatusChangedEvent as MidtransEvent } from './midtrans/events/payment-status-changed.event';
 import { PaymentStatusChangedEvent as DuitkuEvent } from './duitku/events/payment-status-changed.event';
-import { PaymentStatusChangedEvent as PayhookEvent } from './payhook/events/payment-status-changed.event';
 import { MIDTRANS_EVENTS, PaymentPurpose as MidtransPurpose } from './midtrans/midtrans.constants';
 import { DUITKU_EVENTS, PaymentPurpose as DuitkuPurpose } from './duitku/duitku.constants';
-import { PAYHOOK_EVENTS, PaymentPurpose as PayhookPurpose } from './payhook/payhook.constants';
 
 /**
- * Listens for successful/failed payment events from both Midtrans and
- * Duitku and reacts within the app (currently: auto-marks a billing
- * invoice as paid when the payment purpose is `billing_invoice`).
+ * Listens for successful/failed payment events from Midtrans and Duitku
+ * and reacts within the app (currently: auto-marks a billing invoice as
+ * paid when the payment purpose is `billing_invoice`).
  */
 @Injectable()
 export class PaymentStatusListener {
@@ -33,13 +31,6 @@ export class PaymentStatusListener {
     await this.markInvoicePaid(tx.referenceId, 'duitku', tx.amount);
   }
 
-  @OnEvent(PAYHOOK_EVENTS.PAID)
-  async handlePayhookPaid(event: PayhookEvent): Promise<void> {
-    const tx = event.transaction;
-    if (tx.purpose !== PayhookPurpose.BILLING_INVOICE) return;
-    await this.markInvoicePaid(tx.referenceId, 'payhook', tx.amount);
-  }
-
   @OnEvent(MIDTRANS_EVENTS.FAILED)
   async handleMidtransFailed(event: MidtransEvent): Promise<void> {
     const tx = event.transaction;
@@ -56,15 +47,7 @@ export class PaymentStatusListener {
     );
   }
 
-  @OnEvent(PAYHOOK_EVENTS.FAILED)
-  async handlePayhookFailed(event: PayhookEvent): Promise<void> {
-    const tx = event.transaction;
-    this.logger.log(
-      `[payments] PayHook transaction ${tx.orderId} failed (${tx.status}) — purpose=${tx.purpose} ref=${tx.referenceId}`
-    );
-  }
-
-  private async markInvoicePaid(
+private async markInvoicePaid(
     invoiceId: string,
     gateway: string,
     amount: number

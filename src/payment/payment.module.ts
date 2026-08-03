@@ -12,7 +12,6 @@ import { PaymentStatusListener } from './payment-status.listener';
 import { PaymentController } from './payment.controller';
 import { PaymentTransaction as MidtransPaymentTransaction } from './midtrans/entities/payment-transaction.entity';
 import { PaymentTransaction as DuitkuPaymentTransaction } from './duitku/entities/payment-transaction.entity';
-import { PaymentTransaction as PayhookPaymentTransaction } from './payhook/entities/payment-transaction.entity';
 import { BillingModule } from '../billing/billing.module';
 import { MikrotikModule } from '../mikrotik/mikrotik.module';
 import { VoucherTypeModule } from '../voucher-types/voucher-type.module';
@@ -26,10 +25,9 @@ import { ConfigModule } from '../config/config.module';
     MikrotikModule,
     VoucherTypeModule,
     ConfigModule,
-    TypeOrmModule.forFeature([
+TypeOrmModule.forFeature([
       MidtransPaymentTransaction,
       DuitkuPaymentTransaction,
-      PayhookPaymentTransaction,
     ]),
     /**
      * Wire both gateway modules using the DB-backed config (no env vars).
@@ -47,12 +45,9 @@ import { ConfigModule } from '../config/config.module';
       useFactory: async (config: PaymentConfigService) =>
         config.getDuitkuOptions(),
     }),
-    PayhookModule.forRootAsync({
-      imports: [PaymentConfigModule],
-      inject: [PaymentConfigService],
-      useFactory: async (config: PaymentConfigService) =>
-        config.getPayhookOptions(),
-    }),
+    // PayHook is the QRIS GoPay Merchant (PayHook Android app) voucher flow —
+    // a static module, no external gateway API.
+    PayhookModule,
   ],
 controllers: [PaymentController],
   providers: [PaymentService, PaymentStatusListener],

@@ -49,29 +49,7 @@ export class PaymentConfigEntity {
   @Column({ default: 10 })
   duitkuExpiryMinutes: number;
 
-  // ── PayHook ─────────────────────────────────────────────────
-  @Column({ default: false })
-  payhookEnabled: boolean;
-
-  @Column({ default: 'sandbox' })
-  payhookEnv: string;
-
-  @Column({ type: 'text', nullable: true })
-  payhookApiKey: string;
-
-  @Column({ type: 'text', nullable: true })
-  payhookSecretKey: string;
-
-  @Column({ type: 'text', nullable: true })
-  payhookPartnerCode: string;
-
-  @Column({ type: 'text', nullable: true })
-  payhookCallbackUrl: string;
-
-@Column({ default: 'QRIS' })
-  payhookDefaultMethod: string;
-
-  // ── QRIS GoPay Merchant (PayHook Android app) ──────────────
+// ── QRIS GoPay Merchant (PayHook Android app) ──────────────
   /** Number of digits for the unique amount code (default 3). */
   @Column({ default: 3 })
   payhookUniqueDigits: number;
@@ -87,6 +65,10 @@ export class PaymentConfigEntity {
   /** Comma-separated hosts to allow in MikroTik walled-garden for QRIS. */
   @Column({ type: 'text', nullable: true })
   payhookWalledGardenHosts: string;
+
+  /** Static GoPay Merchant QRIS string used to build dynamic QRIS payloads. */
+  @Column({ type: 'text', nullable: true })
+  payhookStaticQris: string;
 }
 
 

@@ -14,13 +14,10 @@ import { PaymentService } from './payment.service';
 import { PaymentConfigService } from './payment-config.service';
 import { MidtransService } from './midtrans/midtrans.service';
 import { DuitkuService } from './duitku/duitku.service';
-import { PayhookService } from './payhook/payhook.service';
 import { PaymentPurpose as MidtransPurpose } from './midtrans/midtrans.constants';
 import { PaymentPurpose as DuitkuPurpose } from './duitku/duitku.constants';
-import { PaymentPurpose as PayhookPurpose } from './payhook/payhook.constants';
 import { CreatePaymentDto as MidtransCreateDto } from './midtrans/dto/create-payment.dto';
 import { CreatePaymentDto as DuitkuCreateDto } from './duitku/dto/create-payment.dto';
-import { CreatePaymentDto as PayhookCreateDto } from './payhook/dto/create-payment.dto';
 
 @Controller('api/payments')
 @UseGuards(AuthGuard)
@@ -30,9 +27,8 @@ export class PaymentController {
   constructor(
     private readonly paymentService: PaymentService,
     private readonly paymentConfigService: PaymentConfigService,
-    private readonly midtransService: MidtransService,
+private readonly midtransService: MidtransService,
     private readonly duitkuService: DuitkuService,
-    private readonly payhookService: PayhookService,
   ) {}
 
   /** Unified transaction list. */
@@ -122,25 +118,6 @@ export class PaymentController {
       };
     }
 
-if (gateway === 'payhook' || gateway === 'payhook_gopay') {
-      const dto = new PayhookCreateDto();
-      dto.purpose = PayhookPurpose.OTHER;
-      dto.referenceId = `TEST-${Date.now()}`;
-      dto.amount = amount;
-      dto.productDetails = 'Test Payment';
-      dto.customerName = 'Test';
-      const tx = await this.payhookService.createQrisPayment(dto, gateway === 'payhook_gopay' ? 'gopay' : undefined);
-      return {
-        success: true,
-        gateway: 'payhook',
-        orderId: tx.orderId,
-        paymentUrl: tx.paymentUrl,
-        qrString: tx.qrString,
-        amount: tx.amount,
-        status: tx.status,
-      };
-    }
-
     return { success: false, error: `Unknown gateway: ${gateway}` };
   }
 
@@ -159,12 +136,8 @@ if (gateway === 'payhook' || gateway === 'payhook_gopay') {
       const tx = await this.midtransService.checkStatus(orderId);
       return { success: true, gateway, orderId, status: tx.status };
     }
-    if (gateway === 'duitku') {
+if (gateway === 'duitku') {
       const tx = await this.duitkuService.checkStatus(orderId);
-      return { success: true, gateway, orderId, status: tx.status };
-    }
-    if (gateway === 'payhook') {
-      const tx = await this.payhookService.checkStatus(orderId);
       return { success: true, gateway, orderId, status: tx.status };
     }
     return { success: false, error: `Unknown gateway: ${gateway}` };
