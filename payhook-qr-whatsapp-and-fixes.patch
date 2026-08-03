@@ -1,0 +1,629 @@
+diff --git a/src/payment/payhook/notifier.service.ts b/src/payment/payhook/notifier.service.ts
+new file mode 100644
+index 0000000..7235536
+--- /dev/null
++++ b/src/payment/payhook/notifier.service.ts
+@@ -0,0 +1,132 @@
++import { Injectable, Logger, Optional } from '@nestjs/common';
++import { HttpService } from '@nestjs/axios';
++import { firstValueFrom } from 'rxjs';
++
++import { VoucherNotifier } from './interfaces/notifier.interface';
++import { PaymentConfigService } from '../payment-config.service';
++
++/**
++ * Real notifier for the PayHook/QRIS voucher flow.
++ *
++ * Sends the voucher (username/password) to the customer via a WhatsApp
++ * gateway (Fonnte or Wablas), configured from `PaymentConfigService`
++ * (`payhookWaEnabled`, `payhookWaProvider`, `payhookWaToken`,
++ * `payhookWaDomain` — all editable from the payment settings UI, same
++ * place as the Midtrans/Duitku credentials).
++ *
++ * If WhatsApp sending is disabled, unconfigured, or the API call fails,
++ * this falls back to logging a `wa.me` deep link — the same behavior the
++ * previous `ConsoleVoucherNotifier` had — so nothing breaks when WA isn't
++ * set up yet.
++ */
++@Injectable()
++export class PayhookNotifierService implements VoucherNotifier {
++  private readonly logger = new Logger(PayhookNotifierService.name);
++
++  constructor(
++    private readonly http: HttpService,
++    @Optional() private readonly paymentConfigService?: PaymentConfigService,
++  ) {}
++
++  private normalizePhone(phone: string): string {
++    let p = phone.replace(/[^0-9]/g, '');
++    if (p.startsWith('0')) p = '62' + p.slice(1);
++    if (!p.startsWith('62')) p = '62' + p;
++    return p;
++  }
++
++  private buildMessage(opts: {
++    voucherName: string;
++    username: string;
++    password: string;
++    profile: string;
++    validity?: string;
++  }): string {
++    const { voucherName, username, password, profile, validity } = opts;
++    return (
++      `🎟️ *${voucherName}*\n\n` +
++      `👤 Username: ${username}\n` +
++      `🔑 Password: ${password}\n` +
++      `📦 Profile: ${profile}` +
++      `${validity ? `\n⏰ Masa aktif: ${validity}` : ''}\n\n` +
++      `Terima kasih telah berbelanja!`
++    );
++  }
++
++  private async sendFonnte(token: string, phone: string, message: string): Promise<void> {
++    await firstValueFrom(
++      this.http.post(
++        'https://api.fonnte.com/send',
++        { target: this.normalizePhone(phone), message },
++        { headers: { Authorization: token } },
++      ),
++    );
++  }
++
++  private async sendWablas(token: string, domain: string, phone: string, message: string): Promise<void> {
++    const base = domain || 'https://console.wablas.com';
++    await firstValueFrom(
++      this.http.post(
++        `${base.replace(/\/+$/, '')}/api/send-message`,
++        { phone: this.normalizePhone(phone), message },
++        { headers: { Authorization: token } },
++      ),
++    );
++  }
++
++  async sendVoucherToCustomer(opts: {
++    phone?: string;
++    voucherName: string;
++    username: string;
++    password: string;
++    profile: string;
++    validity?: string;
++  }): Promise<void> {
++    const { phone } = opts;
++    const message = this.buildMessage(opts);
++
++    const waLink = phone
++      ? `https://wa.me/${this.normalizePhone(phone)}?text=${encodeURIComponent(message)}`
++      : null;
++
++    if (!phone) {
++      this.logger.log(`[VOUCHER] ${opts.voucherName} → ${opts.username}/${opts.password} (no phone provided)`);
++      return;
++    }
++
++    let cfg: any = null;
++    if (this.paymentConfigService) {
++      try {
++        cfg = await this.paymentConfigService.getConfig();
++      } catch {
++        cfg = null;
++      }
++    }
++
++    if (!cfg?.payhookWaEnabled || !cfg?.payhookWaToken) {
++      // Not configured — same behavior as before: just log the deep link.
++      this.logger.log(`[VOUCHER] ${opts.voucherName} → ${opts.username}/${opts.password} | WA: ${waLink}`);
++      return;
++    }
++
++    try {
++      if (cfg.payhookWaProvider === 'wablas') {
++        await this.sendWablas(cfg.payhookWaToken, cfg.payhookWaDomain, phone, message);
++      } else {
++        await this.sendFonnte(cfg.payhookWaToken, phone, message);
++      }
++      this.logger.log(`[VOUCHER] WhatsApp voucher sent to ${this.normalizePhone(phone)} via ${cfg.payhookWaProvider}`);
++    } catch (e: any) {
++      this.logger.error(
++        `[VOUCHER] gagal kirim WhatsApp via ${cfg.payhookWaProvider}: ${e.response?.data ? JSON.stringify(e.response.data) : e.message}. Fallback: ${waLink}`,
++      );
++    }
++  }
++
++  async notifyAdmin(opts: { title: string; message: string }): Promise<void> {
++    // Admin notifications for this flow already go out via TelegramService
++    // in VoucherOrderService.settleOrder — keep this as a plain log to
++    // avoid double-notifying.
++    this.logger.log(`[ADMIN] ${opts.title}: ${opts.message}`);
++  }
++}
+diff --git a/src/payment/payhook/payhook-scheduler.service.ts b/src/payment/payhook/payhook-scheduler.service.ts
+new file mode 100644
+index 0000000..419fe97
+--- /dev/null
++++ b/src/payment/payhook/payhook-scheduler.service.ts
+@@ -0,0 +1,39 @@
++import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
++import { VoucherOrderService } from './voucher-order.service';
++
++/**
++ * Periodically sweeps PENDING QRIS voucher orders whose `expiresAt` has
++ * passed and marks them EXPIRED.
++ *
++ * This matters beyond housekeeping: as long as a stale order stays
++ * "pending", its `uniqueAmount` stays reserved and could either block a
++ * new order from getting a free unique code, or — worse — end up matching
++ * a genuine new payment via the PayHook webhook (see
++ * `VoucherOrderService.processAppWebhook`, which already double-checks
++ * `expiresAt` too, but this sweep is what actually keeps the DB state
++ * correct for admin views/stats).
++ *
++ * Follows the same plain setInterval pattern as
++ * `BillingSchedulerService` (no @nestjs/schedule dependency needed).
++ */
++@Injectable()
++export class PayhookSchedulerService implements OnModuleInit {
++  private readonly logger = new Logger(PayhookSchedulerService.name);
++  private static readonly SWEEP_INTERVAL_MS = 60 * 1000; // every minute
++
++  constructor(private readonly orderService: VoucherOrderService) {}
++
++  onModuleInit() {
++    // Run once shortly after boot, then on a fixed interval.
++    setTimeout(() => this.sweep(), 5000);
++    setInterval(() => this.sweep(), PayhookSchedulerService.SWEEP_INTERVAL_MS);
++  }
++
++  async sweep() {
++    try {
++      await this.orderService.expireStaleOrders();
++    } catch (e: any) {
++      this.logger.error(`Gagal menjalankan sweep order expired: ${e.message}`);
++    }
++  }
++}
+diff --git a/package.json b/package.json
+index 74c10e3..556e427 100644
+--- a/package.json
++++ b/package.json
+@@ -30,7 +30,8 @@
+     "reflect-metadata": "^0.1.13",
+     "rxjs": "^7.8.1",
+     "session-file-store": "^1.5.0",
+-    "typeorm": "^0.3.20"
++    "typeorm": "^0.3.20",
++    "qrcode": "^1.5.4"
+   },
+   "devDependencies": {
+     "@nestjs/cli": "^10.0.0",
+diff --git a/src/database/seed.service.ts b/src/database/seed.service.ts
+index 9e6ec01..927d279 100644
+--- a/src/database/seed.service.ts
++++ b/src/database/seed.service.ts
+@@ -512,6 +512,9 @@ duitkuExpiryMinutes: 10,
+       payhookUniqueDigits: 3,
+       payhookQrisExpiryMinutes: 15,
+       payhookWaEnabled: false,
++      payhookWaProvider: 'fonnte',
++      payhookWaToken: null,
++      payhookWaDomain: null,
+       payhookWalledGardenHosts: 'cdn.jsdelivr.net, voucher.sysbill.ink',
+       payhookStaticQris: null,
+     });
+diff --git a/src/payment/payhook/entities/voucher-order.entity.ts b/src/payment/payhook/entities/voucher-order.entity.ts
+index de27abb..c6a8588 100644
+--- a/src/payment/payhook/entities/voucher-order.entity.ts
++++ b/src/payment/payhook/entities/voucher-order.entity.ts
+@@ -58,6 +58,10 @@ export class VoucherOrderEntity {
+   @Column({ type: 'text', nullable: true })
+   qrString: string;
+ 
++  /** Rendered PNG (data:image/png;base64,...) of `qrString`, ready for <img src>. */
++  @Column({ type: 'text', nullable: true })
++  qrImage: string;
++
+   @Column({ nullable: true })
+   customerName: string;
+ 
+diff --git a/src/payment/payhook/payhook.module.ts b/src/payment/payhook/payhook.module.ts
+index 63dd3ec..d2bcfe5 100644
+--- a/src/payment/payhook/payhook.module.ts
++++ b/src/payment/payhook/payhook.module.ts
+@@ -1,11 +1,14 @@
+ import { Module } from '@nestjs/common';
+ import { TypeOrmModule } from '@nestjs/typeorm';
++import { HttpModule } from '@nestjs/axios';
+ 
+ import { VoucherOrderEntity } from './entities/voucher-order.entity';
+ import { PayhookCallbackLogEntity } from './entities/payhook-callback-log.entity';
+ import { VoucherOrderService } from './voucher-order.service';
+ import { VoucherOrderController } from './voucher-order.controller';
+ import { QrisService } from './qris.service';
++import { PayhookNotifierService } from './notifier.service';
++import { PayhookSchedulerService } from './payhook-scheduler.service';
+ import { MikrotikModule } from '../../mikrotik/mikrotik.module';
+ import { VoucherTypeModule } from '../../voucher-types/voucher-type.module';
+ import { TelegramModule } from '../../telegram/telegram.module';
+@@ -30,13 +33,14 @@ import { PaymentConfigModule } from '../payment-config.module';
+ @Module({
+   imports: [
+     TypeOrmModule.forFeature([VoucherOrderEntity, PayhookCallbackLogEntity]),
++    HttpModule,
+     MikrotikModule,
+     VoucherTypeModule,
+     TelegramModule,
+     PaymentConfigModule
+   ],
+   controllers: [VoucherOrderController],
+-  providers: [VoucherOrderService, QrisService],
++  providers: [VoucherOrderService, QrisService, PayhookNotifierService, PayhookSchedulerService],
+   exports: [VoucherOrderService, QrisService]
+ })
+ export class PayhookModule {}
+diff --git a/src/payment/payhook/qris.service.ts b/src/payment/payhook/qris.service.ts
+index a2fec9b..5b75d20 100644
+--- a/src/payment/payhook/qris.service.ts
++++ b/src/payment/payhook/qris.service.ts
+@@ -1,4 +1,5 @@
+ import { Injectable } from '@nestjs/common';
++import * as QRCode from 'qrcode';
+ 
+ /**
+  * Dynamic QRIS generator (EMV QR Code standard, QRIS Merchant Presented Mode).
+@@ -116,4 +117,18 @@ export class QrisService {
+   inspectQris(payload: string): TLVField[] {
+     return this.parseTLV(payload.trim());
+   }
++
++  /**
++   * Render a QRIS (or any EMV QR) text payload into a scannable PNG image,
++   * returned as a `data:image/png;base64,...` URI so it can be dropped
++   * straight into an `<img src>` without a separate file/route.
++   */
++  async toDataUrl(payload: string): Promise<string> {
++    if (!payload) throw new Error('Payload QRIS kosong, tidak bisa dirender jadi gambar.');
++    return QRCode.toDataURL(payload, {
++      errorCorrectionLevel: 'M',
++      margin: 1,
++      width: 400,
++    });
++  }
+ }
+diff --git a/src/payment/payhook/voucher-order.controller.ts b/src/payment/payhook/voucher-order.controller.ts
+index 77367bc..94a13b4 100644
+--- a/src/payment/payhook/voucher-order.controller.ts
++++ b/src/payment/payhook/voucher-order.controller.ts
+@@ -77,12 +77,23 @@ export class VoucherOrderController {
+         uniqueAmount: order.uniqueAmount,
+         uniqueCode: order.uniqueCode,
+         qrString: order.qrString,
++        qrImage: order.qrImage,
+         expiresAt: order.expiresAt,
+         status: order.status
+       }
+     };
+   }
+ 
++  // ── Public: (re)generate QR image for an order ───────────────────
++  // Fallback used by the checkout page when qrImage wasn't ready yet
++  // (e.g. static QRIS config saved after the order was created).
++  @Post('api/qris/orders/:id/qr')
++  @HttpCode(200)
++  async regenerateQr(@Param('id') id: string) {
++    const { qrString, qrImage } = await this.orderService.regenerateQr(id);
++    return { success: true, qrString, qrImage };
++  }
++
+   // ── Public: customer-facing checkout page ───────────────────────
+   @Get('qris/checkout/:orderId')
+   @Render('page/payment/qris-checkout')
+diff --git a/src/payment/payhook/voucher-order.service.ts b/src/payment/payhook/voucher-order.service.ts
+index 2005edd..b256238 100644
+--- a/src/payment/payhook/voucher-order.service.ts
++++ b/src/payment/payhook/voucher-order.service.ts
+@@ -11,7 +11,7 @@ import { Repository } from 'typeorm';
+ import { VoucherOrderEntity } from './entities/voucher-order.entity';
+ import { PayhookCallbackLogEntity } from './entities/payhook-callback-log.entity';
+ import { PayhookAppWebhookDto } from './dto/payhook-app-webhook.dto';
+-import { ConsoleVoucherNotifier, VoucherNotifier } from './interfaces/notifier.interface';
++import { PayhookNotifierService } from './notifier.service';
+ import { ConfigService } from '../../config/config.service';
+ import { MikrotikService } from '../../mikrotik/mikrotik.service';
+ import { VoucherTypeService } from '../../voucher-types/voucher-type.service';
+@@ -39,7 +39,6 @@ import { QrisService } from './qris.service';
+ @Injectable()
+ export class VoucherOrderService {
+   private readonly logger = new Logger(VoucherOrderService.name);
+-  private readonly notifier: VoucherNotifier = new ConsoleVoucherNotifier();
+ 
+   /**
+    * Collaborator services (optionally injected to avoid hard module wiring).
+@@ -51,6 +50,7 @@ export class VoucherOrderService {
+     private readonly orderRepo: Repository<VoucherOrderEntity>,
+     @InjectRepository(PayhookCallbackLogEntity)
+     private readonly logRepo: Repository<PayhookCallbackLogEntity>,
++    private readonly notifier: PayhookNotifierService,
+ @Optional() private readonly configService?: ConfigService,
+     @Optional() private readonly mikrotikService?: MikrotikService,
+     @Optional() private readonly voucherTypeService?: VoucherTypeService,
+@@ -104,25 +104,39 @@ private async getExpiryMinutes(): Promise<number> {
+   }
+ 
+   /**
+-   * Build a dynamic QRIS payload for a given order (price + unique code).
+-   * Falls back to the provided qrString or the static merchant QR if no
+-   * dynamic QR generator is available.
++   * Build a dynamic QRIS payload for a given order (price + unique code),
++   * plus its rendered PNG data-URI. Falls back to the provided qrString or
++   * the static merchant QR if no dynamic QR generator is available.
+    */
+   private async buildDynamicQr(
+-    order: VoucherOrderEntity,
++    order: Pick<VoucherOrderEntity, 'uniqueAmount'>,
+     qrString?: string
+-  ): Promise<string> {
+-    if (qrString) return qrString;
+-    // Try generating a dynamic QRIS from the static merchant QR.
+-    const staticQr = await this.getStaticQrString();
+-    if (staticQr && this.qrisService) {
++  ): Promise<{ qrString: string; qrImage: string | null }> {
++    let payload = qrString;
++    if (!payload) {
++      // Try generating a dynamic QRIS from the static merchant QR.
++      const staticQr = await this.getStaticQrString();
++      if (staticQr && this.qrisService) {
++        try {
++          payload = this.qrisService.buildDynamicQris(staticQr, order.uniqueAmount);
++        } catch (e: any) {
++          this.logger.warn(`[QRIS] dynamic QR generation failed: ${e.message}`);
++        }
++      } else {
++        payload = staticQr || '';
++      }
++    }
++
++    let qrImage: string | null = null;
++    if (payload && this.qrisService) {
+       try {
+-        return this.qrisService.buildDynamicQris(staticQr, order.uniqueAmount);
++        qrImage = await this.qrisService.toDataUrl(payload);
+       } catch (e: any) {
+-        this.logger.warn(`[QRIS] dynamic QR generation failed: ${e.message}`);
++        this.logger.warn(`[QRIS] render QR image failed: ${e.message}`);
+       }
+     }
+-    return staticQr || '';
++
++    return { qrString: payload || '', qrImage };
+   }
+ 
+   // ── Order creation ────────────────────────────────────────────────
+@@ -176,18 +190,50 @@ if (voucherTypeId && this.voucherTypeService) {
+       throw new BadRequestException('Voucher price must be > 0');
+     }
+ 
+-    // Generate the unique code (N digits).
++    // Generate the unique code (N digits), retrying if it collides with
++    // another still-valid pending order at the same total amount — two
++    // customers buying the same-priced package at the same time must never
++    // end up with an identical payment amount, or a webhook could settle
++    // the wrong order.
+     const digits = uniqueCodeDigits || (await this.getUniqueDigits());
+     const min = Math.pow(10, digits - 1);
+     const max = Math.pow(10, digits) - 1;
+-    const uniqueCode = Math.floor(min + Math.random() * (max - min + 1));
+-    const uniqueAmount = price + uniqueCode;
++
++    let uniqueCode = 0;
++    let uniqueAmount = 0;
++    let collisionFree = false;
++    for (let attempt = 0; attempt < 30; attempt++) {
++      const candidateCode = Math.floor(min + Math.random() * (max - min + 1));
++      const candidateAmount = price + candidateCode;
++      const clash = await this.orderRepo
++        .createQueryBuilder('o')
++        .where('o.status = :status', { status: 'pending' })
++        .andWhere('o.uniqueAmount = :amount', { amount: candidateAmount })
++        .andWhere('o.expiresAt > :now', { now: new Date().toISOString() })
++        .getOne();
++      if (!clash) {
++        uniqueCode = candidateCode;
++        uniqueAmount = candidateAmount;
++        collisionFree = true;
++        break;
++      }
++    }
++    if (!collisionFree) {
++      throw new BadRequestException(
++        'Gagal menemukan nominal unik yang tersedia saat ini, coba lagi sesaat lagi.'
++      );
++    }
+ 
+     const orderId = `QR${Date.now()}${Math.floor(Math.random() * 90 + 10)}`;
+ 
+     const now = new Date();
+     const expiresAt = new Date(now.getTime() + (await this.getExpiryMinutes()) * 60000);
+ 
++    const { qrString: builtQrString, qrImage } = await this.buildDynamicQr(
++      { uniqueAmount },
++      qrString
++    );
++
+     const order = this.orderRepo.create({
+       orderId,
+       voucherTypeId: voucherTypeId || null,
+@@ -197,7 +243,8 @@ if (voucherTypeId && this.voucherTypeService) {
+       price,
+       uniqueCode,
+       uniqueAmount,
+-      qrString: await this.buildDynamicQr({ uniqueAmount } as VoucherOrderEntity, qrString),
++      qrString: builtQrString,
++      qrImage,
+       customerName: customerName || '',
+       phone: phone || '',
+       status: 'pending',
+@@ -253,11 +300,15 @@ if (voucherTypeId && this.voucherTypeService) {
+       return { matched: false, status: 'UNKNOWN', note: logEntry.note };
+     }
+ 
+-    // 2. Find a matching pending order.
++    // 2. Find a matching pending order that hasn't expired yet. The expiry
++    // check here is defense-in-depth: even if the periodic expiry sweep
++    // hasn't run yet, a stale pending order must never steal a payment
++    // meant for a fresh order at the same amount.
+     const order = await this.orderRepo
+       .createQueryBuilder('o')
+       .where('o.status = :status', { status: 'pending' })
+       .andWhere('o.uniqueAmount = :amount', { amount })
++      .andWhere('o.expiresAt > :now', { now: new Date().toISOString() })
+       .orderBy('o.createdAt', 'ASC')
+       .getOne();
+ 
+@@ -475,6 +526,46 @@ if (order.voucherTypeId && this.voucherTypeService) {
+ 
+   // ── Queries ───────────────────────────────────────────────────────
+ 
++  /**
++   * (Re)generate the QR payload + image for an order. Used by the checkout
++   * page's fallback call when `qrImage` wasn't ready at order-creation time
++   * (e.g. the static QRIS config was saved after the order was created).
++   */
++  async regenerateQr(orderId: string): Promise<{ qrString: string; qrImage: string | null }> {
++    const order = await this.getOrder(orderId);
++    if (!order) throw new NotFoundException('Order not found');
++    if (order.status !== 'pending') {
++      return { qrString: order.qrString, qrImage: order.qrImage };
++    }
++
++    const { qrString, qrImage } = await this.buildDynamicQr(order, order.qrString || undefined);
++    order.qrString = qrString;
++    order.qrImage = qrImage;
++    await this.orderRepo.save(order);
++    return { qrString, qrImage };
++  }
++
++  /**
++   * Mark PENDING orders whose `expiresAt` has passed as EXPIRED. Called
++   * periodically by `PayhookSchedulerService`. Keeping this a bulk UPDATE
++   * (rather than loading + saving each row) keeps it cheap to run often.
++   */
++  async expireStaleOrders(): Promise<number> {
++    const nowIso = new Date().toISOString();
++    const result = await this.orderRepo
++      .createQueryBuilder()
++      .update(VoucherOrderEntity)
++      .set({ status: 'expired' })
++      .where('status = :status', { status: 'pending' })
++      .andWhere('expiresAt <= :now', { now: nowIso })
++      .execute();
++    const affected = result.affected || 0;
++    if (affected > 0) {
++      this.logger.log(`[QRIS] ${affected} order pending ditandai expired`);
++    }
++    return affected;
++  }
++
+   async listOrders(status?: string): Promise<VoucherOrderEntity[]> {
+     const where = status ? { status } : {};
+     return this.orderRepo.find({
+diff --git a/src/payment/payment-config.entity.ts b/src/payment/payment-config.entity.ts
+index fd63091..5b2df2e 100644
+--- a/src/payment/payment-config.entity.ts
++++ b/src/payment/payment-config.entity.ts
+@@ -62,6 +62,18 @@ export class PaymentConfigEntity {
+   @Column({ default: false })
+   payhookWaEnabled: boolean;
+ 
++  /** WA gateway provider: 'fonnte' | 'wablas'. */
++  @Column({ default: 'fonnte' })
++  payhookWaProvider: string;
++
++  /** API token/key for the chosen WA gateway provider. */
++  @Column({ type: 'text', nullable: true })
++  payhookWaToken: string;
++
++  /** Wablas only: your Wablas server domain (e.g. https://console.wablas.com). */
++  @Column({ type: 'text', nullable: true })
++  payhookWaDomain: string;
++
+   /** Comma-separated hosts to allow in MikroTik walled-garden for QRIS. */
+   @Column({ type: 'text', nullable: true })
+   payhookWalledGardenHosts: string;
+diff --git a/src/payment/payment-config.service.ts b/src/payment/payment-config.service.ts
+index 9d20f1b..ad5f9e8 100644
+--- a/src/payment/payment-config.service.ts
++++ b/src/payment/payment-config.service.ts
+@@ -43,6 +43,9 @@ duitkuExpiryMinutes: 10,
+       payhookUniqueDigits: 3,
+       payhookQrisExpiryMinutes: 15,
+       payhookWaEnabled: false,
++      payhookWaProvider: 'fonnte',
++      payhookWaToken: null,
++      payhookWaDomain: null,
+       payhookWalledGardenHosts: 'cdn.jsdelivr.net, voucher.sysbill.ink',
+       payhookStaticQris: null,
+     };
+@@ -116,6 +119,15 @@ if (data.defaultProvider !== undefined) {
+       if (!isNaN(m)) row.payhookQrisExpiryMinutes = Math.min(60, Math.max(5, Math.round(m)));
+     }
+     if (data.payhookWaEnabled !== undefined) row.payhookWaEnabled = !!data.payhookWaEnabled;
++    if (data.payhookWaProvider !== undefined) {
++      row.payhookWaProvider = data.payhookWaProvider === 'wablas' ? 'wablas' : 'fonnte';
++    }
++    if (data.payhookWaToken !== undefined && !String(data.payhookWaToken).includes('****')) {
++      row.payhookWaToken = data.payhookWaToken || null;
++    }
++    if (data.payhookWaDomain !== undefined) {
++      row.payhookWaDomain = data.payhookWaDomain || null;
++    }
+     if (data.payhookWalledGardenHosts !== undefined) {
+       row.payhookWalledGardenHosts = data.payhookWalledGardenHosts || '';
+     }
+@@ -150,6 +162,10 @@ duitkuExpiryMinutes: c.duitkuExpiryMinutes,
+       payhookUniqueDigits: c.payhookUniqueDigits,
+       payhookQrisExpiryMinutes: c.payhookQrisExpiryMinutes,
+       payhookWaEnabled: c.payhookWaEnabled,
++      payhookWaProvider: c.payhookWaProvider || 'fonnte',
++      payhookWaToken: mask(c.payhookWaToken),
++      payhookWaHasToken: !!c.payhookWaToken,
++      payhookWaDomain: c.payhookWaDomain || '',
+       payhookWalledGardenHosts: c.payhookWalledGardenHosts || '',
+       payhookStaticQris: c.payhookStaticQris || '',
+     };
+diff --git a/views/page/payment/qris-checkout.eta b/views/page/payment/qris-checkout.eta
+index 8823876..f7c17fe 100644
+--- a/views/page/payment/qris-checkout.eta
++++ b/views/page/payment/qris-checkout.eta
+@@ -114,25 +114,23 @@
+   document.getElementById('qris-loading').style.display = 'none';
+   document.getElementById('qris-content').style.display = 'block';
+ 
+-  // Generate QRIS QR code (static merchant QR or dynamic)
+-  // In production, this would be a dynamic QR from GoPay Merchant / PayHook server
++  // Generate QRIS QR code (rendered PNG data-URI from the server)
+   (async function loadQr() {
+     try {
+-      // Try to load a QR code from the server
+       const res = await fetch('/api/qris/orders/' + orderId, { credentials: 'include' });
+       const data = await res.json();
+-      if (data.success && data.order.qrString) {
+-        document.getElementById('qris-qr-img').src = data.order.qrString;
++      if (data.success && data.order.qrImage) {
++        document.getElementById('qris-qr-img').src = data.order.qrImage;
+       } else {
+-        // Fallback: show a placeholder QR
+-        document.getElementById('qris-qr-img').src = '/assets/qris-placeholder.png';
+-        // Try to generate QR via API
++        // Fallback: ask the server to (re)generate the QR image.
+         const qrRes = await fetch('/api/qris/orders/' + orderId + '/qr', {
+           method: 'POST',
+           credentials: 'include'
+         }).then(r => r.json());
+-        if (qrRes.success && qrRes.qrString) {
+-          document.getElementById('qris-qr-img').src = qrRes.qrString;
++        if (qrRes.success && qrRes.qrImage) {
++          document.getElementById('qris-qr-img').src = qrRes.qrImage;
++        } else {
++          document.getElementById('qris-qr-img').src = '/assets/qris-placeholder.png';
+         }
+       }
+     } catch (e) {
