@@ -190,12 +190,39 @@ if (voucherTypeId && this.voucherTypeService) {
       throw new BadRequestException('Voucher price must be > 0');
     }
 
-    // Generate the unique code (N digits).
+    // Generate the unique code (N digits), retrying if it collides with
+    // another still-valid pending order at the same total amount — two
+    // customers buying the same-priced package at the same time must never
+    // end up with an identical payment amount, or a webhook could settle
+    // the wrong order.
     const digits = uniqueCodeDigits || (await this.getUniqueDigits());
     const min = Math.pow(10, digits - 1);
     const max = Math.pow(10, digits) - 1;
-    const uniqueCode = Math.floor(min + Math.random() * (max - min + 1));
-    const uniqueAmount = price + uniqueCode;
+
+    let uniqueCode = 0;
+    let uniqueAmount = 0;
+    let collisionFree = false;
+    for (let attempt = 0; attempt < 30; attempt++) {
+      const candidateCode = Math.floor(min + Math.random() * (max - min + 1));
+      const candidateAmount = price + candidateCode;
+      const clash = await this.orderRepo
+        .createQueryBuilder('o')
+        .where('o.status = :status', { status: 'pending' })
+        .andWhere('o.uniqueAmount = :amount', { amount: candidateAmount })
+        .andWhere('o.expiresAt > :now', { now: new Date().toISOString() })
+        .getOne();
+      if (!clash) {
+        uniqueCode = candidateCode;
+        uniqueAmount = candidateAmount;
+        collisionFree = true;
+        break;
+      }
+    }
+    if (!collisionFree) {
+      throw new BadRequestException(
+        'Gagal menemukan nominal unik yang tersedia saat ini, coba lagi sesaat lagi.'
+      );
+    }
 
     const orderId = `QR${Date.now()}${Math.floor(Math.random() * 90 + 10)}`;
 
@@ -273,11 +300,15 @@ if (voucherTypeId && this.voucherTypeService) {
       return { matched: false, status: 'UNKNOWN', note: logEntry.note };
     }
 
-    // 2. Find a matching pending order.
+    // 2. Find a matching pending order that hasn't expired yet. The expiry
+    // check here is defense-in-depth: even if the periodic expiry sweep
+    // hasn't run yet, a stale pending order must never steal a payment
+    // meant for a fresh order at the same amount.
     const order = await this.orderRepo
       .createQueryBuilder('o')
       .where('o.status = :status', { status: 'pending' })
       .andWhere('o.uniqueAmount = :amount', { amount })
+      .andWhere('o.expiresAt > :now', { now: new Date().toISOString() })
       .orderBy('o.createdAt', 'ASC')
       .getOne();
 
@@ -512,6 +543,27 @@ if (order.voucherTypeId && this.voucherTypeService) {
     order.qrImage = qrImage;
     await this.orderRepo.save(order);
     return { qrString, qrImage };
+  }
+
+  /**
+   * Mark PENDING orders whose `expiresAt` has passed as EXPIRED. Called
+   * periodically by `PayhookSchedulerService`. Keeping this a bulk UPDATE
+   * (rather than loading + saving each row) keeps it cheap to run often.
+   */
+  async expireStaleOrders(): Promise<number> {
+    const nowIso = new Date().toISOString();
+    const result = await this.orderRepo
+      .createQueryBuilder()
+      .update(VoucherOrderEntity)
+      .set({ status: 'expired' })
+      .where('status = :status', { status: 'pending' })
+      .andWhere('expiresAt <= :now', { now: nowIso })
+      .execute();
+    const affected = result.affected || 0;
+    if (affected > 0) {
+      this.logger.log(`[QRIS] ${affected} order pending ditandai expired`);
+    }
+    return affected;
   }
 
   async listOrders(status?: string): Promise<VoucherOrderEntity[]> {

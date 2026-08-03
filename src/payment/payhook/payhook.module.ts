@@ -8,6 +8,7 @@ import { VoucherOrderService } from './voucher-order.service';
 import { VoucherOrderController } from './voucher-order.controller';
 import { QrisService } from './qris.service';
 import { PayhookNotifierService } from './notifier.service';
+import { PayhookSchedulerService } from './payhook-scheduler.service';
 import { MikrotikModule } from '../../mikrotik/mikrotik.module';
 import { VoucherTypeModule } from '../../voucher-types/voucher-type.module';
 import { TelegramModule } from '../../telegram/telegram.module';
@@ -39,7 +40,7 @@ import { PaymentConfigModule } from '../payment-config.module';
     PaymentConfigModule
   ],
   controllers: [VoucherOrderController],
-  providers: [VoucherOrderService, QrisService, PayhookNotifierService],
+  providers: [VoucherOrderService, QrisService, PayhookNotifierService, PayhookSchedulerService],
   exports: [VoucherOrderService, QrisService]
 })
 export class PayhookModule {}
