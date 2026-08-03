@@ -15,6 +15,10 @@ import {
 import { PayhookService } from './payhook.service';
 import { VoucherOrderService } from './voucher-order.service';
 import { VoucherOrderController } from './voucher-order.controller';
+import { MikrotikModule } from '../../mikrotik/mikrotik.module';
+import { VoucherTypeModule } from '../../voucher-types/voucher-type.module';
+import { TelegramModule } from '../../telegram/telegram.module';
+import { PaymentConfigModule } from '../payment-config.module';
 
 @Module({})
 export class PayhookModule {
@@ -28,7 +32,11 @@ export class PayhookModule {
           PaymentTransaction,
           VoucherOrderEntity,
           PayhookCallbackLogEntity
-        ])
+        ]),
+        MikrotikModule,
+        VoucherTypeModule,
+        TelegramModule,
+        PaymentConfigModule
       ],
       controllers: [PayhookController, VoucherOrderController],
       providers: [
@@ -59,6 +67,10 @@ export class PayhookModule {
           VoucherOrderEntity,
           PayhookCallbackLogEntity
         ]),
+        MikrotikModule,
+        VoucherTypeModule,
+        TelegramModule,
+        PaymentConfigModule,
         ...(options.imports || [])
       ],
       controllers: [PayhookController, VoucherOrderController],

@@ -17,8 +17,6 @@ import { BillingModule } from '../billing/billing.module';
 import { MikrotikModule } from '../mikrotik/mikrotik.module';
 import { VoucherTypeModule } from '../voucher-types/voucher-type.module';
 import { ConfigModule } from '../config/config.module';
-import { VoucherOrderService } from './payhook/voucher-order.service';
-import { VoucherOrderController } from './payhook/voucher-order.controller';
 
 @Module({
   imports: [
@@ -26,7 +24,7 @@ import { VoucherOrderController } from './payhook/voucher-order.controller';
     PaymentConfigModule,
     BillingModule,
     MikrotikModule,
-VoucherTypeModule,
+    VoucherTypeModule,
     ConfigModule,
     TypeOrmModule.forFeature([
       MidtransPaymentTransaction,
@@ -56,9 +54,9 @@ VoucherTypeModule,
         config.getPayhookOptions(),
     }),
   ],
-  controllers: [PaymentController, VoucherOrderController],
-  providers: [PaymentService, PaymentStatusListener, VoucherOrderService],
-  exports: [PaymentService, PaymentStatusListener, VoucherOrderService],
+controllers: [PaymentController],
+  providers: [PaymentService, PaymentStatusListener],
+  exports: [PaymentService, PaymentStatusListener],
 })
 export class PaymentModule {}
 

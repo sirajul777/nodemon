@@ -2,7 +2,8 @@ import {
   BadRequestException,
   Injectable,
   Logger,
-  NotFoundException
+  NotFoundException,
+  Optional
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -11,6 +12,11 @@ import { VoucherOrderEntity } from './entities/voucher-order.entity';
 import { PayhookCallbackLogEntity } from './entities/payhook-callback-log.entity';
 import { PayhookAppWebhookDto } from './dto/payhook-app-webhook.dto';
 import { ConsoleVoucherNotifier, VoucherNotifier } from './interfaces/notifier.interface';
+import { ConfigService } from '../../config/config.service';
+import { MikrotikService } from '../../mikrotik/mikrotik.service';
+import { VoucherTypeService } from '../../voucher-types/voucher-type.service';
+import { TelegramService } from '../../telegram/telegram.service';
+import { PaymentConfigService } from '../payment-config.service';
 
 /**
  * Manages the QRIS GoPay Merchant voucher-selling flow described in the
@@ -34,38 +40,34 @@ export class VoucherOrderService {
   private readonly logger = new Logger(VoucherOrderService.name);
   private readonly notifier: VoucherNotifier = new ConsoleVoucherNotifier();
 
-  /** Lazily-injected collaborators (set from the controller to avoid circular deps). */
-  private deps: {
-    voucherTypeService?: any;
-    configService?: any;
-    mikrotikService?: any;
-    telegramService?: any;
-    paymentConfigService?: any;
-  } = {};
-
+  /**
+   * Collaborator services (optionally injected to avoid hard module wiring).
+   * `ConfigService` is @Global, so it is always available. The rest are
+   * provided when PayhookModule imports the corresponding modules.
+   */
   constructor(
     @InjectRepository(VoucherOrderEntity)
     private readonly orderRepo: Repository<VoucherOrderEntity>,
     @InjectRepository(PayhookCallbackLogEntity)
-    private readonly logRepo: Repository<PayhookCallbackLogEntity>
+    private readonly logRepo: Repository<PayhookCallbackLogEntity>,
+    @Optional() private readonly configService?: ConfigService,
+    @Optional() private readonly mikrotikService?: MikrotikService,
+    @Optional() private readonly voucherTypeService?: VoucherTypeService,
+    @Optional() private readonly telegramService?: TelegramService,
+    @Optional() private readonly paymentConfigService?: PaymentConfigService
   ) {}
-
-  setDeps(deps: {
-    voucherTypeService?: any;
-    configService?: any;
-    mikrotikService?: any;
-    telegramService?: any;
-    paymentConfigService?: any;
-  }): void {
-    this.deps = { ...this.deps, ...deps };
-  }
 
   // ── Config helpers ────────────────────────────────────────────────
 
-  private getUniqueDigits(): number {
-    const cfg = this.deps.paymentConfigService
-      ? (this.deps.paymentConfigService.getConfig() as any)
-      : null;
+async getUniqueDigits(): Promise<number> {
+    let cfg: any = null;
+    if (this.paymentConfigService) {
+      try {
+        cfg = await this.paymentConfigService.getConfig();
+      } catch {
+        cfg = null;
+      }
+    }
     // Allow overriding via payment config once wired; default 3.
     const v = cfg?.payhookUniqueDigits;
     const n = parseInt(v, 10);
@@ -115,8 +117,8 @@ export class VoucherOrderService {
     let profile = profileParam || '';
     let validity = '';
 
-    if (voucherTypeId && this.deps.voucherTypeService) {
-      const vt = await this.deps.voucherTypeService.getById(voucherTypeId);
+if (voucherTypeId && this.voucherTypeService) {
+      const vt = await this.voucherTypeService.getById(voucherTypeId);
       if (!vt) throw new NotFoundException('Voucher type not found');
       voucherName = vt.name;
       price = Math.round(Number(vt.price) || 0);
@@ -136,7 +138,7 @@ export class VoucherOrderService {
     }
 
     // Generate the unique code (N digits).
-    const digits = uniqueCodeDigits || this.getUniqueDigits();
+    const digits = uniqueCodeDigits || (await this.getUniqueDigits());
     const min = Math.pow(10, digits - 1);
     const max = Math.pow(10, digits) - 1;
     const uniqueCode = Math.floor(min + Math.random() * (max - min + 1));
@@ -266,11 +268,11 @@ export class VoucherOrderService {
     // Create the hotspot user on the router (if a session is configured).
     let createdOnRouter = false;
     let routerError = '';
-    if (order.sessionId && this.deps.configService && this.deps.mikrotikService) {
+if (order.sessionId && this.configService && this.mikrotikService) {
       try {
-        const s = await this.deps.configService.getDecryptedSession(order.sessionId);
+        const s = await this.configService.getDecryptedSession(order.sessionId);
         if (s) {
-          const client = await this.deps.mikrotikService.createClient(
+          const client = await this.mikrotikService.createClient(
             s.ip,
             s.user,
             s.password,
@@ -320,10 +322,10 @@ export class VoucherOrderService {
     });
 
     // Optionally also notify via Telegram if configured.
-    if (this.deps.telegramService) {
+if (this.telegramService) {
       try {
-        await this.deps.telegramService.sendMessage(
-          this.deps.telegramService.getConfig()?.chatId,
+        await this.telegramService.sendMessage(
+          this.telegramService.getConfig()?.chatId,
           `🎟️ <b>Voucher QRIS Terjual</b>\n\n` +
             `Order: <code>${order.orderId}</code>\n` +
             `Paket: ${order.voucherName}\n` +
@@ -362,8 +364,8 @@ export class VoucherOrderService {
     let userType = 'up';
     let limitUptime = '';
 
-    if (order.voucherTypeId && this.deps.voucherTypeService) {
-      const vt = await this.deps.voucherTypeService.getById(order.voucherTypeId);
+if (order.voucherTypeId && this.voucherTypeService) {
+      const vt = await this.voucherTypeService.getById(order.voucherTypeId);
       if (vt) {
         length = vt.codeLength || 6;
         format = vt.codeFormat || 'upper+digit';

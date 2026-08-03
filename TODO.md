@@ -42,8 +42,11 @@ Implement the article's flow: **Voucher Hotspot Mikrotik Tanpa Payment Gateway d
 - [x] WhatsApp via deep-link helper (documented; no API token needed)
 
 ## Verification
-- [ ] `npm run build` compiles
-- [ ] App boots; tables `voucher_orders` + `payhook_callback_logs` auto-created
+- [x] `npm run build` compiles (exit 0)
+- [x] App boots; `voucher_orders` + `payhook_callback_logs` tables auto-created
+- [x] DI wiring fixed — `VoucherOrderService`/`VoucherOrderController` moved to `PayhookModule` (which has the TypeORM repositories); removed duplicate registration from `PaymentModule`
+- [x] `VoucherOrderService` now injects collaborator services (ConfigService, MikrotikService, VoucherTypeService, TelegramService, PaymentConfigService) via Nest DI instead of the unused lazy `setDeps()`
+- [x] Boot log confirms all QRIS routes mapped (`/payments/payhook/app-webhook`, `/api/qris/orders`, `/qris/checkout/:orderId`, `/qris/status/:orderId`, `/api/qris/orders`, `/api/qris/orders/:id`, `/api/qris/orders/:id/verify`, `/api/qris/callbacks`, `/api/qris/stats`)
 - [ ] Create order → unique amount computed → checkout page renders
 - [ ] Simulated PayHook app webhook (script) → order marked paid → voucher created (or logged if no router) → notifier called
 - [ ] Manual verify works
