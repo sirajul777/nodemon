@@ -1025,8 +1025,8 @@ export class TelegramService implements OnModuleInit {
       return;
     }
 
-    try {
-      const s = this.configService.getDecryptedSession(cfg.sessionId);
+try {
+      const s = await this.configService.getDecryptedSession(cfg.sessionId);
       if (!s) {
         await this.sendMessage(chatId, "⚠️ Router tidak terkonfigurasi.");
         return;
@@ -1045,7 +1045,7 @@ export class TelegramService implements OnModuleInit {
         _vt?: VoucherType;
       }> = [];
 
-if (this.vtService) {
+      if (this.vtService) {
         const vtList = await this.vtService.getActive();
         if (vtList.length > 0) {
           items = vtList.map((vt) => ({
@@ -1159,7 +1159,7 @@ if (this.vtService) {
       return;
     }
 
-    const s = this.configService.getDecryptedSession(cfg.sessionId);
+const s = await this.configService.getDecryptedSession(cfg.sessionId);
     const isIndo = INDO_CURR.includes(s?.currency || "");
 
     // Resolve price and duration from VoucherType or profile on-login
@@ -1287,7 +1287,7 @@ if (this.vtService) {
     }
 
     // Show confirmation
-    const s = this.configService.getDecryptedSession(cfg.sessionId);
+    const s = await this.configService.getDecryptedSession(cfg.sessionId);
     const isIndo = INDO_CURR.includes(s?.currency || "");
     const profiles = state.profiles || [];
     const p = profiles.find((x: any) => x.name === state.profile);
@@ -1338,7 +1338,7 @@ if (this.vtService) {
     cfg: TelegramConfig
   ): Promise<void> {
     const state = this.getState(chatId);
-    const s = this.configService.getDecryptedSession(cfg.sessionId);
+    const s = await this.configService.getDecryptedSession(cfg.sessionId);
     const isIndo = INDO_CURR.includes(s?.currency || "");
     const profiles = state?.profiles || [];
     const p = profiles.find((x: any) => x.name === profileName);
@@ -1434,8 +1434,8 @@ if (this.vtService) {
     cfg: TelegramConfig,
     editMsgId?: number
   ): Promise<void> {
-    try {
-      const s = this.configService.getDecryptedSession(cfg.sessionId);
+try {
+      const s = await this.configService.getDecryptedSession(cfg.sessionId);
       if (!s) {
         await this.sendMessage(chatId, "⚠️ Router tidak terkonfigurasi.");
         return;
@@ -1594,9 +1594,9 @@ const allVoucherTypes = await this.vtService.getAll();
     qty: number,
     cfg: TelegramConfig
   ): Promise<void> {
-    if (qty > 200) qty = 200;
+if (qty > 200) qty = 200;
     try {
-      const s = this.configService.getDecryptedSession(cfg.sessionId);
+      const s = await this.configService.getDecryptedSession(cfg.sessionId);
       if (!s) {
         await this.sendMessage(chatId, "⚠️ Router tidak terkonfigurasi.");
         return;
@@ -1737,12 +1737,12 @@ const allVoucherTypes = await this.vtService.getAll();
     await this.sendMessage(chatId, text);
   }
 
-  private async handleProfil(
+private async handleProfil(
     chatId: string,
     cfg: TelegramConfig
   ): Promise<void> {
     try {
-      const s = this.configService.getDecryptedSession(cfg.sessionId);
+      const s = await this.configService.getDecryptedSession(cfg.sessionId);
       if (!s) {
         await this.sendMessage(chatId, "⚠️ Router tidak terkonfigurasi.");
         return;
@@ -1792,8 +1792,8 @@ const allVoucherTypes = await this.vtService.getAll();
       await this.sendMessage(chatId, "❓ Gunakan: /cek [username]");
       return;
     }
-    try {
-      const s = this.configService.getDecryptedSession(cfg.sessionId);
+try {
+      const s = await this.configService.getDecryptedSession(cfg.sessionId);
       const client = await this.mikrotikService.createClient(
         s.ip,
         s.user,
@@ -2216,12 +2216,12 @@ const allVoucherTypes = await this.vtService.getAll();
     await this.sendMessage(chatId, text);
   }
 
-  private async handleStatus(
+private async handleStatus(
     chatId: string,
     cfg: TelegramConfig
   ): Promise<void> {
     try {
-      const s = this.configService.getDecryptedSession(cfg.sessionId);
+      const s = await this.configService.getDecryptedSession(cfg.sessionId);
       const client = await this.mikrotikService.createClient(
         s.ip,
         s.user,
@@ -2252,12 +2252,12 @@ const allVoucherTypes = await this.vtService.getAll();
     }
   }
 
-  private async handleAktif(
+private async handleAktif(
     chatId: string,
     cfg: TelegramConfig
   ): Promise<void> {
     try {
-      const s = this.configService.getDecryptedSession(cfg.sessionId);
+      const s = await this.configService.getDecryptedSession(cfg.sessionId);
       const active = await this.mikrotikService.run(
         s.ip,
         s.user,
@@ -2282,13 +2282,13 @@ const allVoucherTypes = await this.vtService.getAll();
     }
   }
 
-  private async handleRekap(
+private async handleRekap(
     chatId: string,
     period: "today" | "month",
     cfg: TelegramConfig
   ): Promise<void> {
     try {
-      const s = this.configService.getDecryptedSession(cfg.sessionId);
+      const s = await this.configService.getDecryptedSession(cfg.sessionId);
       const now = new Date();
       const months = [
         "jan",
@@ -2369,12 +2369,12 @@ const allVoucherTypes = await this.vtService.getAll();
     }
   }
 
-  private async handlePppoe(
+private async handlePppoe(
     chatId: string,
     cfg: TelegramConfig
   ): Promise<void> {
     try {
-      const s = this.configService.getDecryptedSession(cfg.sessionId);
+      const s = await this.configService.getDecryptedSession(cfg.sessionId);
       const active = await this.mikrotikService.run(
         s.ip,
         s.user,
@@ -2398,7 +2398,7 @@ const allVoucherTypes = await this.vtService.getAll();
     }
   }
 
-  private async handleHapus(
+private async handleHapus(
     chatId: string,
     args: string[],
     cfg: TelegramConfig
@@ -2409,7 +2409,7 @@ const allVoucherTypes = await this.vtService.getAll();
       return;
     }
     try {
-      const s = this.configService.getDecryptedSession(cfg.sessionId);
+      const s = await this.configService.getDecryptedSession(cfg.sessionId);
       const client = await this.mikrotikService.createClient(
         s.ip,
         s.user,
