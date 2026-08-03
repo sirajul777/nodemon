@@ -43,6 +43,9 @@ duitkuExpiryMinutes: 10,
       payhookUniqueDigits: 3,
       payhookQrisExpiryMinutes: 15,
       payhookWaEnabled: false,
+      payhookWaProvider: 'fonnte',
+      payhookWaToken: null,
+      payhookWaDomain: null,
       payhookWalledGardenHosts: 'cdn.jsdelivr.net, voucher.sysbill.ink',
       payhookStaticQris: null,
     };
@@ -116,6 +119,15 @@ if (data.defaultProvider !== undefined) {
       if (!isNaN(m)) row.payhookQrisExpiryMinutes = Math.min(60, Math.max(5, Math.round(m)));
     }
     if (data.payhookWaEnabled !== undefined) row.payhookWaEnabled = !!data.payhookWaEnabled;
+    if (data.payhookWaProvider !== undefined) {
+      row.payhookWaProvider = data.payhookWaProvider === 'wablas' ? 'wablas' : 'fonnte';
+    }
+    if (data.payhookWaToken !== undefined && !String(data.payhookWaToken).includes('****')) {
+      row.payhookWaToken = data.payhookWaToken || null;
+    }
+    if (data.payhookWaDomain !== undefined) {
+      row.payhookWaDomain = data.payhookWaDomain || null;
+    }
     if (data.payhookWalledGardenHosts !== undefined) {
       row.payhookWalledGardenHosts = data.payhookWalledGardenHosts || '';
     }
@@ -150,6 +162,10 @@ duitkuExpiryMinutes: c.duitkuExpiryMinutes,
       payhookUniqueDigits: c.payhookUniqueDigits,
       payhookQrisExpiryMinutes: c.payhookQrisExpiryMinutes,
       payhookWaEnabled: c.payhookWaEnabled,
+      payhookWaProvider: c.payhookWaProvider || 'fonnte',
+      payhookWaToken: mask(c.payhookWaToken),
+      payhookWaHasToken: !!c.payhookWaToken,
+      payhookWaDomain: c.payhookWaDomain || '',
       payhookWalledGardenHosts: c.payhookWalledGardenHosts || '',
       payhookStaticQris: c.payhookStaticQris || '',
     };

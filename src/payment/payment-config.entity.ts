@@ -62,6 +62,18 @@ export class PaymentConfigEntity {
   @Column({ default: false })
   payhookWaEnabled: boolean;
 
+  /** WA gateway provider: 'fonnte' | 'wablas'. */
+  @Column({ default: 'fonnte' })
+  payhookWaProvider: string;
+
+  /** API token/key for the chosen WA gateway provider. */
+  @Column({ type: 'text', nullable: true })
+  payhookWaToken: string;
+
+  /** Wablas only: your Wablas server domain (e.g. https://console.wablas.com). */
+  @Column({ type: 'text', nullable: true })
+  payhookWaDomain: string;
+
   /** Comma-separated hosts to allow in MikroTik walled-garden for QRIS. */
   @Column({ type: 'text', nullable: true })
   payhookWalledGardenHosts: string;

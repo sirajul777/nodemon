@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import * as QRCode from 'qrcode';
 
 /**
  * Dynamic QRIS generator (EMV QR Code standard, QRIS Merchant Presented Mode).
@@ -115,5 +116,19 @@ export class QrisService {
   /** Extract fields from a QRIS payload (for debugging/admin panel). */
   inspectQris(payload: string): TLVField[] {
     return this.parseTLV(payload.trim());
+  }
+
+  /**
+   * Render a QRIS (or any EMV QR) text payload into a scannable PNG image,
+   * returned as a `data:image/png;base64,...` URI so it can be dropped
+   * straight into an `<img src>` without a separate file/route.
+   */
+  async toDataUrl(payload: string): Promise<string> {
+    if (!payload) throw new Error('Payload QRIS kosong, tidak bisa dirender jadi gambar.');
+    return QRCode.toDataURL(payload, {
+      errorCorrectionLevel: 'M',
+      margin: 1,
+      width: 400,
+    });
   }
 }

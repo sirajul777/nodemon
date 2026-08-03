@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { HttpModule } from '@nestjs/axios';
 
 import { VoucherOrderEntity } from './entities/voucher-order.entity';
 import { PayhookCallbackLogEntity } from './entities/payhook-callback-log.entity';
 import { VoucherOrderService } from './voucher-order.service';
 import { VoucherOrderController } from './voucher-order.controller';
 import { QrisService } from './qris.service';
+import { PayhookNotifierService } from './notifier.service';
 import { MikrotikModule } from '../../mikrotik/mikrotik.module';
 import { VoucherTypeModule } from '../../voucher-types/voucher-type.module';
 import { TelegramModule } from '../../telegram/telegram.module';
@@ -30,13 +32,14 @@ import { PaymentConfigModule } from '../payment-config.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([VoucherOrderEntity, PayhookCallbackLogEntity]),
+    HttpModule,
     MikrotikModule,
     VoucherTypeModule,
     TelegramModule,
     PaymentConfigModule
   ],
   controllers: [VoucherOrderController],
-  providers: [VoucherOrderService, QrisService],
+  providers: [VoucherOrderService, QrisService, PayhookNotifierService],
   exports: [VoucherOrderService, QrisService]
 })
 export class PayhookModule {}

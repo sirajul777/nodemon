@@ -58,6 +58,10 @@ export class VoucherOrderEntity {
   @Column({ type: 'text', nullable: true })
   qrString: string;
 
+  /** Rendered PNG (data:image/png;base64,...) of `qrString`, ready for <img src>. */
+  @Column({ type: 'text', nullable: true })
+  qrImage: string;
+
   @Column({ nullable: true })
   customerName: string;
 

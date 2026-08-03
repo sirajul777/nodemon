@@ -11,7 +11,7 @@ import { Repository } from 'typeorm';
 import { VoucherOrderEntity } from './entities/voucher-order.entity';
 import { PayhookCallbackLogEntity } from './entities/payhook-callback-log.entity';
 import { PayhookAppWebhookDto } from './dto/payhook-app-webhook.dto';
-import { ConsoleVoucherNotifier, VoucherNotifier } from './interfaces/notifier.interface';
+import { PayhookNotifierService } from './notifier.service';
 import { ConfigService } from '../../config/config.service';
 import { MikrotikService } from '../../mikrotik/mikrotik.service';
 import { VoucherTypeService } from '../../voucher-types/voucher-type.service';
@@ -39,7 +39,6 @@ import { QrisService } from './qris.service';
 @Injectable()
 export class VoucherOrderService {
   private readonly logger = new Logger(VoucherOrderService.name);
-  private readonly notifier: VoucherNotifier = new ConsoleVoucherNotifier();
 
   /**
    * Collaborator services (optionally injected to avoid hard module wiring).
@@ -51,6 +50,7 @@ export class VoucherOrderService {
     private readonly orderRepo: Repository<VoucherOrderEntity>,
     @InjectRepository(PayhookCallbackLogEntity)
     private readonly logRepo: Repository<PayhookCallbackLogEntity>,
+    private readonly notifier: PayhookNotifierService,
 @Optional() private readonly configService?: ConfigService,
     @Optional() private readonly mikrotikService?: MikrotikService,
     @Optional() private readonly voucherTypeService?: VoucherTypeService,
@@ -104,25 +104,39 @@ private async getExpiryMinutes(): Promise<number> {
   }
 
   /**
-   * Build a dynamic QRIS payload for a given order (price + unique code).
-   * Falls back to the provided qrString or the static merchant QR if no
-   * dynamic QR generator is available.
+   * Build a dynamic QRIS payload for a given order (price + unique code),
+   * plus its rendered PNG data-URI. Falls back to the provided qrString or
+   * the static merchant QR if no dynamic QR generator is available.
    */
   private async buildDynamicQr(
-    order: VoucherOrderEntity,
+    order: Pick<VoucherOrderEntity, 'uniqueAmount'>,
     qrString?: string
-  ): Promise<string> {
-    if (qrString) return qrString;
-    // Try generating a dynamic QRIS from the static merchant QR.
-    const staticQr = await this.getStaticQrString();
-    if (staticQr && this.qrisService) {
-      try {
-        return this.qrisService.buildDynamicQris(staticQr, order.uniqueAmount);
-      } catch (e: any) {
-        this.logger.warn(`[QRIS] dynamic QR generation failed: ${e.message}`);
+  ): Promise<{ qrString: string; qrImage: string | null }> {
+    let payload = qrString;
+    if (!payload) {
+      // Try generating a dynamic QRIS from the static merchant QR.
+      const staticQr = await this.getStaticQrString();
+      if (staticQr && this.qrisService) {
+        try {
+          payload = this.qrisService.buildDynamicQris(staticQr, order.uniqueAmount);
+        } catch (e: any) {
+          this.logger.warn(`[QRIS] dynamic QR generation failed: ${e.message}`);
+        }
+      } else {
+        payload = staticQr || '';
       }
     }
-    return staticQr || '';
+
+    let qrImage: string | null = null;
+    if (payload && this.qrisService) {
+      try {
+        qrImage = await this.qrisService.toDataUrl(payload);
+      } catch (e: any) {
+        this.logger.warn(`[QRIS] render QR image failed: ${e.message}`);
+      }
+    }
+
+    return { qrString: payload || '', qrImage };
   }
 
   // ── Order creation ────────────────────────────────────────────────
@@ -188,6 +202,11 @@ if (voucherTypeId && this.voucherTypeService) {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + (await this.getExpiryMinutes()) * 60000);
 
+    const { qrString: builtQrString, qrImage } = await this.buildDynamicQr(
+      { uniqueAmount },
+      qrString
+    );
+
     const order = this.orderRepo.create({
       orderId,
       voucherTypeId: voucherTypeId || null,
@@ -197,7 +216,8 @@ if (voucherTypeId && this.voucherTypeService) {
       price,
       uniqueCode,
       uniqueAmount,
-      qrString: await this.buildDynamicQr({ uniqueAmount } as VoucherOrderEntity, qrString),
+      qrString: builtQrString,
+      qrImage,
       customerName: customerName || '',
       phone: phone || '',
       status: 'pending',
@@ -474,6 +494,25 @@ if (order.voucherTypeId && this.voucherTypeService) {
   }
 
   // ── Queries ───────────────────────────────────────────────────────
+
+  /**
+   * (Re)generate the QR payload + image for an order. Used by the checkout
+   * page's fallback call when `qrImage` wasn't ready at order-creation time
+   * (e.g. the static QRIS config was saved after the order was created).
+   */
+  async regenerateQr(orderId: string): Promise<{ qrString: string; qrImage: string | null }> {
+    const order = await this.getOrder(orderId);
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.status !== 'pending') {
+      return { qrString: order.qrString, qrImage: order.qrImage };
+    }
+
+    const { qrString, qrImage } = await this.buildDynamicQr(order, order.qrString || undefined);
+    order.qrString = qrString;
+    order.qrImage = qrImage;
+    await this.orderRepo.save(order);
+    return { qrString, qrImage };
+  }
 
   async listOrders(status?: string): Promise<VoucherOrderEntity[]> {
     const where = status ? { status } : {};

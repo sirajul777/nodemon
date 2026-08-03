@@ -77,10 +77,21 @@ export class VoucherOrderController {
         uniqueAmount: order.uniqueAmount,
         uniqueCode: order.uniqueCode,
         qrString: order.qrString,
+        qrImage: order.qrImage,
         expiresAt: order.expiresAt,
         status: order.status
       }
     };
+  }
+
+  // ── Public: (re)generate QR image for an order ───────────────────
+  // Fallback used by the checkout page when qrImage wasn't ready yet
+  // (e.g. static QRIS config saved after the order was created).
+  @Post('api/qris/orders/:id/qr')
+  @HttpCode(200)
+  async regenerateQr(@Param('id') id: string) {
+    const { qrString, qrImage } = await this.orderService.regenerateQr(id);
+    return { success: true, qrString, qrImage };
   }
 
   // ── Public: customer-facing checkout page ───────────────────────

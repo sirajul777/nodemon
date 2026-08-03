@@ -114,25 +114,23 @@
   document.getElementById('qris-loading').style.display = 'none';
   document.getElementById('qris-content').style.display = 'block';
 
-  // Generate QRIS QR code (static merchant QR or dynamic)
-  // In production, this would be a dynamic QR from GoPay Merchant / PayHook server
+  // Generate QRIS QR code (rendered PNG data-URI from the server)
   (async function loadQr() {
     try {
-      // Try to load a QR code from the server
       const res = await fetch('/api/qris/orders/' + orderId, { credentials: 'include' });
       const data = await res.json();
-      if (data.success && data.order.qrString) {
-        document.getElementById('qris-qr-img').src = data.order.qrString;
+      if (data.success && data.order.qrImage) {
+        document.getElementById('qris-qr-img').src = data.order.qrImage;
       } else {
-        // Fallback: show a placeholder QR
-        document.getElementById('qris-qr-img').src = '/assets/qris-placeholder.png';
-        // Try to generate QR via API
+        // Fallback: ask the server to (re)generate the QR image.
         const qrRes = await fetch('/api/qris/orders/' + orderId + '/qr', {
           method: 'POST',
           credentials: 'include'
         }).then(r => r.json());
-        if (qrRes.success && qrRes.qrString) {
-          document.getElementById('qris-qr-img').src = qrRes.qrString;
+        if (qrRes.success && qrRes.qrImage) {
+          document.getElementById('qris-qr-img').src = qrRes.qrImage;
+        } else {
+          document.getElementById('qris-qr-img').src = '/assets/qris-placeholder.png';
         }
       }
     } catch (e) {
