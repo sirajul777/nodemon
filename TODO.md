@@ -47,6 +47,7 @@ Implement the article's flow: **Voucher Hotspot Mikrotik Tanpa Payment Gateway d
 - [x] DI wiring fixed — `VoucherOrderService`/`VoucherOrderController` moved to `PayhookModule` (which has the TypeORM repositories); removed duplicate registration from `PaymentModule`
 - [x] `VoucherOrderService` now injects collaborator services (ConfigService, MikrotikService, VoucherTypeService, TelegramService, PaymentConfigService) via Nest DI instead of the unused lazy `setDeps()`
 - [x] Boot log confirms all QRIS routes mapped (`/payments/payhook/app-webhook`, `/api/qris/orders`, `/qris/checkout/:orderId`, `/qris/status/:orderId`, `/api/qris/orders`, `/api/qris/orders/:id`, `/api/qris/orders/:id/verify`, `/api/qris/callbacks`, `/api/qris/stats`)
+- [x] Eta template runtime fix — `qris-checkout.eta` now uses `it.order`/`it.notFound` (Eta v4 data is accessed via the `it` object, not bare variable names). Removed `qris-checkout` from `index.eta` SPA shell (it's a standalone customer-facing page rendered via `@Render`). SPA `/` and `/qris/checkout/:orderId` both return HTTP 200.
 - [ ] Create order → unique amount computed → checkout page renders
 - [ ] Simulated PayHook app webhook (script) → order marked paid → voucher created (or logged if no router) → notifier called
 - [ ] Manual verify works

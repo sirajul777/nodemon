@@ -5,7 +5,7 @@
       <h3 style="margin: 8px 0 4px">Pembayaran QRIS</h3>
     </div>
 
-    <% if (notFound) { %>
+<% if (it.notFound) { %>
       <div style="text-align: center; padding: 32px 0">
         <i class="fa fa-exclamation-triangle" style="font-size: 2rem; color: var(--red); opacity: 0.6"></i>
         <p style="color: var(--muted); margin-top: 12px">Order tidak ditemukan atau sudah kadaluarsa.</p>
@@ -23,7 +23,7 @@
         <!-- Voucher info -->
         <div style="text-align: center; margin-bottom: 16px">
           <div style="font-size: 0.85rem; color: var(--muted)">Paket Voucher</div>
-          <div style="font-size: 1.1rem; font-weight: 700; margin-top: 2px" id="qris-voucher-name"><%= order?.voucherName %></div>
+<div style="font-size: 1.1rem; font-weight: 700; margin-top: 2px" id="qris-voucher-name"><%= it.order?.voucherName %></div>
         </div>
 
         <!-- QR Code -->
@@ -54,10 +54,10 @@
             Total Pembayaran
           </div>
           <div style="font-size: 1.6rem; font-weight: 800; color: var(--green)" id="qris-amount">
-            Rp <%= order?.uniqueAmount?.toLocaleString('id-ID') %>
+            Rp <%= it.order?.uniqueAmount?.toLocaleString('id-ID') %>
           </div>
           <div style="font-size: 0.78rem; color: var(--muted); margin-top: 4px">
-            Harga: Rp <%= order?.price?.toLocaleString('id-ID') %> + Kode Unik: <b id="qris-unique-code"><%= order?.uniqueCode %></b>
+            Harga: Rp <%= it.order?.price?.toLocaleString('id-ID') %> + Kode Unik: <b id="qris-unique-code"><%= it.order?.uniqueCode %></b>
           </div>
         </div>
 
@@ -92,8 +92,8 @@
 
         <!-- Hidden order data -->
         <div id="qris-order-data" style="display: none"
-          data-order-id="<%= order?.orderId %>"
-          data-expires-at="<%= order?.expiresAt %>">
+          data-order-id="<%= it.order?.orderId %>"
+          data-expires-at="<%= it.order?.expiresAt %>">
         </div>
       </div>
     <% } %>
