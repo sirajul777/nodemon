@@ -68,8 +68,25 @@ export class PaymentConfigEntity {
   @Column({ type: 'text', nullable: true })
   payhookCallbackUrl: string;
 
-  @Column({ default: 'QRIS' })
+@Column({ default: 'QRIS' })
   payhookDefaultMethod: string;
+
+  // ── QRIS GoPay Merchant (PayHook Android app) ──────────────
+  /** Number of digits for the unique amount code (default 3). */
+  @Column({ default: 3 })
+  payhookUniqueDigits: number;
+
+  /** QRIS expiry minutes (default 15). */
+  @Column({ default: 15 })
+  payhookQrisExpiryMinutes: number;
+
+  /** Whether to send WhatsApp customer notifications. */
+  @Column({ default: false })
+  payhookWaEnabled: boolean;
+
+  /** Comma-separated hosts to allow in MikroTik walled-garden for QRIS. */
+  @Column({ type: 'text', nullable: true })
+  payhookWalledGardenHosts: string;
 }
 
 

@@ -117,12 +117,40 @@
             <input id="ps-payhook-callback" placeholder="https://contoh.com/payments/payhook/callback" />
           </div>
         </div>
-        <div class="fg" style="max-width: 200px">
+<div class="fg" style="max-width: 200px">
           <label>Metode (default)</label>
           <select id="ps-payhook-method">
             <option value="QRIS">QRIS</option>
             <option value="gopay">GoPay (QR Dinamis)</option>
           </select>
+        </div>
+
+        <!-- QRIS GoPay Merchant (PayHook Android app) -->
+        <div style="margin-top: 16px; padding: 12px; background: var(--card3); border-radius: 8px">
+          <div style="font-weight: 600; margin-bottom: 8px">
+            <i class="fa fa-qrcode"></i> QRIS GoPay Merchant (Tanpa Payment Gateway)
+          </div>
+          <p style="color: var(--muted); font-size: 0.8rem; margin-bottom: 10px">
+            Gunakan GoPay Merchant + PayHook Android app untuk menerima pembayaran QRIS tanpa payment gateway. Pelanggan membayar nominal unik (harga + kode unik), PayHook meneruskan notifikasi ke server.
+          </p>
+          <div class="g3">
+            <div class="fg">
+              <label>Digit Kode Unik</label>
+              <input id="ps-payhook-unique-digits" type="number" min="2" max="5" placeholder="3" />
+            </div>
+            <div class="fg">
+              <label>QRIS Expiry (menit)</label>
+              <input id="ps-payhook-qris-expiry" type="number" min="5" max="60" placeholder="15" />
+            </div>
+            <div class="fg" style="display: flex; align-items: center; gap: 6px; padding-top: 22px">
+              <input type="checkbox" id="ps-payhook-wa-enabled" style="width: auto; accent-color: var(--acc2)" />
+              <label style="margin: 0">WA Notifikasi Customer</label>
+            </div>
+          </div>
+          <div class="fg">
+            <label>Walled Garden Hosts (dipisah koma, untuk hotspot)</label>
+            <input id="ps-payhook-walled-garden" placeholder="cdn.jsdelivr.net, voucher.sysbill.ink" />
+          </div>
         </div>
       </div>
 

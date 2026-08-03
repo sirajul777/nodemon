@@ -14,12 +14,20 @@ import { PaymentTransaction as MidtransPaymentTransaction } from './midtrans/ent
 import { PaymentTransaction as DuitkuPaymentTransaction } from './duitku/entities/payment-transaction.entity';
 import { PaymentTransaction as PayhookPaymentTransaction } from './payhook/entities/payment-transaction.entity';
 import { BillingModule } from '../billing/billing.module';
+import { MikrotikModule } from '../mikrotik/mikrotik.module';
+import { VoucherTypeModule } from '../voucher-types/voucher-type.module';
+import { ConfigModule } from '../config/config.module';
+import { VoucherOrderService } from './payhook/voucher-order.service';
+import { VoucherOrderController } from './payhook/voucher-order.controller';
 
 @Module({
   imports: [
     EventEmitterModule.forRoot(),
     PaymentConfigModule,
     BillingModule,
+    MikrotikModule,
+VoucherTypeModule,
+    ConfigModule,
     TypeOrmModule.forFeature([
       MidtransPaymentTransaction,
       DuitkuPaymentTransaction,
@@ -48,9 +56,9 @@ import { BillingModule } from '../billing/billing.module';
         config.getPayhookOptions(),
     }),
   ],
-  controllers: [PaymentController],
-  providers: [PaymentService, PaymentStatusListener],
-  exports: [PaymentService, PaymentStatusListener],
+  controllers: [PaymentController, VoucherOrderController],
+  providers: [PaymentService, PaymentStatusListener, VoucherOrderService],
+  exports: [PaymentService, PaymentStatusListener, VoucherOrderService],
 })
 export class PaymentModule {}
 

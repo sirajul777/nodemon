@@ -1,73 +1,51 @@
-# Multi-Login Permission-to-View Fix
+# QRIS GoPay Merchant + PayHook (Android App) — Voucher Auto-Selling
 
-## Root Causes
-1. **Frontend `applyRoleNav()`** only runs when role ≠ admin, never resets hidden nav first, and has an incomplete menu→permission map → stale/hidden sidebar when switching between users (multi-login), and Payment/Telegram menus never gated.
-2. **Backend `ConfigController.getSessions()`** filters using `s.userPerms?.allowedSessions` (a permissions object) instead of the actual user's `allowedSessions` — router access filtering never worked; `allowedSessions` was never stored in the session at login.
-3. **No backend permission enforcement** — `AuthGuard` only checks "is logged in"; any user can call admin APIs directly.
+## Goal
+Implement the article's flow: **Voucher Hotspot Mikrotik Tanpa Payment Gateway dengan QRIS GoPay Merchant** using the **PayHook Android app** (notification-reader → webhook to our server), **QRIS Dinamis via GoPay Merchant**, and **unique nominal matching** so payments can be auto-verified and vouchers auto-created on Mikrotik — without a conventional payment gateway.
 
-## Plan & Status
+## Plan
 
-### Backend
-- [x] Create `src/auth/permissions.decorator.ts` (`@RequirePermission`)
-- [x] Create `src/auth/permissions.guard.ts` (`PermissionsGuard`, admin bypass, 403)
-- [x] `auth.controller.ts`: store `allowedSessions` in session at login; return in `/me`
-- [x] `config.controller.ts`: fix `getSessions()` filter + gate session writes (`manageSystem`) + allowedSessions check on GET :id
+### 1. Entities (new)
+- [x] `src/payment/payhook/entities/voucher-order.entity.ts` — `voucher_orders` table
+- [x] `src/payment/payhook/entities/payhook-callback-log.entity.ts` — `payhook_callback_logs` table
 
-### Permissions applied to controllers
-- [x] user-management → manageSystem
-- [x] telegram → manageSystem
-- [x] payment → manageBilling (list/stats/detail/check), manageSystem (config/test)
-- [x] sessions/config → manageSystem (write)
-- [x] mikrotik → viewDashboard (dashboard/monitoring), manageHotspot (hotspot ops)
-- [x] pppoe → managePppoe
-- [x] voucher-batch, voucher, voucher-types → manageVoucher
-- [x] reseller → manageReseller/manageVoucher (read), manageReseller (write)
-- [x] bot-resellers → manageReseller
-- [x] billing → manageBilling
-- [x] report → viewReport
+### 2. DTO
+- [x] `src/payment/payhook/dto/payhook-app-webhook.dto.ts` — PayHook Android-app webhook DTO
 
-### Frontend
-- [x] `public/assets/app.js`: rewrite `applyRoleNav()` → reset-all-then-apply for EVERY role, complete map (add manageReseller, payments, payment-settings, telegram menus); `checkAuth()`/`doLogin()` call it for all roles
+### 3. Services
+- [x] `src/payment/payhook/voucher-order.service.ts` — core service (create, process webhook, manual verify, queries)
+- [x] `src/payment/payhook/interfaces/notifier.interface.ts` — notification abstraction
 
-### Verification
-- [x] Clean `npm run build` compiles (dist/main.js emitted)
-- [x] App boots with all routes mapped (SQLite on port 4000)
-- [x] Admin login → full access
-- [x] Reseller login → 403 on users/billing/report; allowed on voucher/manageReseller; sessions list filtered properly
-- [x] Test user cleaned up; no stray processes left
+### 4. Controller
+- [x] `src/payment/payhook/voucher-order.controller.ts` — all endpoints (webhook, order CRUD, admin monitors)
 
----
+### 5. Views
+- [x] `views/page/payment/qris-checkout.eta` — customer-facing checkout page
+- [x] `views/page/payment/qris-monitor.eta` — admin callback monitor + order list
 
-# PayHook Payment Gateway Integration — DONE
+### 6. Config
+- [x] `payment-config.entity.ts` — added QRIS fields (payhookUniqueDigits, payhookQrisExpiryMinutes, payhookWaEnabled, payhookWalledGardenHosts)
+- [x] `payment-config.service.ts` — saveConfig + getConfigMasked updated
+- [x] `seed.service.ts` — seeding new config fields
 
-## New module (src/payment/payhook/) — mirrors midtrans/duitku conventions
-- [x] `payhook.constants.ts` — module token, base URLs (sandbox/production), endpoints, QRIS method enum, status/purpose/event enums
-- [x] `interfaces/payhook-module-options.interface.ts` — options + async options factory
-- [x] `dto/create-payment.dto.ts` — purpose, referenceId, amount, productDetails, customer
-- [x] `dto/payhook-callback.dto.ts` — order_id, status, signature, amount, reference
-- [x] `entities/payment-transaction.entity.ts` — SQLite-compatible `payhook_payment_transactions` table
-- [x] `events/payment-status-changed.event.ts` — emitted on paid/failed
-- [x] `payhook.util.ts` — HMAC-SHA256 signature builder, order-id generator
-- [x] `payhook.service.ts` — create QRIS payment, check status, verify+handle callback, emit events
-- [x] `payhook.controller.ts` — `/payments/payhook` (POST create), `/payments/payhook/callback` (POST), `/payments/payhook/status/:orderId` (GET)
-- [x] `payhook.module.ts` — forRoot/forRootAsync, HttpModule + TypeORM forFeature
+### 7. Wiring
+- [x] `src/database/entities/index.ts` — register new entities
+- [x] `src/payment/payhook/payhook.module.ts` — forFeature new entities + providers
+- [x] `src/payment/payment.module.ts` — import MikrotikModule, VoucherTypeModule, ConfigModule + register VoucherOrderService/Controller
+- [x] `views/index.eta` — include qris-checkout + qris-monitor pages
+- [x] `views/partials/sidebar.eta` — add "QRIS Monitor" nav item
+- [x] `public/assets/app.js` — QRIS monitor functions, load/save payment settings for QRIS fields
+- [x] `views/page/payment/settings.eta` — QRIS config section in settings page
 
-## Wiring into existing payment system
-- [x] `payment-config.entity.ts` — added payhookEnabled/Env/ApiKey/SecretKey/PartnerCode/CallbackUrl/DefaultMethod columns
-- [x] `payment-config.service.ts` — getConfig defaults, saveConfig (masked-secret safe), getConfigMasked, getPayhookOptions()
-- [x] `payment.module.ts` — import PayhookModule.forRootAsync + PayhookPaymentTransaction in forFeature
-- [x] `payment.service.ts` — unified list/stats/getTransaction + getPaymentMethods includes payhook; byGateway.payhook in stats
-- [x] `payment.controller.ts` — payhook create-test + check-status branches
-- [x] `payment-status.listener.ts` — PAYHOOK_EVENTS.PAID → mark billing invoice paid; PAYHOOK_EVENTS.FAILED → log
-- [x] `seed.service.ts` — seed payhook defaults (disabled, sandbox, QRIS)
-
-## UI
-- [x] `views/page/payment/settings.eta` — PayHook gateway section (toggle, env, API/Secret keys, partner code, callback URL, method QRIS) + default provider + test-gateway options
-- [x] `public/assets/app.js` — loadPaymentSettings/savePaymentSettings handle payhook fields; payments table + detail show PayHook badge
+### 8. Notification helpers
+- [x] Telegram send via existing TelegramService (lazy injection in voucher-order.service.ts)
+- [x] WhatsApp via deep-link helper (documented; no API token needed)
 
 ## Verification
-- [x] Clean `npm run build` (nest build) succeeds
-- [x] App boots — PayhookModule initialized, routes `/payments/payhook`, `/payments/payhook/callback`, `/payments/payhook/status/:orderId` mapped
-- [x] `/api/payments/config` exposes payhook config (masked secrets, has-key flags, default QRIS)
-- [x] `/api/payments/stats` includes `byGateway.payhook`
+- [ ] `npm run build` compiles
+- [ ] App boots; tables `voucher_orders` + `payhook_callback_logs` auto-created
+- [ ] Create order → unique amount computed → checkout page renders
+- [ ] Simulated PayHook app webhook (script) → order marked paid → voucher created (or logged if no router) → notifier called
+- [ ] Manual verify works
+- [ ] Admin callback monitor lists entries
 

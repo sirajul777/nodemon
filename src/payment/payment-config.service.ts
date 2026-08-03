@@ -41,13 +41,17 @@ export class PaymentConfigService {
       duitkuCallbackUrl: null,
       duitkuReturnUrl: null,
       duitkuExpiryMinutes: 10,
-      payhookEnabled: false,
+payhookEnabled: false,
       payhookEnv: 'sandbox',
       payhookApiKey: null,
       payhookSecretKey: null,
       payhookPartnerCode: null,
       payhookCallbackUrl: null,
       payhookDefaultMethod: 'QRIS',
+      payhookUniqueDigits: 3,
+      payhookQrisExpiryMinutes: 15,
+      payhookWaEnabled: false,
+      payhookWalledGardenHosts: 'cdn.jsdelivr.net, voucher.sysbill.ink',
     };
 
     try {
@@ -124,8 +128,22 @@ export class PaymentConfigService {
       row.payhookPartnerCode = data.payhookPartnerCode;
     }
     if (data.payhookCallbackUrl !== undefined) row.payhookCallbackUrl = data.payhookCallbackUrl;
-    if (data.payhookDefaultMethod !== undefined) {
+if (data.payhookDefaultMethod !== undefined) {
       row.payhookDefaultMethod = data.payhookDefaultMethod || 'QRIS';
+    }
+
+    // ── QRIS GoPay Merchant fields ──────────────────────────
+    if (data.payhookUniqueDigits !== undefined) {
+      const d = Number(data.payhookUniqueDigits);
+      if (!isNaN(d)) row.payhookUniqueDigits = Math.min(5, Math.max(2, Math.round(d)));
+    }
+    if (data.payhookQrisExpiryMinutes !== undefined) {
+      const m = Number(data.payhookQrisExpiryMinutes);
+      if (!isNaN(m)) row.payhookQrisExpiryMinutes = Math.min(60, Math.max(5, Math.round(m)));
+    }
+    if (data.payhookWaEnabled !== undefined) row.payhookWaEnabled = !!data.payhookWaEnabled;
+    if (data.payhookWalledGardenHosts !== undefined) {
+      row.payhookWalledGardenHosts = data.payhookWalledGardenHosts || '';
     }
 
     const saved = await this.configRepo.save(row);
@@ -160,8 +178,12 @@ export class PaymentConfigService {
       payhookHasSecretKey: !!c.payhookSecretKey,
       payhookPartnerCode: mask(c.payhookPartnerCode),
       payhookHasPartnerCode: !!c.payhookPartnerCode,
-      payhookCallbackUrl: c.payhookCallbackUrl || '',
+payhookCallbackUrl: c.payhookCallbackUrl || '',
       payhookDefaultMethod: c.payhookDefaultMethod || 'QRIS',
+      payhookUniqueDigits: c.payhookUniqueDigits,
+      payhookQrisExpiryMinutes: c.payhookQrisExpiryMinutes,
+      payhookWaEnabled: c.payhookWaEnabled,
+      payhookWalledGardenHosts: c.payhookWalledGardenHosts || '',
     };
   }
 

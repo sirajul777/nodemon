@@ -14,6 +14,8 @@ import { TelegramConfigEntity } from './telegram-config.entity';
 import { TopupRequestEntity } from './topup-request.entity';
 import { ProfileMetaEntity } from './profile-meta.entity';
 import { PaymentConfigEntity } from '../../payment/payment-config.entity';
+import { VoucherOrderEntity } from '../../payment/payhook/entities/voucher-order.entity';
+import { PayhookCallbackLogEntity } from '../../payment/payhook/entities/payhook-callback-log.entity';
 
 export const entities = [
   AppConfigEntity,
@@ -31,6 +33,8 @@ export const entities = [
   TelegramConfigEntity,
   TopupRequestEntity,
   ProfileMetaEntity,
+  VoucherOrderEntity,
+  PayhookCallbackLogEntity,
 ];
 
 export {

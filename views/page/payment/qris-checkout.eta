@@ -1,0 +1,216 @@
+<div class="page" id="page-qris-checkout">
+  <div class="card" style="max-width: 480px; margin: 0 auto">
+    <div class="card-hd" style="text-align: center">
+      <i class="fa fa-qrcode" style="font-size: 1.5rem; color: var(--acc2)"></i>
+      <h3 style="margin: 8px 0 4px">Pembayaran QRIS</h3>
+    </div>
+
+    <% if (notFound) { %>
+      <div style="text-align: center; padding: 32px 0">
+        <i class="fa fa-exclamation-triangle" style="font-size: 2rem; color: var(--red); opacity: 0.6"></i>
+        <p style="color: var(--muted); margin-top: 12px">Order tidak ditemukan atau sudah kadaluarsa.</p>
+        <a href="/" class="btn b-p" style="margin-top: 12px; display: inline-flex">
+          <i class="fa fa-arrow-left"></i> Kembali
+        </a>
+      </div>
+    <% } else { %>
+      <div id="qris-loading" style="text-align: center; padding: 32px 0">
+        <i class="fa fa-spinner fa-spin" style="font-size: 2rem; color: var(--acc2)"></i>
+        <p style="color: var(--muted); margin-top: 12px">Memuat data pembayaran...</p>
+      </div>
+
+      <div id="qris-content" style="display: none">
+        <!-- Voucher info -->
+        <div style="text-align: center; margin-bottom: 16px">
+          <div style="font-size: 0.85rem; color: var(--muted)">Paket Voucher</div>
+          <div style="font-size: 1.1rem; font-weight: 700; margin-top: 2px" id="qris-voucher-name"><%= order?.voucherName %></div>
+        </div>
+
+        <!-- QR Code -->
+        <div id="qris-qr-area" style="text-align: center; margin-bottom: 16px">
+          <div id="qris-qr-container" style="
+            display: inline-block;
+            background: white;
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.15);
+          ">
+            <img id="qris-qr-img" src="" alt="QRIS" style="width: 240px; height: 240px; object-fit: contain" />
+          </div>
+          <div style="margin-top: 8px; font-size: 0.78rem; color: var(--muted)">
+            Scan QRIS di atas menggunakan GoPay / GoPay Merchant / QRIS app
+          </div>
+        </div>
+
+        <!-- Amount -->
+        <div style="
+          background: var(--card2);
+          border-radius: 10px;
+          padding: 14px;
+          text-align: center;
+          margin-bottom: 16px;
+        ">
+          <div style="color: var(--muted); font-size: 0.82rem; margin-bottom: 4px">
+            Total Pembayaran
+          </div>
+          <div style="font-size: 1.6rem; font-weight: 800; color: var(--green)" id="qris-amount">
+            Rp <%= order?.uniqueAmount?.toLocaleString('id-ID') %>
+          </div>
+          <div style="font-size: 0.78rem; color: var(--muted); margin-top: 4px">
+            Harga: Rp <%= order?.price?.toLocaleString('id-ID') %> + Kode Unik: <b id="qris-unique-code"><%= order?.uniqueCode %></b>
+          </div>
+        </div>
+
+        <!-- Countdown -->
+        <div style="
+          background: var(--card2);
+          border-radius: 10px;
+          padding: 12px;
+          text-align: center;
+          margin-bottom: 16px;
+        ">
+          <div style="color: var(--muted); font-size: 0.82rem; margin-bottom: 4px">
+            Sisa Waktu Pembayaran
+          </div>
+          <div id="qris-countdown" style="font-size: 1.3rem; font-weight: 700; font-family: monospace; color: var(--acc2)">
+            00:00
+          </div>
+        </div>
+
+        <!-- Status indicator -->
+        <div id="qris-status-area" style="
+          background: var(--card2);
+          border-radius: 10px;
+          padding: 12px;
+          text-align: center;
+          margin-bottom: 16px;
+          display: none;
+        ">
+          <div style="font-size: 0.82rem; color: var(--muted); margin-bottom: 4px">Status</div>
+          <div id="qris-status-text" style="font-size: 1rem; font-weight: 600">Menunggu pembayaran...</div>
+        </div>
+
+        <!-- Hidden order data -->
+        <div id="qris-order-data" style="display: none"
+          data-order-id="<%= order?.orderId %>"
+          data-expires-at="<%= order?.expiresAt %>">
+        </div>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<script>
+(function() {
+  const orderData = document.getElementById('qris-order-data');
+  if (!orderData) return;
+
+  const orderId = orderData.dataset.orderId;
+  const expiresAt = orderData.dataset.expiresAt;
+  let pollInterval = null;
+  let countdownInterval = null;
+
+  // Show content, hide loading
+  document.getElementById('qris-loading').style.display = 'none';
+  document.getElementById('qris-content').style.display = 'block';
+
+  // Generate QRIS QR code (static merchant QR or dynamic)
+  // In production, this would be a dynamic QR from GoPay Merchant / PayHook server
+  (async function loadQr() {
+    try {
+      // Try to load a QR code from the server
+      const res = await fetch('/api/qris/orders/' + orderId, { credentials: 'include' });
+      const data = await res.json();
+      if (data.success && data.order.qrString) {
+        document.getElementById('qris-qr-img').src = data.order.qrString;
+      } else {
+        // Fallback: show a placeholder QR
+        document.getElementById('qris-qr-img').src = '/assets/qris-placeholder.png';
+        // Try to generate QR via API
+        const qrRes = await fetch('/api/qris/orders/' + orderId + '/qr', {
+          method: 'POST',
+          credentials: 'include'
+        }).then(r => r.json());
+        if (qrRes.success && qrRes.qrString) {
+          document.getElementById('qris-qr-img').src = qrRes.qrString;
+        }
+      }
+    } catch (e) {
+      console.error('QR load error:', e);
+    }
+  })();
+
+  // Countdown timer
+  function updateCountdown() {
+    const now = new Date();
+    const exp = new Date(expiresAt);
+    const diff = Math.max(0, Math.floor((exp - now) / 1000));
+
+    if (diff <= 0) {
+      document.getElementById('qris-countdown').textContent = '00:00';
+      document.getElementById('qris-countdown').style.color = 'var(--red)';
+      document.getElementById('qris-status-area').style.display = 'block';
+      document.getElementById('qris-status-text').textContent = '⏰ Waktu pembayaran habis';
+      document.getElementById('qris-status-text').style.color = 'var(--red)';
+      clearInterval(countdownInterval);
+      clearInterval(pollInterval);
+      return;
+    }
+
+    const min = String(Math.floor(diff / 60)).padStart(2, '0');
+    const sec = String(diff % 60).padStart(2, '0');
+    document.getElementById('qris-countdown').textContent = min + ':' + sec;
+
+    if (diff <= 60) {
+      document.getElementById('qris-countdown').style.color = 'var(--red)';
+    }
+  }
+  updateCountdown();
+  countdownInterval = setInterval(updateCountdown, 1000);
+
+  // Poll payment status
+  async function pollStatus() {
+    try {
+      const res = await fetch('/qris/status/' + orderId);
+      const data = await res.json();
+      if (data.success && data.status === 'paid') {
+        document.getElementById('qris-status-area').style.display = 'block';
+        document.getElementById('qris-status-text').textContent = '✅ Pembayaran DITERIMA!';
+        document.getElementById('qris-status-text').style.color = 'var(--green)';
+
+        // Show voucher info
+        if (data.voucherUsername) {
+          document.getElementById('qris-status-area').innerHTML = `
+            <div style="font-size: 0.82rem; color: var(--muted); margin-bottom: 8px">Status</div>
+            <div style="font-size: 1rem; font-weight: 600; color: var(--green); margin-bottom: 12px">
+              <i class="fa fa-check-circle"></i> Pembayaran DITERIMA!
+            </div>
+            <div style="background: var(--card); border-radius: 8px; padding: 10px">
+              <div style="font-size: 0.78rem; color: var(--muted)">Username</div>
+              <div style="font-family: monospace; font-size: 1.1rem; font-weight: 700">${data.voucherUsername}</div>
+              <div style="font-size: 0.78rem; color: var(--muted); margin-top: 6px">Password</div>
+              <div style="font-family: monospace; font-size: 1.1rem; font-weight: 700">${data.voucherPassword}</div>
+            </div>
+            <div style="margin-top: 12px; font-size: 0.82rem; color: var(--muted)">
+              Silakan login menggunakan kredensial di atas di halaman hotspot.
+            </div>
+          `;
+        }
+
+        clearInterval(pollInterval);
+        clearInterval(countdownInterval);
+      } else if (data.success && data.status === 'expired') {
+        document.getElementById('qris-status-area').style.display = 'block';
+        document.getElementById('qris-status-text').textContent = '⏰ Order kadaluarsa';
+        document.getElementById('qris-status-text').style.color = 'var(--red)';
+        clearInterval(pollInterval);
+        clearInterval(countdownInterval);
+      }
+    } catch (e) {
+      console.error('Poll error:', e);
+    }
+  }
+  pollInterval = setInterval(pollStatus, 3000);
+})();
+</script>
+</div>

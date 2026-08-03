@@ -5,12 +5,16 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { PAYHOOK_MODULE_OPTIONS } from './payhook.constants';
 import { PayhookController } from './payhook.controller';
 import { PaymentTransaction } from './entities/payment-transaction.entity';
+import { VoucherOrderEntity } from './entities/voucher-order.entity';
+import { PayhookCallbackLogEntity } from './entities/payhook-callback-log.entity';
 import {
   PayhookModuleAsyncOptions,
   PayhookModuleOptions,
   PayhookOptionsFactory
 } from './interfaces/payhook-module-options.interface';
 import { PayhookService } from './payhook.service';
+import { VoucherOrderService } from './voucher-order.service';
+import { VoucherOrderController } from './voucher-order.controller';
 
 @Module({})
 export class PayhookModule {
@@ -18,13 +22,21 @@ export class PayhookModule {
   static forRoot(options: PayhookModuleOptions): DynamicModule {
     return {
       module: PayhookModule,
-      imports: [HttpModule, TypeOrmModule.forFeature([PaymentTransaction])],
-      controllers: [PayhookController],
+      imports: [
+        HttpModule,
+        TypeOrmModule.forFeature([
+          PaymentTransaction,
+          VoucherOrderEntity,
+          PayhookCallbackLogEntity
+        ])
+      ],
+      controllers: [PayhookController, VoucherOrderController],
       providers: [
         { provide: PAYHOOK_MODULE_OPTIONS, useValue: options },
-        PayhookService
+        PayhookService,
+        VoucherOrderService
       ],
-      exports: [PayhookService]
+      exports: [PayhookService, VoucherOrderService]
     };
   }
 
@@ -42,12 +54,16 @@ export class PayhookModule {
       module: PayhookModule,
       imports: [
         HttpModule,
-        TypeOrmModule.forFeature([PaymentTransaction]),
+        TypeOrmModule.forFeature([
+          PaymentTransaction,
+          VoucherOrderEntity,
+          PayhookCallbackLogEntity
+        ]),
         ...(options.imports || [])
       ],
-      controllers: [PayhookController],
-      providers: [...this.createAsyncProviders(options), PayhookService],
-      exports: [PayhookService]
+      controllers: [PayhookController, VoucherOrderController],
+      providers: [...this.createAsyncProviders(options), PayhookService, VoucherOrderService],
+      exports: [PayhookService, VoucherOrderService]
     };
   }
 

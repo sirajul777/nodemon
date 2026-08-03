@@ -1,0 +1,119 @@
+<div class="page" id="page-qris-monitor">
+  <div class="card" style="margin-bottom: 14px">
+    <div class="card-hd">
+      <i class="fa fa-qrcode"></i> QRIS Monitor — Callback PayHook
+    </div>
+    <p style="color: var(--muted); font-size: 0.83rem; margin-bottom: 14px">
+      Monitor callback dari PayHook Android app, daftar order QRIS, dan verifikasi manual.
+    </p>
+
+    <div class="err" id="qm-err"></div>
+
+    <!-- Stats -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 16px">
+      <div class="stat-card">
+        <div class="stat-val" id="qm-total-orders" style="color: var(--acc2)">0</div>
+        <div class="stat-lbl">Total Orders</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="qm-pending-orders" style="color: var(--yellow)">0</div>
+        <div class="stat-lbl">Pending</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="qm-paid-orders" style="color: var(--green)">0</div>
+        <div class="stat-lbl">Lunas</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="qm-today-income" style="color: var(--green)">Rp 0</div>
+        <div class="stat-lbl">Pemasukan Hari Ini</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="qm-callbacks" style="color: var(--muted)">0</div>
+        <div class="stat-lbl">Total Callback</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="qm-matched" style="color: var(--green)">0</div>
+        <div class="stat-lbl">Tercocok</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap">
+      <button class="btn b-p" id="qm-tab-orders" onclick="qmSwitchTab('orders')">
+        <i class="fa fa-list"></i> Orders
+      </button>
+      <button class="btn b-s" id="qm-tab-callbacks" onclick="qmSwitchTab('callbacks')">
+        <i class="fa fa-history"></i> Callback Log
+      </button>
+    </div>
+
+    <!-- Orders panel -->
+    <div id="qm-panel-orders">
+      <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center">
+        <div class="fg" style="max-width: 160px; margin: 0">
+          <label style="font-size: 0.78rem">Status</label>
+          <select id="qm-order-filter" onchange="qmLoadOrders()">
+            <option value="">Semua</option>
+            <option value="pending">Pending</option>
+            <option value="paid">Lunas</option>
+            <option value="expired">Kadaluarsa</option>
+            <option value="failed">Gagal</option>
+          </select>
+        </div>
+        <button class="btn b-p b-sm" onclick="qmLoadOrders()" style="margin-top: 16px">
+          <i class="fa fa-refresh"></i> Muat Ulang
+        </button>
+      </div>
+
+      <div style="overflow-x: auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Paket</th>
+              <th>Profile</th>
+              <th>Harga</th>
+              <th>Kode Unik</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Voucher</th>
+              <th>Dibuat</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="t-qris-orders">
+            <tr><td colspan="10" style="text-align:center;color:var(--muted);padding:20px">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Callbacks panel -->
+    <div id="qm-panel-callbacks" style="display: none">
+      <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center">
+        <button class="btn b-p b-sm" onclick="qmLoadCallbacks()" style="margin-top: 0">
+          <i class="fa fa-refresh"></i> Muat Ulang
+        </button>
+      </div>
+
+      <div style="overflow-x: auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Waktu</th>
+              <th>Sumber</th>
+              <th>Nominal</th>
+              <th>Status</th>
+              <th>Tercocok</th>
+              <th>Order ID</th>
+              <th>Catatan</th>
+            </tr>
+          </thead>
+          <tbody id="t-qris-callbacks">
+            <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

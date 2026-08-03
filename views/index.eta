@@ -74,8 +74,14 @@
         <!-- ══ PAYMENT MANAGE ══ -->
 <%~ include("./page/payment/manage") %>
 
-        <!-- ══ PAYMENT SETTINGS ══ -->
+<!-- ══ PAYMENT SETTINGS ══ -->
 <%~ include("./page/payment/settings") %>
+
+        <!-- ══ QRIS CHECKOUT ══ -->
+<%~ include("./page/payment/qris-checkout") %>
+
+        <!-- ══ QRIS MONITOR ══ -->
+<%~ include("./page/payment/qris-monitor") %>
 
         <!-- ══ BOT RESELLER ══ -->
 

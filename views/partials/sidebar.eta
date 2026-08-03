@@ -137,12 +137,15 @@
       ><i class="fa fa-list-alt"></i> Tagihan / Invoice</a
     >
 
-    <div class="sb-section">Pembayaran</div>
+<div class="sb-section">Pembayaran</div>
     <a href="#" onclick="go('payments')" id="nav-payments"
       ><i class="fa fa-credit-card"></i> Transaksi Pembayaran</a
     >
     <a href="#" onclick="go('payment-settings')" id="nav-payment-settings"
       ><i class="fa fa-cog"></i> Payment Settings</a
+    >
+    <a href="#" onclick="go('qris-monitor')" id="nav-qris-monitor"
+      ><i class="fa fa-qrcode"></i> QRIS Monitor</a
     >
 
     <div class="sb-section">System</div>

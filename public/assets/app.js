@@ -387,8 +387,9 @@ const PN = {
   "user-management": "User Management",
   "change-password": "Ganti Password",
   "mobile-api": "Mobile API Docs",
-  payments: "Transaksi Pembayaran",
+payments: "Transaksi Pembayaran",
   "payment-settings": "Payment Settings",
+  "qris-monitor": "QRIS Monitor",
   sessions: "Sessions"
 };
 
@@ -462,8 +463,14 @@ function loadPage(pg) {
     loadPayments();
     return;
   }
-  if (pg === "payment-settings") {
+if (pg === "payment-settings") {
     loadPaymentSettings();
+    return;
+  }
+  if (pg === "qris-monitor") {
+    qmLoadStats();
+    qmLoadOrders();
+    qmLoadCallbacks();
     return;
   }
   if (!CS) return;
@@ -6054,8 +6061,14 @@ async function loadPaymentSettings() {
   setVal("ps-payhook-secret", c.payhookSecretKey || "");
   setVal("ps-payhook-partner", c.payhookPartnerCode || "");
   setVal("ps-payhook-callback", c.payhookCallbackUrl || "");
-  setVal("ps-payhook-method", c.payhookDefaultMethod || "QRIS");
+setVal("ps-payhook-method", c.payhookDefaultMethod || "QRIS");
   setStatus("ps-payhook-status", c.payhookEnabled);
+
+  // ── QRIS GoPay Merchant fields ──────────────────────
+  setVal("ps-payhook-unique-digits", c.payhookUniqueDigits ?? 3);
+  setVal("ps-payhook-qris-expiry", c.payhookQrisExpiryMinutes ?? 15);
+  setChecked("ps-payhook-wa-enabled", c.payhookWaEnabled);
+  setVal("ps-payhook-walled-garden", c.payhookWalledGardenHosts || "cdn.jsdelivr.net, voucher.sysbill.ink");
 }
 
 async function savePaymentSettings() {
@@ -6092,8 +6105,16 @@ async function savePaymentSettings() {
       document.getElementById("ps-payhook-partner")?.value || "",
     payhookCallbackUrl:
       document.getElementById("ps-payhook-callback")?.value || "",
-    payhookDefaultMethod:
-      document.getElementById("ps-payhook-method")?.value || "QRIS"
+payhookDefaultMethod:
+      document.getElementById("ps-payhook-method")?.value || "QRIS",
+    payhookUniqueDigits:
+      Number(document.getElementById("ps-payhook-unique-digits")?.value) || 3,
+    payhookQrisExpiryMinutes:
+      Number(document.getElementById("ps-payhook-qris-expiry")?.value) || 15,
+    payhookWaEnabled:
+      document.getElementById("ps-payhook-wa-enabled")?.checked || false,
+    payhookWalledGardenHosts:
+      document.getElementById("ps-payhook-walled-garden")?.value || ""
   };
 
   showL();
@@ -6152,9 +6173,185 @@ async function testPayment() {
     }
     loadPayments();
   } catch (e) {
-    if (resultEl)
+if (resultEl)
       resultEl.innerHTML = `<span style="color:var(--red)">✗ Error: ${e.message}</span>`;
   } finally {
     hideL();
+  }
+}
+
+// ════════════════════════════════════════════════
+// QRIS MONITOR — Admin Callback & Order Monitor
+// ════════════════════════════════════════════════
+let qmCurrentTab = 'orders';
+
+function qmSwitchTab(tab) {
+  qmCurrentTab = tab;
+  document.getElementById('qm-tab-orders').className = tab === 'orders' ? 'btn b-p' : 'btn b-s';
+  document.getElementById('qm-tab-callbacks').className = tab === 'callbacks' ? 'btn b-p' : 'btn b-s';
+  document.getElementById('qm-panel-orders').style.display = tab === 'orders' ? '' : 'none';
+  document.getElementById('qm-panel-callbacks').style.display = tab === 'callbacks' ? '' : 'none';
+}
+
+async function qmLoadStats() {
+  try {
+    const d = await req('/api/qris/stats');
+    if (!d?.success) return;
+    const el = (id) => document.getElementById(id);
+    el('qm-total-orders').textContent = d.totalOrders || 0;
+    el('qm-pending-orders').textContent = d.byStatus?.pending || 0;
+    el('qm-paid-orders').textContent = d.byStatus?.paid || 0;
+    el('qm-today-income').textContent = 'Rp ' + (d.todayIncome || 0).toLocaleString('id-ID');
+    el('qm-callbacks').textContent = d.totalCallbacks || 0;
+    el('qm-matched').textContent = d.matchedCallbacks || 0;
+  } catch (e) {
+    console.error('qmLoadStats:', e);
+  }
+}
+
+async function qmLoadOrders() {
+  const tb = document.getElementById('t-qris-orders');
+  if (!tb) return;
+  tb.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:20px"><i class="fa fa-spinner fa-spin"></i> Loading...</td></tr>';
+
+  try {
+    const status = document.getElementById('qm-order-filter')?.value || '';
+    const qs = status ? '?status=' + status : '';
+    const d = await req('/api/qris/orders' + qs);
+    if (!d?.success) {
+      tb.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--red);padding:20px">Gagal memuat data</td></tr>';
+      return;
+    }
+
+    const orders = d.orders || [];
+    if (!orders.length) {
+      tb.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:20px">Tidak ada order</td></tr>';
+      return;
+    }
+
+    const STATUS_BADGE = {
+      pending: '<span class="badge b-yl">Pending</span>',
+      paid: '<span class="badge b-gr">Lunas</span>',
+      expired: '<span class="badge b-mu">Kadaluarsa</span>',
+      failed: '<span class="badge b-rd">Gagal</span>',
+      manual: '<span class="badge b-bl">Manual</span>'
+    };
+
+    tb.innerHTML = orders.map(o => `
+      <tr>
+        <td><code style="font-size:.76rem">${o.orderId}</code></td>
+        <td>${o.voucherName}</td>
+        <td><span class="badge b-bl">${o.profile}</span></td>
+        <td style="text-align:right">Rp ${(o.price || 0).toLocaleString('id-ID')}</td>
+        <td style="text-align:center;font-weight:600;color:var(--acc2)">${o.uniqueCode}</td>
+        <td style="text-align:right;font-weight:600;color:var(--green)">Rp ${(o.uniqueAmount || 0).toLocaleString('id-ID')}</td>
+        <td>${STATUS_BADGE[o.status] || o.status}</td>
+        <td>${o.voucherUsername ? '<code style="font-size:.76rem">' + o.voucherUsername + '</code>' : '<span style="color:var(--muted)">—</span>'}</td>
+        <td style="font-size:.76rem;color:var(--muted)">${o.createdAt ? new Date(o.createdAt).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) : '—'}</td>
+        <td>
+          ${o.status === 'pending' ? `<button class="btn b-g b-sm" onclick="qmVerifyOrder('${o.orderId}')" title="Verifikasi Manual"><i class="fa fa-check"></i></button>` : ''}
+          <button class="btn b-s b-sm" onclick="qmViewOrder('${o.orderId}')" title="Detail"><i class="fa fa-eye"></i></button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    tb.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--red);padding:20px">Error: ' + e.message + '</td></tr>';
+  }
+}
+
+async function qmLoadCallbacks() {
+  const tb = document.getElementById('t-qris-callbacks');
+  if (!tb) return;
+  tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px"><i class="fa fa-spinner fa-spin"></i> Loading...</td></tr>';
+
+  try {
+    const d = await req('/api/qris/callbacks?limit=200');
+    if (!d?.success) {
+      tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--red);padding:20px">Gagal memuat data</td></tr>';
+      return;
+    }
+
+    const logs = d.logs || [];
+    if (!logs.length) {
+      tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Belum ada callback</td></tr>';
+      return;
+    }
+
+    tb.innerHTML = logs.map(l => `
+      <tr>
+        <td style="font-size:.76rem;color:var(--muted);white-space:nowrap">${l.processedAt ? new Date(l.processedAt).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'medium' }) : '—'}</td>
+        <td><span class="badge b-bl">${l.source || '—'}</span></td>
+        <td style="text-align:right;font-weight:600">Rp ${(l.amount || 0).toLocaleString('id-ID')}</td>
+        <td>${l.status || '—'}</td>
+        <td>${l.matched ? '<span class="badge b-gr"><i class="fa fa-check"></i> Ya</span>' : '<span class="badge b-rd">Tidak</span>'}</td>
+        <td>${l.matchedOrderId ? '<code style="font-size:.76rem">' + l.matchedOrderId + '</code>' : '<span style="color:var(--muted)">—</span>'}</td>
+        <td style="font-size:.78rem;color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${(l.note || '').replace(/"/g, '"')}">${l.note || '—'}</td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--red);padding:20px">Error: ' + e.message + '</td></tr>';
+  }
+}
+
+async function qmVerifyOrder(orderId) {
+  if (!confirm('Verifikasi manual order ini? Voucher akan langsung dibuat.')) return;
+  showL();
+  try {
+    const d = await post('/api/qris/orders/' + orderId + '/verify', {});
+    if (d?.success) {
+      toast('✅ Order diverifikasi! Voucher dibuat.');
+      qmLoadOrders();
+      qmLoadStats();
+    } else {
+      toast('✗ Gagal: ' + (d?.error || 'error'), true);
+    }
+  } catch (e) {
+    toast('✗ Error: ' + e.message, true);
+  } finally {
+    hideL();
+  }
+}
+
+async function qmViewOrder(orderId) {
+  try {
+    const d = await req('/api/qris/orders/' + orderId);
+    if (!d?.success || !d.order) {
+      toast('Order tidak ditemukan', true);
+      return;
+    }
+    const o = d.order;
+    const fields = [
+      ['Order ID', o.orderId],
+      ['Paket', o.voucherName],
+      ['Profile', o.profile],
+      ['Harga', 'Rp ' + (o.price || 0).toLocaleString('id-ID')],
+      ['Kode Unik', o.uniqueCode],
+      ['Total', 'Rp ' + (o.uniqueAmount || 0).toLocaleString('id-ID')],
+      ['Status', o.status],
+      ['Pelanggan', o.customerName || '—'],
+      ['Telepon', o.phone || '—'],
+      ['Voucher', o.voucherUsername ? o.voucherUsername + ' / ' + o.voucherPassword : '—'],
+      ['Dibuat', o.createdAt ? new Date(o.createdAt).toLocaleString('id-ID') : '—'],
+      ['Dibayar', o.paidAt ? new Date(o.paidAt).toLocaleString('id-ID') : '—'],
+    ];
+    const html = fields.map(([k, v]) =>
+      `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:.82rem">
+        <span style="color:var(--muted)">${k}</span>
+        <b>${v}</b>
+      </div>`
+    ).join('');
+
+    openSheet(`
+      <div class="sheet-title">📋 Detail Order QRIS</div>
+      ${html}
+      <div style="margin-top:12px;display:flex;gap:8px">
+        ${o.status === 'pending' ? `<button class="btn b-g" style="flex:1;justify-content:center" onclick="closeSheet();qmVerifyOrder('${o.orderId}')">
+          <i class="fa fa-check"></i> Verifikasi Manual
+        </button>` : ''}
+        <button class="btn b-s" style="flex:1;justify-content:center" onclick="closeSheet()">Tutup</button>
+      </div>
+    `);
+  } catch (e) {
+    toast('Error: ' + e.message, true);
   }
 }
