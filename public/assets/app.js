@@ -6275,7 +6275,7 @@ async function qmVerifyOrder(orderId) {
   if (!confirm('Verifikasi manual order ini? Voucher akan langsung dibuat.')) return;
   showL();
   try {
-    const d = await post('/api/qris/orders/' + orderId + '/verify', {});
+    const d = await post('/qris/orders/' + orderId + '/verify', {});
     if (d?.success) {
       toast('✅ Order diverifikasi! Voucher dibuat.');
       qmLoadOrders();
