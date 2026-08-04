@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Beli Voucher — NODEMON</title>
+  <link rel="preconnect" href="https://googleapis.com">
+  <link rel="preconnect" href="https://gstatic.com" crossorigin>
+  <link href="https://googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <link rel="stylesheet" href="/assets/main.css" />
+  <link rel="stylesheet" href="/assets/card.css" />
+  <link rel="stylesheet" href="/assets/button-badged.css" />
+  <style>
+    /* Standalone customer-facing page — same reasoning as qris-checkout.eta:
+       only the design tokens/components are pulled in, not the admin
+       dashboard's app.js (which redirects unauthenticated visitors to
+       /login). This is the missing entry point into the QRIS flow: it lists
+       active voucher packages and creates the order that qris-checkout.eta
+       then takes over. */
+    :root { --acc2: #4f95ff; }
+    body {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 32px 16px;
+    }
+    .voucher-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: var(--card2);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+    }
+    .voucher-item .vi-name { font-weight: 700; }
+    .voucher-item .vi-duration { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+    .voucher-item .vi-price { color: var(--green); font-weight: 800; white-space: nowrap; margin-right: 12px; }
+  </style>
+</head>
+<body>
+  <div style="max-width: 480px; width: 100%; margin: 0 auto">
+  <div class="card">
+    <div class="card-hd" style="text-align: center">
+      <i class="fa fa-wifi" style="font-size: 1.5rem; color: var(--acc2)"></i>
+      <h3 style="margin: 8px 0 4px"><%= it.hotspotName || 'Beli Voucher WiFi' %></h3>
+    </div>
+
+<% if (it.notFound) { %>
+      <div style="text-align: center; padding: 32px 0">
+        <i class="fa fa-exclamation-triangle" style="font-size: 2rem; color: var(--red); opacity: 0.6"></i>
+        <p style="color: var(--muted); margin-top: 12px">Router tidak ditemukan. Hubungi admin hotspot.</p>
+      </div>
+<% } else if (!it.voucherTypes || it.voucherTypes.length === 0) { %>
+      <div style="text-align: center; padding: 32px 0">
+        <i class="fa fa-inbox" style="font-size: 2rem; color: var(--muted); opacity: 0.6"></i>
+        <p style="color: var(--muted); margin-top: 12px">Belum ada paket voucher tersedia saat ini.</p>
+      </div>
+<% } else { %>
+      <p style="color: var(--muted); font-size: 0.85rem; text-align: center; margin-bottom: 16px">
+        Pilih paket, lalu bayar dengan QRIS (GoPay / semua e-wallet & bank).
+      </p>
+      <div id="voucher-list">
+<% it.voucherTypes.forEach(function(vt) { %>
+        <div class="voucher-item">
+          <div>
+            <div class="vi-name"><%= vt.name %></div>
+<% if (vt.duration) { %>            <div class="vi-duration"><%= vt.duration %></div><% } %>
+          </div>
+          <div class="vi-price">Rp <%= Number(vt.price || 0).toLocaleString('id-ID') %></div>
+          <button class="btn b-p buy-btn" data-voucher-type-id="<%= vt.id %>">
+            <i class="fa fa-shopping-cart"></i> Beli
+          </button>
+        </div>
+<% }) %>
+      </div>
+      <div id="buy-error" style="color: var(--red); font-size: 0.85rem; text-align: center; margin-top: 8px; display: none"></div>
+<% } %>
+  </div>
+  </div>
+
+<script>
+(function() {
+  const sessionId = <%~ JSON.stringify(it.sessionId || '') %>;
+  const errorBox = document.getElementById('buy-error');
+
+  document.querySelectorAll('.buy-btn').forEach(function(btn) {
+    btn.addEventListener('click', async function() {
+      const voucherTypeId = btn.dataset.voucherTypeId;
+      document.querySelectorAll('.buy-btn').forEach(function(b) { b.disabled = true; });
+      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Memproses...';
+      if (errorBox) errorBox.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/qris/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ voucherTypeId: voucherTypeId, sessionId: sessionId })
+        });
+        const data = await res.json();
+        if (data.success && data.order && data.order.orderId) {
+          window.location.href = '/qris/checkout/' + data.order.orderId;
+          return;
+        }
+        throw new Error(data.message || 'Gagal membuat order');
+      } catch (e) {
+        if (errorBox) {
+          errorBox.textContent = 'Gagal memulai pembayaran: ' + e.message + '. Coba lagi.';
+          errorBox.style.display = 'block';
+        }
+        document.querySelectorAll('.buy-btn').forEach(function(b) { b.disabled = false; });
+        btn.innerHTML = '<i class="fa fa-shopping-cart"></i> Beli';
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

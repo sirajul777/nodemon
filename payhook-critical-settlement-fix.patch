@@ -1,0 +1,75 @@
+diff --git a/src/payment/payhook/voucher-order.service.ts b/src/payment/payhook/voucher-order.service.ts
+index b256238..bd1513d 100644
+--- a/src/payment/payhook/voucher-order.service.ts
++++ b/src/payment/payhook/voucher-order.service.ts
+@@ -355,13 +355,23 @@ if (voucherTypeId && this.voucherTypeService) {
+     // Generate voucher credentials.
+     const { username, password, limitUptime } = await this.generateVoucherCredentials(order);
+ 
+-    // Create the hotspot user on the router (if a session is configured).
++    // Create the hotspot user on the router. This is NOT optional: a paid
++    // order with no working hotspot user means the customer paid real money
++    // and got nothing. We only mark the order PAID and hand out credentials
++    // once the router genuinely confirms the user was created.
+     let createdOnRouter = false;
+     let routerError = '';
+-if (order.sessionId && this.configService && this.mikrotikService) {
++
++    if (!order.sessionId) {
++      routerError = 'Order tidak punya sessionId (router tujuan tidak diketahui)';
++    } else if (!this.configService || !this.mikrotikService) {
++      routerError = 'ConfigService/MikrotikService tidak tersedia di module ini';
++    } else {
+       try {
+         const s = await this.configService.getDecryptedSession(order.sessionId);
+-        if (s) {
++        if (!s) {
++          routerError = `Session router "${order.sessionId}" tidak ditemukan`;
++        } else {
+           const client = await this.mikrotikService.createClient(
+             s.ip,
+             s.user,
+@@ -384,13 +394,39 @@ if (order.sessionId && this.configService && this.mikrotikService) {
+         }
+       } catch (e: any) {
+         routerError = e.message;
+-        this.logger.error(
+-          `[QRIS] failed to create hotspot user ${username} on ${order.sessionId}: ${e.message}`
+-        );
+       }
+     }
+ 
+-    // Update the order record.
++    if (!createdOnRouter) {
++      this.logger.error(
++        `[QRIS] settlement dibatalkan untuk order ${order.orderId}: gagal membuat user hotspot (${routerError}). Order TETAP pending, uang customer belum dianggap terselesaikan — perlu tindakan admin.`
++      );
++      // Surface this immediately — money may already be in hand while the
++      // voucher isn't. Don't wait for someone to notice it in a log file.
++      await this.notifier.notifyAdmin({
++        title: `⚠️ Pembayaran QRIS Diterima TAPI Voucher GAGAL Dibuat`,
++        message: `Order ${order.orderId} — ${order.voucherName} (Rp ${order.uniqueAmount.toLocaleString('id-ID')})\nSumber: ${source}\nError: ${routerError}\n\nCustomer kemungkinan sudah membayar. Segera cek dan gunakan verifikasi manual setelah masalah router diperbaiki.`
++      });
++      if (this.telegramService) {
++        try {
++          await this.telegramService.sendMessage(
++            this.telegramService.getConfig()?.chatId,
++            `⚠️ <b>QRIS Terbayar, Voucher GAGAL</b>\n\n` +
++              `Order: <code>${order.orderId}</code>\n` +
++              `Paket: ${order.voucherName}\n` +
++              `Nominal: <b>Rp ${order.uniqueAmount.toLocaleString('id-ID')}</b>\n` +
++              `Error: ${routerError}\n` +
++              `Perlu verifikasi manual setelah diperbaiki.`
++          );
++        } catch (e: any) {
++          this.logger.warn(`Telegram notify failed: ${e.message}`);
++        }
++      }
++      throw new BadRequestException(`Gagal membuat voucher di router: ${routerError}`);
++    }
++
++    // Update the order record — only reached once the router confirmed the
++    // hotspot user actually exists.
+     order.status = 'paid';
+     order.paidAt = new Date().toISOString();
+     order.voucherUsername = username;

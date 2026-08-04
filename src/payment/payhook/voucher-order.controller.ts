@@ -17,11 +17,14 @@ import { RequirePermission } from '../../auth/permissions.decorator';
 
 import { VoucherOrderService } from './voucher-order.service';
 import { PayhookAppWebhookDto } from './dto/payhook-app-webhook.dto';
+import { ConfigService } from '../../config/config.service';
+import { VoucherTypeService } from '../../voucher-types/voucher-type.service';
 
 /**
  * QRIS GoPay Merchant voucher-selling controller (article architecture).
  *
  * Public routes:
+ *   GET  /qris/buy/:sessionId           ← customer-facing voucher picker (entry point)
  *   POST /payments/payhook/app-webhook  ← PayHook Android app webhook receiver
  *   POST /api/qris/orders               ← create an order (checkout frontend)
  *   GET  /qris/checkout/:orderId        ← customer-facing QRIS checkout page
@@ -36,7 +39,30 @@ import { PayhookAppWebhookDto } from './dto/payhook-app-webhook.dto';
  */
 @Controller()
 export class VoucherOrderController {
-  constructor(private readonly orderService: VoucherOrderService) {}
+  constructor(
+    private readonly orderService: VoucherOrderService,
+    private readonly configService: ConfigService,
+    private readonly voucherTypeService: VoucherTypeService
+  ) {}
+
+  // ── Public: customer-facing voucher picker (entry point into the QRIS
+  // flow — createOrder()/checkout() below already existed, but nothing
+  // in the app actually linked to them for a customer to start a purchase).
+  @Get('qris/buy/:sessionId')
+  @Render('page/payment/qris-buy')
+  async buy(@Param('sessionId') sessionId: string) {
+    const session = await this.configService.getSession(sessionId);
+    if (!session) {
+      return { notFound: true, sessionId, hotspotName: '', voucherTypes: [] };
+    }
+    const voucherTypes = await this.voucherTypeService.getActive();
+    return {
+      notFound: false,
+      sessionId,
+      hotspotName: session.hotspotName || session.name || 'Beli Voucher WiFi',
+      voucherTypes
+    };
+  }
 
   // ── Public: PayHook Android-app webhook ─────────────────────────
   @Post('payments/payhook/app-webhook')

@@ -1,0 +1,483 @@
+diff --git a/src/payment/payhook/voucher-order.controller.ts b/src/payment/payhook/voucher-order.controller.ts
+index 94a13b4..245319e 100644
+--- a/src/payment/payhook/voucher-order.controller.ts
++++ b/src/payment/payhook/voucher-order.controller.ts
+@@ -17,11 +17,14 @@ import { RequirePermission } from '../../auth/permissions.decorator';
+ 
+ import { VoucherOrderService } from './voucher-order.service';
+ import { PayhookAppWebhookDto } from './dto/payhook-app-webhook.dto';
++import { ConfigService } from '../../config/config.service';
++import { VoucherTypeService } from '../../voucher-types/voucher-type.service';
+ 
+ /**
+  * QRIS GoPay Merchant voucher-selling controller (article architecture).
+  *
+  * Public routes:
++ *   GET  /qris/buy/:sessionId           ← customer-facing voucher picker (entry point)
+  *   POST /payments/payhook/app-webhook  ← PayHook Android app webhook receiver
+  *   POST /api/qris/orders               ← create an order (checkout frontend)
+  *   GET  /qris/checkout/:orderId        ← customer-facing QRIS checkout page
+@@ -36,7 +39,30 @@ import { PayhookAppWebhookDto } from './dto/payhook-app-webhook.dto';
+  */
+ @Controller()
+ export class VoucherOrderController {
+-  constructor(private readonly orderService: VoucherOrderService) {}
++  constructor(
++    private readonly orderService: VoucherOrderService,
++    private readonly configService: ConfigService,
++    private readonly voucherTypeService: VoucherTypeService
++  ) {}
++
++  // ── Public: customer-facing voucher picker (entry point into the QRIS
++  // flow — createOrder()/checkout() below already existed, but nothing
++  // in the app actually linked to them for a customer to start a purchase).
++  @Get('qris/buy/:sessionId')
++  @Render('page/payment/qris-buy')
++  async buy(@Param('sessionId') sessionId: string) {
++    const session = await this.configService.getSession(sessionId);
++    if (!session) {
++      return { notFound: true, sessionId, hotspotName: '', voucherTypes: [] };
++    }
++    const voucherTypes = await this.voucherTypeService.getActive();
++    return {
++      notFound: false,
++      sessionId,
++      hotspotName: session.hotspotName || session.name || 'Beli Voucher WiFi',
++      voucherTypes
++    };
++  }
+ 
+   // ── Public: PayHook Android-app webhook ─────────────────────────
+   @Post('payments/payhook/app-webhook')
+diff --git a/src/payment/payhook/voucher-order.service.ts b/src/payment/payhook/voucher-order.service.ts
+index bd1513d..e71302e 100644
+--- a/src/payment/payhook/voucher-order.service.ts
++++ b/src/payment/payhook/voucher-order.service.ts
+@@ -199,60 +199,74 @@ if (voucherTypeId && this.voucherTypeService) {
+     const min = Math.pow(10, digits - 1);
+     const max = Math.pow(10, digits) - 1;
+ 
+-    let uniqueCode = 0;
+-    let uniqueAmount = 0;
+-    let collisionFree = false;
+-    for (let attempt = 0; attempt < 30; attempt++) {
+-      const candidateCode = Math.floor(min + Math.random() * (max - min + 1));
+-      const candidateAmount = price + candidateCode;
+-      const clash = await this.orderRepo
+-        .createQueryBuilder('o')
+-        .where('o.status = :status', { status: 'pending' })
+-        .andWhere('o.uniqueAmount = :amount', { amount: candidateAmount })
+-        .andWhere('o.expiresAt > :now', { now: new Date().toISOString() })
+-        .getOne();
+-      if (!clash) {
+-        uniqueCode = candidateCode;
+-        uniqueAmount = candidateAmount;
+-        collisionFree = true;
+-        break;
+-      }
+-    }
+-    if (!collisionFree) {
+-      throw new BadRequestException(
+-        'Gagal menemukan nominal unik yang tersedia saat ini, coba lagi sesaat lagi.'
+-      );
+-    }
+-
+     const orderId = `QR${Date.now()}${Math.floor(Math.random() * 90 + 10)}`;
+-
+     const now = new Date();
+     const expiresAt = new Date(now.getTime() + (await this.getExpiryMinutes()) * 60000);
+ 
+-    const { qrString: builtQrString, qrImage } = await this.buildDynamicQr(
+-      { uniqueAmount },
+-      qrString
+-    );
++    // Find the unique amount and insert the order inside one transaction.
++    // Two customers hitting "create order" for the same-priced package at
++    // literally the same moment could otherwise both pass the collision
++    // check before either has saved (check-then-insert race). Keeping the
++    // check + insert in a single transaction closes that window in
++    // practice — SQLite serializes concurrent write transactions, and on
++    // Postgres it keeps the gap as small as possible. If a duplicate still
++    // ever slips through, the webhook matcher picks the older order by
++    // createdAt and the newer one simply expires unpaid, so it fails safe
++    // rather than paying out the wrong order.
++    const saved = await this.orderRepo.manager.transaction(async (manager) => {
++      const repo = manager.getRepository(VoucherOrderEntity);
++
++      let uniqueCode = 0;
++      let uniqueAmount = 0;
++      let collisionFree = false;
++      for (let attempt = 0; attempt < 30; attempt++) {
++        const candidateCode = Math.floor(min + Math.random() * (max - min + 1));
++        const candidateAmount = price + candidateCode;
++        const clash = await repo
++          .createQueryBuilder('o')
++          .where('o.status = :status', { status: 'pending' })
++          .andWhere('o.uniqueAmount = :amount', { amount: candidateAmount })
++          .andWhere('o.expiresAt > :now', { now: new Date().toISOString() })
++          .getOne();
++        if (!clash) {
++          uniqueCode = candidateCode;
++          uniqueAmount = candidateAmount;
++          collisionFree = true;
++          break;
++        }
++      }
++      if (!collisionFree) {
++        throw new BadRequestException(
++          'Gagal menemukan nominal unik yang tersedia saat ini, coba lagi sesaat lagi.'
++        );
++      }
++
++      const { qrString: builtQrString, qrImage } = await this.buildDynamicQr(
++        { uniqueAmount },
++        qrString
++      );
++
++      const order = repo.create({
++        orderId,
++        voucherTypeId: voucherTypeId || null,
++        voucherName: voucherName || profile,
++        profile,
++        sessionId: sessionId || null,
++        price,
++        uniqueCode,
++        uniqueAmount,
++        qrString: builtQrString,
++        qrImage,
++        customerName: customerName || '',
++        phone: phone || '',
++        status: 'pending',
++        expiresAt: expiresAt.toISOString(),
++        note: validity ? `Validity: ${validity}` : ''
++      });
+ 
+-    const order = this.orderRepo.create({
+-      orderId,
+-      voucherTypeId: voucherTypeId || null,
+-      voucherName: voucherName || profile,
+-      profile,
+-      sessionId: sessionId || null,
+-      price,
+-      uniqueCode,
+-      uniqueAmount,
+-      qrString: builtQrString,
+-      qrImage,
+-      customerName: customerName || '',
+-      phone: phone || '',
+-      status: 'pending',
+-      expiresAt: expiresAt.toISOString(),
+-      note: validity ? `Validity: ${validity}` : ''
++      return repo.save(order);
+     });
+ 
+-    const saved = await this.orderRepo.save(order);
+     this.logger.log(
+       `[QRIS] Order ${saved.orderId} created: ${saved.voucherName} → Rp ${saved.uniqueAmount} (price ${saved.price} + code ${saved.uniqueCode})`
+     );
+@@ -352,6 +366,31 @@ if (voucherTypeId && this.voucherTypeService) {
+       return { note: `Already paid (${order.orderId})` };
+     }
+ 
++    // Atomically claim the order before touching the router. Without this,
++    // the automatic webhook and a manual admin verify (or two webhook
++    // deliveries) arriving at nearly the same time could both read the same
++    // 'pending' order, both pass the check above, and both create a hotspot
++    // user on the router for a single payment. The UPDATE only succeeds for
++    // whichever caller gets there first — everyone else is turned away here
++    // instead of double-provisioning.
++    const claim = await this.orderRepo
++      .createQueryBuilder()
++      .update(VoucherOrderEntity)
++      .set({ status: 'processing' })
++      .where('id = :id', { id: order.id })
++      .andWhere('status = :status', { status: 'pending' })
++      .execute();
++
++    if (!claim.affected) {
++      const fresh = await this.getOrder(order.orderId);
++      if (fresh?.status === 'paid' && fresh.voucherUsername) {
++        return { note: `Already paid (${fresh.orderId})` };
++      }
++      throw new BadRequestException(
++        `Order ${order.orderId} sedang diproses oleh permintaan lain, coba lagi sesaat lagi.`
++      );
++    }
++
+     // Generate voucher credentials.
+     const { username, password, limitUptime } = await this.generateVoucherCredentials(order);
+ 
+@@ -398,6 +437,12 @@ if (voucherTypeId && this.voucherTypeService) {
+     }
+ 
+     if (!createdOnRouter) {
++      // Release the claim so the order goes back to 'pending' — a retry
++      // (next webhook delivery, or admin manual-verify after fixing the
++      // router) needs to be able to pick it up again, not find it stuck in
++      // 'processing' forever.
++      await this.orderRepo.update({ id: order.id }, { status: 'pending' });
++
+       this.logger.error(
+         `[QRIS] settlement dibatalkan untuk order ${order.orderId}: gagal membuat user hotspot (${routerError}). Order TETAP pending, uang customer belum dianggap terselesaikan — perlu tindakan admin.`
+       );
+@@ -592,12 +637,17 @@ if (order.voucherTypeId && this.voucherTypeService) {
+       .createQueryBuilder()
+       .update(VoucherOrderEntity)
+       .set({ status: 'expired' })
+-      .where('status = :status', { status: 'pending' })
++      // Also sweep 'processing' orders here: normally settleOrder() always
++      // moves a claimed order back to 'pending' or forward to 'paid', but a
++      // server crash/restart mid-settlement could otherwise leave an order
++      // stuck in 'processing' forever, invisible to both the webhook
++      // matcher and admin manual-verify (both only look at 'pending').
++      .where('status IN (:...statuses)', { statuses: ['pending', 'processing'] })
+       .andWhere('expiresAt <= :now', { now: nowIso })
+       .execute();
+     const affected = result.affected || 0;
+     if (affected > 0) {
+-      this.logger.log(`[QRIS] ${affected} order pending ditandai expired`);
++      this.logger.log(`[QRIS] ${affected} order pending/processing ditandai expired`);
+     }
+     return affected;
+   }
+diff --git a/views/page/payment/qris-buy.eta b/views/page/payment/qris-buy.eta
+new file mode 100644
+index 0000000..58f2f5d
+--- /dev/null
++++ b/views/page/payment/qris-buy.eta
+@@ -0,0 +1,122 @@
++<!doctype html>
++<html lang="id">
++<head>
++  <meta charset="UTF-8" />
++  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
++  <title>Beli Voucher — NODEMON</title>
++  <link rel="preconnect" href="https://googleapis.com">
++  <link rel="preconnect" href="https://gstatic.com" crossorigin>
++  <link href="https://googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
++  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
++  <link rel="stylesheet" href="/assets/main.css" />
++  <link rel="stylesheet" href="/assets/card.css" />
++  <link rel="stylesheet" href="/assets/button-badged.css" />
++  <style>
++    /* Standalone customer-facing page — same reasoning as qris-checkout.eta:
++       only the design tokens/components are pulled in, not the admin
++       dashboard's app.js (which redirects unauthenticated visitors to
++       /login). This is the missing entry point into the QRIS flow: it lists
++       active voucher packages and creates the order that qris-checkout.eta
++       then takes over. */
++    :root { --acc2: #4f95ff; }
++    body {
++      display: flex;
++      align-items: flex-start;
++      justify-content: center;
++      min-height: 100vh;
++      padding: 32px 16px;
++    }
++    .voucher-item {
++      display: flex;
++      align-items: center;
++      justify-content: space-between;
++      gap: 12px;
++      background: var(--card2);
++      border-radius: 10px;
++      padding: 14px 16px;
++      margin-bottom: 10px;
++    }
++    .voucher-item .vi-name { font-weight: 700; }
++    .voucher-item .vi-duration { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
++    .voucher-item .vi-price { color: var(--green); font-weight: 800; white-space: nowrap; margin-right: 12px; }
++  </style>
++</head>
++<body>
++  <div style="max-width: 480px; width: 100%; margin: 0 auto">
++  <div class="card">
++    <div class="card-hd" style="text-align: center">
++      <i class="fa fa-wifi" style="font-size: 1.5rem; color: var(--acc2)"></i>
++      <h3 style="margin: 8px 0 4px"><%= it.hotspotName || 'Beli Voucher WiFi' %></h3>
++    </div>
++
++<% if (it.notFound) { %>
++      <div style="text-align: center; padding: 32px 0">
++        <i class="fa fa-exclamation-triangle" style="font-size: 2rem; color: var(--red); opacity: 0.6"></i>
++        <p style="color: var(--muted); margin-top: 12px">Router tidak ditemukan. Hubungi admin hotspot.</p>
++      </div>
++<% } else if (!it.voucherTypes || it.voucherTypes.length === 0) { %>
++      <div style="text-align: center; padding: 32px 0">
++        <i class="fa fa-inbox" style="font-size: 2rem; color: var(--muted); opacity: 0.6"></i>
++        <p style="color: var(--muted); margin-top: 12px">Belum ada paket voucher tersedia saat ini.</p>
++      </div>
++<% } else { %>
++      <p style="color: var(--muted); font-size: 0.85rem; text-align: center; margin-bottom: 16px">
++        Pilih paket, lalu bayar dengan QRIS (GoPay / semua e-wallet & bank).
++      </p>
++      <div id="voucher-list">
++<% it.voucherTypes.forEach(function(vt) { %>
++        <div class="voucher-item">
++          <div>
++            <div class="vi-name"><%= vt.name %></div>
++<% if (vt.duration) { %>            <div class="vi-duration"><%= vt.duration %></div><% } %>
++          </div>
++          <div class="vi-price">Rp <%= Number(vt.price || 0).toLocaleString('id-ID') %></div>
++          <button class="btn b-p buy-btn" data-voucher-type-id="<%= vt.id %>">
++            <i class="fa fa-shopping-cart"></i> Beli
++          </button>
++        </div>
++<% }) %>
++      </div>
++      <div id="buy-error" style="color: var(--red); font-size: 0.85rem; text-align: center; margin-top: 8px; display: none"></div>
++<% } %>
++  </div>
++  </div>
++
++<script>
++(function() {
++  const sessionId = <%~ JSON.stringify(it.sessionId || '') %>;
++  const errorBox = document.getElementById('buy-error');
++
++  document.querySelectorAll('.buy-btn').forEach(function(btn) {
++    btn.addEventListener('click', async function() {
++      const voucherTypeId = btn.dataset.voucherTypeId;
++      document.querySelectorAll('.buy-btn').forEach(function(b) { b.disabled = true; });
++      btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Memproses...';
++      if (errorBox) errorBox.style.display = 'none';
++
++      try {
++        const res = await fetch('/api/qris/orders', {
++          method: 'POST',
++          headers: { 'Content-Type': 'application/json' },
++          body: JSON.stringify({ voucherTypeId: voucherTypeId, sessionId: sessionId })
++        });
++        const data = await res.json();
++        if (data.success && data.order && data.order.orderId) {
++          window.location.href = '/qris/checkout/' + data.order.orderId;
++          return;
++        }
++        throw new Error(data.message || 'Gagal membuat order');
++      } catch (e) {
++        if (errorBox) {
++          errorBox.textContent = 'Gagal memulai pembayaran: ' + e.message + '. Coba lagi.';
++          errorBox.style.display = 'block';
++        }
++        document.querySelectorAll('.buy-btn').forEach(function(b) { b.disabled = false; });
++        btn.innerHTML = '<i class="fa fa-shopping-cart"></i> Beli';
++      }
++    });
++  });
++})();
++</script>
++</body>
++</html>
+diff --git a/views/page/payment/qris-checkout.eta b/views/page/payment/qris-checkout.eta
+index f7c17fe..3a0ab96 100644
+--- a/views/page/payment/qris-checkout.eta
++++ b/views/page/payment/qris-checkout.eta
+@@ -1,5 +1,34 @@
+-<div class="page" id="page-qris-checkout">
+-  <div class="card" style="max-width: 480px; margin: 0 auto">
++<!doctype html>
++<html lang="id">
++<head>
++  <meta charset="UTF-8" />
++  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
++  <title>Pembayaran QRIS — NODEMON</title>
++  <link rel="preconnect" href="https://googleapis.com">
++  <link rel="preconnect" href="https://gstatic.com" crossorigin>
++  <link href="https://googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
++  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
++  <link rel="stylesheet" href="/assets/main.css" />
++  <link rel="stylesheet" href="/assets/card.css" />
++  <link rel="stylesheet" href="/assets/button-badged.css" />
++  <style>
++    /* This is a standalone customer-facing page (no login), so it only
++       pulls the design tokens/components it needs — not the admin
++       dashboard's sidebar/topbar CSS or app.js (which would try to
++       redirect an unauthenticated customer to /login). */
++    :root { --acc2: #4f95ff; }
++    body {
++      display: flex;
++      align-items: flex-start;
++      justify-content: center;
++      min-height: 100vh;
++      padding: 32px 16px;
++    }
++  </style>
++</head>
++<body>
++  <div style="max-width: 480px; width: 100%; margin: 0 auto">
++  <div class="card">
+     <div class="card-hd" style="text-align: center">
+       <i class="fa fa-qrcode" style="font-size: 1.5rem; color: var(--acc2)"></i>
+       <h3 style="margin: 8px 0 4px">Pembayaran QRIS</h3>
+@@ -93,12 +122,13 @@
+         <!-- Hidden order data -->
+         <div id="qris-order-data" style="display: none"
+           data-order-id="<%= it.order?.orderId %>"
+-          data-expires-at="<%= it.order?.expiresAt %>">
++          data-expires-at="<%= it.order?.expiresAt %>"
++          data-qr-image="<%= it.order?.qrImage || '' %>">
+         </div>
+       </div>
+     <% } %>
+   </div>
+-</div>
++  </div>
+ 
+ <script>
+ (function() {
+@@ -107,6 +137,7 @@
+ 
+   const orderId = orderData.dataset.orderId;
+   const expiresAt = orderData.dataset.expiresAt;
++  const qrImage = orderData.dataset.qrImage;
+   let pollInterval = null;
+   let countdownInterval = null;
+ 
+@@ -114,24 +145,25 @@
+   document.getElementById('qris-loading').style.display = 'none';
+   document.getElementById('qris-content').style.display = 'block';
+ 
+-  // Generate QRIS QR code (rendered PNG data-URI from the server)
++  // Load the QRIS QR code (rendered PNG data-URI). It's already embedded in
++  // the server-rendered page (this is a public, unauthenticated checkout
++  // page — it must not depend on the admin-only /api/qris/orders/:id
++  // endpoint, which would just 401 for a customer). Only fall back to the
++  // public (re)generate endpoint if it wasn't ready yet at order-creation
++  // time (e.g. the QRIS merchant config was saved after this order).
+   (async function loadQr() {
+     try {
+-      const res = await fetch('/api/qris/orders/' + orderId, { credentials: 'include' });
+-      const data = await res.json();
+-      if (data.success && data.order.qrImage) {
+-        document.getElementById('qris-qr-img').src = data.order.qrImage;
++      if (qrImage) {
++        document.getElementById('qris-qr-img').src = qrImage;
++        return;
++      }
++      const qrRes = await fetch('/api/qris/orders/' + orderId + '/qr', {
++        method: 'POST'
++      }).then(r => r.json());
++      if (qrRes.success && qrRes.qrImage) {
++        document.getElementById('qris-qr-img').src = qrRes.qrImage;
+       } else {
+-        // Fallback: ask the server to (re)generate the QR image.
+-        const qrRes = await fetch('/api/qris/orders/' + orderId + '/qr', {
+-          method: 'POST',
+-          credentials: 'include'
+-        }).then(r => r.json());
+-        if (qrRes.success && qrRes.qrImage) {
+-          document.getElementById('qris-qr-img').src = qrRes.qrImage;
+-        } else {
+-          document.getElementById('qris-qr-img').src = '/assets/qris-placeholder.png';
+-        }
++        document.getElementById('qris-qr-img').src = '/assets/qris-placeholder.png';
+       }
+     } catch (e) {
+       console.error('QR load error:', e);
+@@ -211,4 +243,5 @@
+   pollInterval = setInterval(pollStatus, 3000);
+ })();
+ </script>
+-</div>
++</body>
++</html>

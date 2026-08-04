@@ -199,60 +199,74 @@ if (voucherTypeId && this.voucherTypeService) {
     const min = Math.pow(10, digits - 1);
     const max = Math.pow(10, digits) - 1;
 
-    let uniqueCode = 0;
-    let uniqueAmount = 0;
-    let collisionFree = false;
-    for (let attempt = 0; attempt < 30; attempt++) {
-      const candidateCode = Math.floor(min + Math.random() * (max - min + 1));
-      const candidateAmount = price + candidateCode;
-      const clash = await this.orderRepo
-        .createQueryBuilder('o')
-        .where('o.status = :status', { status: 'pending' })
-        .andWhere('o.uniqueAmount = :amount', { amount: candidateAmount })
-        .andWhere('o.expiresAt > :now', { now: new Date().toISOString() })
-        .getOne();
-      if (!clash) {
-        uniqueCode = candidateCode;
-        uniqueAmount = candidateAmount;
-        collisionFree = true;
-        break;
-      }
-    }
-    if (!collisionFree) {
-      throw new BadRequestException(
-        'Gagal menemukan nominal unik yang tersedia saat ini, coba lagi sesaat lagi.'
-      );
-    }
-
     const orderId = `QR${Date.now()}${Math.floor(Math.random() * 90 + 10)}`;
-
     const now = new Date();
     const expiresAt = new Date(now.getTime() + (await this.getExpiryMinutes()) * 60000);
 
-    const { qrString: builtQrString, qrImage } = await this.buildDynamicQr(
-      { uniqueAmount },
-      qrString
-    );
+    // Find the unique amount and insert the order inside one transaction.
+    // Two customers hitting "create order" for the same-priced package at
+    // literally the same moment could otherwise both pass the collision
+    // check before either has saved (check-then-insert race). Keeping the
+    // check + insert in a single transaction closes that window in
+    // practice — SQLite serializes concurrent write transactions, and on
+    // Postgres it keeps the gap as small as possible. If a duplicate still
+    // ever slips through, the webhook matcher picks the older order by
+    // createdAt and the newer one simply expires unpaid, so it fails safe
+    // rather than paying out the wrong order.
+    const saved = await this.orderRepo.manager.transaction(async (manager) => {
+      const repo = manager.getRepository(VoucherOrderEntity);
 
-    const order = this.orderRepo.create({
-      orderId,
-      voucherTypeId: voucherTypeId || null,
-      voucherName: voucherName || profile,
-      profile,
-      sessionId: sessionId || null,
-      price,
-      uniqueCode,
-      uniqueAmount,
-      qrString: builtQrString,
-      qrImage,
-      customerName: customerName || '',
-      phone: phone || '',
-      status: 'pending',
-      expiresAt: expiresAt.toISOString(),
-      note: validity ? `Validity: ${validity}` : ''
+      let uniqueCode = 0;
+      let uniqueAmount = 0;
+      let collisionFree = false;
+      for (let attempt = 0; attempt < 30; attempt++) {
+        const candidateCode = Math.floor(min + Math.random() * (max - min + 1));
+        const candidateAmount = price + candidateCode;
+        const clash = await repo
+          .createQueryBuilder('o')
+          .where('o.status = :status', { status: 'pending' })
+          .andWhere('o.uniqueAmount = :amount', { amount: candidateAmount })
+          .andWhere('o.expiresAt > :now', { now: new Date().toISOString() })
+          .getOne();
+        if (!clash) {
+          uniqueCode = candidateCode;
+          uniqueAmount = candidateAmount;
+          collisionFree = true;
+          break;
+        }
+      }
+      if (!collisionFree) {
+        throw new BadRequestException(
+          'Gagal menemukan nominal unik yang tersedia saat ini, coba lagi sesaat lagi.'
+        );
+      }
+
+      const { qrString: builtQrString, qrImage } = await this.buildDynamicQr(
+        { uniqueAmount },
+        qrString
+      );
+
+      const order = repo.create({
+        orderId,
+        voucherTypeId: voucherTypeId || null,
+        voucherName: voucherName || profile,
+        profile,
+        sessionId: sessionId || null,
+        price,
+        uniqueCode,
+        uniqueAmount,
+        qrString: builtQrString,
+        qrImage,
+        customerName: customerName || '',
+        phone: phone || '',
+        status: 'pending',
+        expiresAt: expiresAt.toISOString(),
+        note: validity ? `Validity: ${validity}` : ''
+      });
+
+      return repo.save(order);
     });
 
-    const saved = await this.orderRepo.save(order);
     this.logger.log(
       `[QRIS] Order ${saved.orderId} created: ${saved.voucherName} → Rp ${saved.uniqueAmount} (price ${saved.price} + code ${saved.uniqueCode})`
     );
@@ -352,6 +366,31 @@ if (voucherTypeId && this.voucherTypeService) {
       return { note: `Already paid (${order.orderId})` };
     }
 
+    // Atomically claim the order before touching the router. Without this,
+    // the automatic webhook and a manual admin verify (or two webhook
+    // deliveries) arriving at nearly the same time could both read the same
+    // 'pending' order, both pass the check above, and both create a hotspot
+    // user on the router for a single payment. The UPDATE only succeeds for
+    // whichever caller gets there first — everyone else is turned away here
+    // instead of double-provisioning.
+    const claim = await this.orderRepo
+      .createQueryBuilder()
+      .update(VoucherOrderEntity)
+      .set({ status: 'processing' })
+      .where('id = :id', { id: order.id })
+      .andWhere('status = :status', { status: 'pending' })
+      .execute();
+
+    if (!claim.affected) {
+      const fresh = await this.getOrder(order.orderId);
+      if (fresh?.status === 'paid' && fresh.voucherUsername) {
+        return { note: `Already paid (${fresh.orderId})` };
+      }
+      throw new BadRequestException(
+        `Order ${order.orderId} sedang diproses oleh permintaan lain, coba lagi sesaat lagi.`
+      );
+    }
+
     // Generate voucher credentials.
     const { username, password, limitUptime } = await this.generateVoucherCredentials(order);
 
@@ -398,6 +437,12 @@ if (voucherTypeId && this.voucherTypeService) {
     }
 
     if (!createdOnRouter) {
+      // Release the claim so the order goes back to 'pending' — a retry
+      // (next webhook delivery, or admin manual-verify after fixing the
+      // router) needs to be able to pick it up again, not find it stuck in
+      // 'processing' forever.
+      await this.orderRepo.update({ id: order.id }, { status: 'pending' });
+
       this.logger.error(
         `[QRIS] settlement dibatalkan untuk order ${order.orderId}: gagal membuat user hotspot (${routerError}). Order TETAP pending, uang customer belum dianggap terselesaikan — perlu tindakan admin.`
       );
@@ -592,12 +637,17 @@ if (order.voucherTypeId && this.voucherTypeService) {
       .createQueryBuilder()
       .update(VoucherOrderEntity)
       .set({ status: 'expired' })
-      .where('status = :status', { status: 'pending' })
+      // Also sweep 'processing' orders here: normally settleOrder() always
+      // moves a claimed order back to 'pending' or forward to 'paid', but a
+      // server crash/restart mid-settlement could otherwise leave an order
+      // stuck in 'processing' forever, invisible to both the webhook
+      // matcher and admin manual-verify (both only look at 'pending').
+      .where('status IN (:...statuses)', { statuses: ['pending', 'processing'] })
       .andWhere('expiresAt <= :now', { now: nowIso })
       .execute();
     const affected = result.affected || 0;
     if (affected > 0) {
-      this.logger.log(`[QRIS] ${affected} order pending ditandai expired`);
+      this.logger.log(`[QRIS] ${affected} order pending/processing ditandai expired`);
     }
     return affected;
   }
