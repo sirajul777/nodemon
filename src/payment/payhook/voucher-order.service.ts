@@ -197,8 +197,8 @@ if (voucherTypeId && this.voucherTypeService) {
     // end up with an identical payment amount, or a webhook could settle
     // the wrong order.
     const digits = uniqueCodeDigits || (await this.getUniqueDigits());
-    const min = Math.pow(10, digits - 1);
-    const max = Math.pow(10, digits) - 1;
+    let min = 0;
+    let max = 0;
 
     const orderId = `QR${Date.now()}${Math.floor(Math.random() * 90 + 10)}`;
     const now = new Date();
@@ -214,6 +214,18 @@ if (voucherTypeId && this.voucherTypeService) {
     // ever slips through, the webhook matcher picks the older order by
     // createdAt and the newer one simply expires unpaid, so it fails safe
     // rather than paying out the wrong order.
+    if(price > 5000){
+      // For prices above 5k, we only use 2 digits for unique code to avoid exceeding the maximum amount limit.
+      min = 10; // 2 digits minimum
+      max = 99; // 2 digits maximum
+    } else if (price > 10000){
+      // For prices above 10k, we only use 3 digits for unique code to avoid exceeding the maximum amount limit.
+      min = 100;
+      max = 499;
+    } else {
+      min = Math.pow(10, digits - 1);
+      max = Math.pow(10, digits) - 1;
+    }
     const saved = await this.orderRepo.manager.transaction(async (manager) => {
       const repo = manager.getRepository(VoucherOrderEntity);
 
