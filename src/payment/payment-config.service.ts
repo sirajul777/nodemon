@@ -48,6 +48,10 @@ duitkuExpiryMinutes: 10,
       payhookWaDomain: null,
       payhookWalledGardenHosts: 'cdn.jsdelivr.net, voucher.sysbill.ink',
       payhookStaticQris: null,
+      payhookWebhookAuthType: 'none',
+      payhookWebhookToken: null,
+      payhookWebhookHeaderName: 'X-API-Key',
+      payhookWebhookSecretKey: null,
     };
 
     try {
@@ -134,6 +138,19 @@ if (data.defaultProvider !== undefined) {
     if (data.payhookStaticQris !== undefined && !String(data.payhookStaticQris).includes('****')) {
       row.payhookStaticQris = data.payhookStaticQris || null;
     }
+    if (data.payhookWebhookAuthType !== undefined) {
+      const t = String(data.payhookWebhookAuthType);
+      row.payhookWebhookAuthType = ['bearer', 'api_key', 'basic', 'none'].includes(t) ? t : 'none';
+    }
+    if (data.payhookWebhookToken !== undefined && !String(data.payhookWebhookToken).includes('****')) {
+      row.payhookWebhookToken = data.payhookWebhookToken || null;
+    }
+    if (data.payhookWebhookHeaderName !== undefined) {
+      row.payhookWebhookHeaderName = data.payhookWebhookHeaderName || 'X-API-Key';
+    }
+    if (data.payhookWebhookSecretKey !== undefined && !String(data.payhookWebhookSecretKey).includes('****')) {
+      row.payhookWebhookSecretKey = data.payhookWebhookSecretKey || null;
+    }
 
     const saved = await this.configRepo.save(row);
     this.logger.log('Payment gateway config updated');
@@ -168,6 +185,12 @@ duitkuExpiryMinutes: c.duitkuExpiryMinutes,
       payhookWaDomain: c.payhookWaDomain || '',
       payhookWalledGardenHosts: c.payhookWalledGardenHosts || '',
       payhookStaticQris: c.payhookStaticQris || '',
+      payhookWebhookAuthType: c.payhookWebhookAuthType || 'none',
+      payhookWebhookToken: mask(c.payhookWebhookToken),
+      payhookWebhookHasToken: !!c.payhookWebhookToken,
+      payhookWebhookHeaderName: c.payhookWebhookHeaderName || 'X-API-Key',
+      payhookWebhookSecretKey: mask(c.payhookWebhookSecretKey),
+      payhookWebhookHasSecretKey: !!c.payhookWebhookSecretKey,
     };
   }
 

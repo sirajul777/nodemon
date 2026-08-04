@@ -3,7 +3,8 @@ import {
   Injectable,
   Logger,
   NotFoundException,
-  Optional
+  Optional,
+  ServiceUnavailableException
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -292,14 +293,41 @@ if (voucherTypeId && this.voucherTypeService) {
   }> {
     const rawPayload = JSON.stringify(payload || {});
     const amount = this.normalizeAmount(payload);
+    const eventId = payload.event_id || null;
 
     this.logger.log(
-      `[PayHook-App] callback received amount=${amount} raw=${rawPayload}`
+      `[PayHook-App] callback received event_id=${eventId} amount=${amount} raw=${rawPayload}`
     );
+
+    // 0. Idempotency: PayHook retries failed/timed-out deliveries with the
+    // SAME event_id. Only short-circuit if that event_id previously led to
+    // a TRULY completed (paid) order — not merely "matched", since a
+    // matched-but-failed settlement (e.g. router briefly down) must still
+    // be retryable. Checking the order's real status (not just the log's
+    // `matched` flag) is what makes the 503-triggers-retry behavior above
+    // actually useful instead of getting stuck after the first failure.
+    if (eventId) {
+      const already = await this.logRepo.findOne({ where: { eventId } });
+      if (already?.matchedOrderId) {
+        const relatedOrder = await this.orderRepo.findOne({ where: { orderId: already.matchedOrderId } });
+        if (relatedOrder?.status === 'paid') {
+          this.logger.log(`[PayHook-App] event_id=${eventId} already settled (order ${already.matchedOrderId}) — skipping`);
+          return {
+            matched: true,
+            orderId: already.matchedOrderId,
+            status: 'ALREADY_PROCESSED',
+            note: `Duplicate delivery of event_id ${eventId}, already settled as ${already.matchedOrderId}`
+          };
+        }
+        // Previous attempt with this event_id matched an order but didn't
+        // actually finish (still pending/failed) — fall through and retry.
+      }
+    }
 
     // 1. Persist the callback log first (always record, even unmatched).
     const logEntry = this.logRepo.create({
       source: 'payhook-app',
+      eventId,
       amount: amount || 0,
       status: payload.status || (amount ? 'COMPLETED' : 'UNKNOWN'),
       matched: false,
@@ -350,7 +378,12 @@ if (voucherTypeId && this.voucherTypeService) {
       logEntry.note = `Matched but settlement failed: ${e.message}`;
       await this.logRepo.save(logEntry);
       this.logger.error(`[QRIS] settle order ${order.orderId} failed: ${e.message}`, e.stack);
-      return { matched: true, orderId: order.orderId, status: 'ERROR', note: logEntry.note };
+      // Re-throw (rather than returning 200 with status:'ERROR') so the
+      // controller responds with a non-2xx status. Per PayHook's docs,
+      // that makes the app automatically retry delivery — giving transient
+      // failures (e.g. router briefly unreachable) a free chance to
+      // self-heal without any admin action.
+      throw e;
     }
   }
 
@@ -467,7 +500,7 @@ if (voucherTypeId && this.voucherTypeService) {
           this.logger.warn(`Telegram notify failed: ${e.message}`);
         }
       }
-      throw new BadRequestException(`Gagal membuat voucher di router: ${routerError}`);
+      throw new ServiceUnavailableException(`Gagal membuat voucher di router: ${routerError}`);
     }
 
     // Update the order record — only reached once the router confirmed the

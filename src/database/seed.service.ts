@@ -517,6 +517,10 @@ duitkuExpiryMinutes: 10,
       payhookWaDomain: null,
       payhookWalledGardenHosts: 'cdn.jsdelivr.net, voucher.sysbill.ink',
       payhookStaticQris: null,
+      payhookWebhookAuthType: 'none',
+      payhookWebhookToken: null,
+      payhookWebhookHeaderName: 'X-API-Key',
+      payhookWebhookSecretKey: null,
     });
     this.logger.log('Seeded: payment_config');
   }

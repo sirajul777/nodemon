@@ -24,6 +24,14 @@ export class PayhookCallbackLogEntity {
   @Column({ default: 'payhook-app' })
   source: string;
 
+  /**
+   * PayHook's official idempotency key (`event_id` in the payload). Stays
+   * identical across delivery retries, so it's used to detect and skip
+   * re-processing a callback that already succeeded.
+   */
+  @Column({ nullable: true })
+  eventId: string;
+
   /** The nominal that arrived in the webhook. */
   @Column({ type: 'int', default: 0 })
   amount: number;

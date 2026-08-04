@@ -81,6 +81,28 @@ export class PaymentConfigEntity {
   /** Static GoPay Merchant QRIS string used to build dynamic QRIS payloads. */
   @Column({ type: 'text', nullable: true })
   payhookStaticQris: string;
+
+  // ── PayHook webhook authentication (see https://payhook.freehost.id/#autentikasi) ──
+
+  /** Auth type configured on the PayHook app's webhook: bearer | api_key | basic | none. */
+  @Column({ default: 'none' })
+  payhookWebhookAuthType: string;
+
+  /** Token/secret PayHook sends (must match the `token` field set in the PayHook app). */
+  @Column({ type: 'text', nullable: true })
+  payhookWebhookToken: string;
+
+  /** Header name used for `api_key` auth type (PayHook default: X-API-Key). */
+  @Column({ default: 'X-API-Key' })
+  payhookWebhookHeaderName: string;
+
+  /**
+   * Optional HMAC "Secret Key" — when set, PayHook signs every webhook with
+   * HMAC-SHA256 (X-Payhook-Signature) and this server verifies it. Strongly
+   * recommended for production per PayHook's docs.
+   */
+  @Column({ type: 'text', nullable: true })
+  payhookWebhookSecretKey: string;
 }
 
 

@@ -39,7 +39,17 @@ async function bootstrap() {
     prefix: "/"
   });
   // ✅ TAMBAHKAN INI — Naikkan limit JSON & URL-encoded
-  app.use(express.json({ limit: "50mb" }));
+  // `verify` stashes the raw request bytes on req.rawBody — needed to check
+  // PayHook's HMAC signature (X-Payhook-Signature), which is computed over
+  // the exact raw body PayHook sent, not a re-serialized copy of req.body.
+  app.use(
+    express.json({
+      limit: '50mb',
+      verify: (req: any, _res, buf) => {
+        req.rawBody = buf;
+      }
+    })
+  );
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   app.use(cookieParser());
   app.use(

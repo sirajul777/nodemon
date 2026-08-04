@@ -7,10 +7,13 @@ import {
   Post,
   Query,
   Render,
+  Req,
   Res,
+  UnauthorizedException,
   UseGuards
 } from '@nestjs/common';
-import { Response } from 'express';
+import { Request, Response } from 'express';
+import * as crypto from 'crypto';
 import { AuthGuard } from '../../auth/auth.guard';
 import { PermissionsGuard } from '../../auth/permissions.guard';
 import { RequirePermission } from '../../auth/permissions.decorator';
@@ -19,6 +22,7 @@ import { VoucherOrderService } from './voucher-order.service';
 import { PayhookAppWebhookDto } from './dto/payhook-app-webhook.dto';
 import { ConfigService } from '../../config/config.service';
 import { VoucherTypeService } from '../../voucher-types/voucher-type.service';
+import { PaymentConfigService } from '../payment-config.service';
 
 /**
  * QRIS GoPay Merchant voucher-selling controller (article architecture).
@@ -42,7 +46,8 @@ export class VoucherOrderController {
   constructor(
     private readonly orderService: VoucherOrderService,
     private readonly configService: ConfigService,
-    private readonly voucherTypeService: VoucherTypeService
+    private readonly voucherTypeService: VoucherTypeService,
+    private readonly paymentConfigService: PaymentConfigService
   ) {}
 
   // ── Public: customer-facing voucher picker (entry point into the QRIS
@@ -65,12 +70,91 @@ export class VoucherOrderController {
   }
 
   // ── Public: PayHook Android-app webhook ─────────────────────────
+  // Security: verified against PaymentConfigService's payhookWebhook*
+  // settings, per https://payhook.freehost.id/#autentikasi (auth header)
+  // and #signature (HMAC-SHA256, anti-spoof + anti-replay). Without this,
+  // this endpoint would let anyone who finds the URL fabricate a payment
+  // notification and get a free voucher.
   @Post('payments/payhook/app-webhook')
   @HttpCode(200)
-  async appWebhook(@Body() payload: PayhookAppWebhookDto) {
-    // Always respond 200 so the PayHook app considers the callback delivered.
+  async appWebhook(@Body() payload: PayhookAppWebhookDto, @Req() req: Request) {
+    await this.verifyPayhookRequest(req);
+    // Always 2xx here on down so PayHook doesn't retry a callback we
+    // already understood — settleOrder failures below throw non-2xx
+    // (via processAppWebhook re-throwing), which DOES trigger PayHook's
+    // built-in retry, by design.
     const result = await this.orderService.processAppWebhook(payload || {});
     return result;
+  }
+
+  /**
+   * Verify the incoming PayHook webhook request: auth header (bearer /
+   * api_key / basic) and, if configured, the HMAC-SHA256 signature +
+   * timestamp anti-replay window. Throws UnauthorizedException on any
+   * mismatch — never silently continues.
+   */
+  private async verifyPayhookRequest(req: Request): Promise<void> {
+    const cfg = await this.paymentConfigService.getConfig();
+    const authType = cfg.payhookWebhookAuthType || 'none';
+
+    if (authType !== 'none') {
+      const token = cfg.payhookWebhookToken;
+      if (!token) {
+        throw new UnauthorizedException(
+          `Webhook auth type is "${authType}" but no token is configured in payment settings.`
+        );
+      }
+
+      if (authType === 'bearer') {
+        const header = req.header('authorization') || '';
+        if (!this.safeEqual(header, `Bearer ${token}`)) {
+          throw new UnauthorizedException('Invalid Bearer token');
+        }
+      } else if (authType === 'api_key') {
+        const headerName = (cfg.payhookWebhookHeaderName || 'X-API-Key').toLowerCase();
+        const provided = req.header(headerName) || '';
+        if (!this.safeEqual(provided, token)) {
+          throw new UnauthorizedException('Invalid API key');
+        }
+      } else if (authType === 'basic') {
+        // Per PayHook's spec this is `Basic base64(<token>)` — the token
+        // itself base64-encoded, not the usual "user:pass" Basic auth.
+        const header = req.header('authorization') || '';
+        const expected = `Basic ${Buffer.from(token).toString('base64')}`;
+        if (!this.safeEqual(header, expected)) {
+          throw new UnauthorizedException('Invalid Basic auth token');
+        }
+      }
+    }
+
+    if (cfg.payhookWebhookSecretKey) {
+      const timestamp = req.header('x-payhook-timestamp') || '';
+      const signature = req.header('x-payhook-signature') || '';
+      if (!timestamp || !signature) {
+        throw new UnauthorizedException('Missing HMAC signature headers');
+      }
+
+      const skewSeconds = Math.abs(Date.now() / 1000 - Number(timestamp));
+      if (!Number.isFinite(skewSeconds) || skewSeconds > 300) {
+        throw new UnauthorizedException('Webhook timestamp expired or invalid (anti-replay)');
+      }
+
+      const raw = (req as any).rawBody ? (req as any).rawBody.toString('utf8') : JSON.stringify(req.body);
+      const expected =
+        'sha256=' +
+        crypto.createHmac('sha256', cfg.payhookWebhookSecretKey).update(`${timestamp}.${raw}`).digest('hex');
+      if (!this.safeEqual(signature, expected)) {
+        throw new UnauthorizedException('Invalid HMAC signature');
+      }
+    }
+  }
+
+  /** Constant-time string compare (avoids leaking secret length/content via timing). */
+  private safeEqual(a: string, b: string): boolean {
+    const bufA = Buffer.from(a);
+    const bufB = Buffer.from(b);
+    if (bufA.length !== bufB.length) return false;
+    return crypto.timingSafeEqual(bufA, bufB);
   }
 
   // ── Public: create a voucher order (unique amount) ──────────────
