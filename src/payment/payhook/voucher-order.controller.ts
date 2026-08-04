@@ -59,7 +59,7 @@ export class VoucherOrderController {
     return {
       notFound: false,
       sessionId,
-      hotspotName: session.hotspotName || session.name || 'Beli Voucher WiFi',
+      hotspotName: session.id || session.name || 'Beli Voucher WiFi',
       voucherTypes
     };
   }
