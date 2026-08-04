@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { Repository, Not } from "typeorm";
 import * as bcrypt from "bcrypt";
 import { UserEntity, UserRole, UserPermissions } from "../database/entities/user.entity";
 
@@ -79,6 +79,40 @@ export class UserService {
     return safe as Omit<AppUser, "password">;
   }
 
+  /**
+   * Guard against ever leaving the system with zero active admins — that
+   * would lock everyone out of `manageSystem`-gated areas (including this
+   * very user-management screen) with no way back except direct DB access.
+   *
+   * Call this BEFORE applying a change that could take `userId` out of the
+   * "active admin" set (role change away from admin, or deactivation).
+   * Only throws when `userId` is CURRENTLY an active admin and would STOP
+   * being one — editing/deleting any other user is never blocked by this,
+   * even if the system is already (incorrectly) in a zero-active-admin
+   * state from before this fix.
+   */
+  private async assertKeepsAtLeastOneActiveAdmin(
+    userId: string,
+    current: { role: UserRole; active: boolean },
+    resulting: { role: UserRole; active: boolean }
+  ): Promise<void> {
+    const wasActiveAdmin = current.role === "admin" && current.active;
+    const staysActiveAdmin = resulting.role === "admin" && resulting.active;
+    if (!wasActiveAdmin || staysActiveAdmin) return; // not a consequential change
+
+    // Count OTHER active admins (excludes this user, and correctly ignores
+    // inactive admin accounts — an inactive admin can't log in, so it must
+    // never count as a safety net).
+    const otherActiveAdmins = await this.userRepo.count({
+      where: { role: "admin", active: true, id: Not(userId) }
+    });
+    if (otherActiveAdmins === 0) {
+      throw new Error(
+        "Tidak bisa melakukan perubahan ini — sistem harus punya minimal satu admin aktif"
+      );
+    }
+  }
+
   // ── CRUD ──────────────────────────────────────────────────────────
 
   async getAll(): Promise<Omit<AppUser, "password">[]> {
@@ -141,6 +175,15 @@ export class UserService {
   ): Promise<Omit<AppUser, "password"> | null> {
     const u = await this.userRepo.findOne({ where: { id } });
     if (!u) return null;
+
+    const resultingRole = data.role !== undefined ? data.role : u.role;
+    const resultingActive = data.active !== undefined ? data.active : u.active;
+    await this.assertKeepsAtLeastOneActiveAdmin(
+      id,
+      { role: u.role, active: u.active },
+      { role: resultingRole, active: resultingActive }
+    );
+
     if (data.name !== undefined) u.name = data.name;
     if (data.role !== undefined) {
       u.role = data.role;
@@ -185,12 +228,16 @@ export class UserService {
   }
 
   async delete(id: string): Promise<boolean> {
-    // Prevent deleting last admin
-    const admins = await this.userRepo.find({ where: { role: "admin" } });
     const target = await this.userRepo.findOne({ where: { id } });
-    if (target?.role === "admin" && admins.length <= 1) {
-      throw new Error("Tidak bisa menghapus admin terakhir");
-    }
+    if (!target) return false;
+    // Deleting is a permanent, absolute version of "no longer an active
+    // admin" — reuse the same guard as update()/toggleActive() so all
+    // three mutation paths agree on what "last active admin" means.
+    await this.assertKeepsAtLeastOneActiveAdmin(
+      id,
+      { role: target.role, active: target.active },
+      { role: target.role, active: false }
+    );
     const result = await this.userRepo.delete({ id });
     return (result.affected || 0) > 0;
   }
@@ -198,15 +245,13 @@ export class UserService {
   async toggleActive(id: string): Promise<boolean | null> {
     const u = await this.userRepo.findOne({ where: { id } });
     if (!u) return null;
-    // Prevent deactivating last admin
-    if (u.role === "admin" && u.active) {
-      const activeAdmins = await this.userRepo.find({
-        where: { role: "admin", active: true }
-      });
-      if (activeAdmins.length <= 1)
-        throw new Error("Tidak bisa menonaktifkan admin terakhir");
-    }
-    u.active = !u.active;
+    const nextActive = !u.active;
+    await this.assertKeepsAtLeastOneActiveAdmin(
+      id,
+      { role: u.role, active: u.active },
+      { role: u.role, active: nextActive }
+    );
+    u.active = nextActive;
     await this.userRepo.save(u);
     return u.active;
   }

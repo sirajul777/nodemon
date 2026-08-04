@@ -42,6 +42,9 @@ export class UserController {
     if (!body.username || !body.password || !body.name || !body.role) {
       return { error: 'username, password, name, role wajib diisi' };
     }
+    if (body.password.length < 4) {
+      return { error: 'Password minimal 4 karakter' };
+    }
     try {
       return await this.userSvc.create(body);
     } catch(e: any) {
