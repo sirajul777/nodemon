@@ -111,9 +111,58 @@
             <label style="margin: 0">WA Notifikasi Customer</label>
           </div>
         </div>
+        <div class="g3">
+          <div class="fg">
+            <label>Provider WhatsApp</label>
+            <select id="ps-payhook-wa-provider">
+              <option value="fonnte">Fonnte</option>
+              <option value="wablas">Wablas</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Token WA Gateway</label>
+            <input id="ps-payhook-wa-token" placeholder="token dari Fonnte/Wablas" />
+          </div>
+          <div class="fg">
+            <label>Domain Wablas (khusus Wablas)</label>
+            <input id="ps-payhook-wa-domain" placeholder="https://console.wablas.com" />
+          </div>
+        </div>
         <div class="fg">
           <label>Walled Garden Hosts (dipisah koma, untuk hotspot)</label>
           <input id="ps-payhook-walled-garden" placeholder="cdn.jsdelivr.net, voucher.sysbill.ink" />
+        </div>
+
+        <hr style="border-color: var(--border); margin: 16px 0" />
+
+        <div style="margin-bottom: 10px">
+          <b style="font-size: 0.88rem"><i class="fa fa-lock"></i> Keamanan Webhook PayHook</b>
+          <p style="color: var(--muted); font-size: 0.78rem; margin: 4px 0 0">
+            Wajib diisi salah satu supaya endpoint webhook tidak bisa dipanggil sembarang orang. Samakan nilainya dengan pengaturan webhook di aplikasi PayHook Android.
+          </p>
+        </div>
+        <div class="g3">
+          <div class="fg">
+            <label>Tipe Autentikasi</label>
+            <select id="ps-payhook-webhook-authtype">
+              <option value="none">Tanpa Autentikasi (tidak disarankan)</option>
+              <option value="bearer">Bearer Token</option>
+              <option value="api_key">API Key (header custom)</option>
+              <option value="basic">Basic</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Token / Secret</label>
+            <input id="ps-payhook-webhook-token" placeholder="samakan dengan token di app PayHook" />
+          </div>
+          <div class="fg">
+            <label>Nama Header (khusus API Key)</label>
+            <input id="ps-payhook-webhook-header" placeholder="X-API-Key" />
+          </div>
+        </div>
+        <div class="fg">
+          <label>HMAC Secret Key (opsional, disarankan untuk produksi)</label>
+          <input id="ps-payhook-webhook-secret" placeholder="isi jika Secret Key diaktifkan di app PayHook" />
         </div>
       </div>
 

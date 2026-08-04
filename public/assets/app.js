@@ -6058,7 +6058,14 @@ async function loadPaymentSettings() {
   setVal("ps-payhook-unique-digits", c.payhookUniqueDigits ?? 3);
   setVal("ps-payhook-qris-expiry", c.payhookQrisExpiryMinutes ?? 15);
   setChecked("ps-payhook-wa-enabled", c.payhookWaEnabled);
+  setVal("ps-payhook-wa-provider", c.payhookWaProvider || "fonnte");
+  setVal("ps-payhook-wa-token", c.payhookWaToken || "");
+  setVal("ps-payhook-wa-domain", c.payhookWaDomain || "");
   setVal("ps-payhook-walled-garden", c.payhookWalledGardenHosts || "cdn.jsdelivr.net, voucher.sysbill.ink");
+  setVal("ps-payhook-webhook-authtype", c.payhookWebhookAuthType || "none");
+  setVal("ps-payhook-webhook-token", c.payhookWebhookToken || "");
+  setVal("ps-payhook-webhook-header", c.payhookWebhookHeaderName || "X-API-Key");
+  setVal("ps-payhook-webhook-secret", c.payhookWebhookSecretKey || "");
 }
 
 async function savePaymentSettings() {
@@ -6091,8 +6098,22 @@ async function savePaymentSettings() {
       Number(document.getElementById("ps-payhook-qris-expiry")?.value) || 15,
     payhookWaEnabled:
       document.getElementById("ps-payhook-wa-enabled")?.checked || false,
+    payhookWaProvider:
+      document.getElementById("ps-payhook-wa-provider")?.value || "fonnte",
+    payhookWaToken:
+      document.getElementById("ps-payhook-wa-token")?.value || "",
+    payhookWaDomain:
+      document.getElementById("ps-payhook-wa-domain")?.value || "",
     payhookWalledGardenHosts:
-      document.getElementById("ps-payhook-walled-garden")?.value || ""
+      document.getElementById("ps-payhook-walled-garden")?.value || "",
+    payhookWebhookAuthType:
+      document.getElementById("ps-payhook-webhook-authtype")?.value || "none",
+    payhookWebhookToken:
+      document.getElementById("ps-payhook-webhook-token")?.value || "",
+    payhookWebhookHeaderName:
+      document.getElementById("ps-payhook-webhook-header")?.value || "X-API-Key",
+    payhookWebhookSecretKey:
+      document.getElementById("ps-payhook-webhook-secret")?.value || ""
   };
 
   showL();

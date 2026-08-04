@@ -1,0 +1,463 @@
+diff --git a/src/database/seed.service.ts b/src/database/seed.service.ts
+index 927d279..381b1d3 100644
+--- a/src/database/seed.service.ts
++++ b/src/database/seed.service.ts
+@@ -517,6 +517,10 @@ duitkuExpiryMinutes: 10,
+       payhookWaDomain: null,
+       payhookWalledGardenHosts: 'cdn.jsdelivr.net, voucher.sysbill.ink',
+       payhookStaticQris: null,
++      payhookWebhookAuthType: 'none',
++      payhookWebhookToken: null,
++      payhookWebhookHeaderName: 'X-API-Key',
++      payhookWebhookSecretKey: null,
+     });
+     this.logger.log('Seeded: payment_config');
+   }
+diff --git a/src/main.ts b/src/main.ts
+index f8fbf53..229b38b 100644
+--- a/src/main.ts
++++ b/src/main.ts
+@@ -39,7 +39,17 @@ async function bootstrap() {
+     prefix: "/"
+   });
+   // ✅ TAMBAHKAN INI — Naikkan limit JSON & URL-encoded
+-  app.use(express.json({ limit: "50mb" }));
++  // `verify` stashes the raw request bytes on req.rawBody — needed to check
++  // PayHook's HMAC signature (X-Payhook-Signature), which is computed over
++  // the exact raw body PayHook sent, not a re-serialized copy of req.body.
++  app.use(
++    express.json({
++      limit: '50mb',
++      verify: (req: any, _res, buf) => {
++        req.rawBody = buf;
++      }
++    })
++  );
+   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+   app.use(cookieParser());
+   app.use(
+diff --git a/src/payment/payhook/dto/payhook-app-webhook.dto.ts b/src/payment/payhook/dto/payhook-app-webhook.dto.ts
+index b02d664..9f00eaa 100644
+--- a/src/payment/payhook/dto/payhook-app-webhook.dto.ts
++++ b/src/payment/payhook/dto/payhook-app-webhook.dto.ts
+@@ -1,21 +1,75 @@
+ import { IsInt, IsOptional, IsString } from 'class-validator';
+ 
+ /**
+- * Shape of the webhook the PayHook Android app forwards to your server.
++ * Shape of the webhook the PayHook Android app sends, per the official
++ * payload format: https://payhook.freehost.id/#payload
+  *
+- * The PayHook app reads transaction notifications from GoPay Merchant
+- * (and other payment apps) and POSTs them to the callback URL you
+- * configure in the app. The exact field names vary by version/app, so this
+- * DTO is deliberately permissive — the service normalizes from multiple
+- * aliases (`amount`, `nominal`, `total`, `price`, ...).
++ * ```json
++ * {
++ *   "event_id": "evt_1752300000000_a1b2c3",
++ *   "event_type": "payment.incoming",
++ *   "amount": 300000,
++ *   "source": "BCA Mobile",
++ *   "reference": "PH-1711425600000",
++ *   "timestamp": "2026-03-26 10:26:00",
++ *   "package_name": "com.bca",
++ *   "notification_title": "Uang masuk dari John",
++ *   "notification_text": "Rp 300.000,00 sudah masuk ke rekening Anda",
++ *   "sent_by": "PayHook"
++ * }
++ * ```
+  *
+- * The critical field is `amount`: the server matches it to a pending
+- * voucher order's `uniqueAmount` (price + unique code).
++ * `event_id` is the official idempotency key — PayHook retries failed
++ * deliveries with the SAME `event_id`, so the server uses it to avoid
++ * double-processing a retried callback.
++ *
++ * A few older/looser field names (`nominal`, `total`, `trx_id`, `bank`) are
++ * still accepted as fallbacks in case of an older PayHook app version or a
++ * hand-rolled integration, but the official field names are what's
++ * validated and read first.
+  */
+ export class PayhookAppWebhookDto {
++  // ── Official PayHook payload fields ──────────────────────────────
++  @IsOptional()
++  @IsString()
++  event_id?: string;
++
++  @IsOptional()
++  @IsString()
++  event_type?: string;
++
+   @IsOptional()
+   amount?: any;
+ 
++  @IsOptional()
++  @IsString()
++  source?: string;
++
++  @IsOptional()
++  @IsString()
++  reference?: string;
++
++  @IsOptional()
++  @IsString()
++  timestamp?: string;
++
++  @IsOptional()
++  @IsString()
++  package_name?: string;
++
++  @IsOptional()
++  @IsString()
++  notification_title?: string;
++
++  @IsOptional()
++  @IsString()
++  notification_text?: string;
++
++  @IsOptional()
++  @IsString()
++  sent_by?: string;
++
++  // ── Backward-compat aliases (older/non-standard senders) ─────────
+   @IsOptional()
+   nominal?: any;
+ 
+@@ -39,18 +93,10 @@ export class PayhookAppWebhookDto {
+   @IsString()
+   from?: string;
+ 
+-  @IsOptional()
+-  @IsString()
+-  timestamp?: string;
+-
+   @IsOptional()
+   @IsString()
+   trx_id?: string;
+ 
+-  @IsOptional()
+-  @IsString()
+-  reference?: string;
+-
+   @IsOptional()
+   @IsString()
+   order_id?: string;
+@@ -58,4 +104,3 @@ export class PayhookAppWebhookDto {
+   /** Any other fields the app sends are preserved in rawPayload for audit. */
+   [key: string]: any;
+ }
+-
+diff --git a/src/payment/payhook/entities/payhook-callback-log.entity.ts b/src/payment/payhook/entities/payhook-callback-log.entity.ts
+index e271806..f694ae7 100644
+--- a/src/payment/payhook/entities/payhook-callback-log.entity.ts
++++ b/src/payment/payhook/entities/payhook-callback-log.entity.ts
+@@ -24,6 +24,14 @@ export class PayhookCallbackLogEntity {
+   @Column({ default: 'payhook-app' })
+   source: string;
+ 
++  /**
++   * PayHook's official idempotency key (`event_id` in the payload). Stays
++   * identical across delivery retries, so it's used to detect and skip
++   * re-processing a callback that already succeeded.
++   */
++  @Column({ nullable: true })
++  eventId: string;
++
+   /** The nominal that arrived in the webhook. */
+   @Column({ type: 'int', default: 0 })
+   amount: number;
+diff --git a/src/payment/payhook/voucher-order.controller.ts b/src/payment/payhook/voucher-order.controller.ts
+index 1466dae..29d5627 100644
+--- a/src/payment/payhook/voucher-order.controller.ts
++++ b/src/payment/payhook/voucher-order.controller.ts
+@@ -7,10 +7,13 @@ import {
+   Post,
+   Query,
+   Render,
++  Req,
+   Res,
++  UnauthorizedException,
+   UseGuards
+ } from '@nestjs/common';
+-import { Response } from 'express';
++import { Request, Response } from 'express';
++import * as crypto from 'crypto';
+ import { AuthGuard } from '../../auth/auth.guard';
+ import { PermissionsGuard } from '../../auth/permissions.guard';
+ import { RequirePermission } from '../../auth/permissions.decorator';
+@@ -19,6 +22,7 @@ import { VoucherOrderService } from './voucher-order.service';
+ import { PayhookAppWebhookDto } from './dto/payhook-app-webhook.dto';
+ import { ConfigService } from '../../config/config.service';
+ import { VoucherTypeService } from '../../voucher-types/voucher-type.service';
++import { PaymentConfigService } from '../payment-config.service';
+ 
+ /**
+  * QRIS GoPay Merchant voucher-selling controller (article architecture).
+@@ -42,7 +46,8 @@ export class VoucherOrderController {
+   constructor(
+     private readonly orderService: VoucherOrderService,
+     private readonly configService: ConfigService,
+-    private readonly voucherTypeService: VoucherTypeService
++    private readonly voucherTypeService: VoucherTypeService,
++    private readonly paymentConfigService: PaymentConfigService
+   ) {}
+ 
+   // ── Public: customer-facing voucher picker (entry point into the QRIS
+@@ -65,14 +70,93 @@ export class VoucherOrderController {
+   }
+ 
+   // ── Public: PayHook Android-app webhook ─────────────────────────
++  // Security: verified against PaymentConfigService's payhookWebhook*
++  // settings, per https://payhook.freehost.id/#autentikasi (auth header)
++  // and #signature (HMAC-SHA256, anti-spoof + anti-replay). Without this,
++  // this endpoint would let anyone who finds the URL fabricate a payment
++  // notification and get a free voucher.
+   @Post('payments/payhook/app-webhook')
+   @HttpCode(200)
+-  async appWebhook(@Body() payload: PayhookAppWebhookDto) {
+-    // Always respond 200 so the PayHook app considers the callback delivered.
++  async appWebhook(@Body() payload: PayhookAppWebhookDto, @Req() req: Request) {
++    await this.verifyPayhookRequest(req);
++    // Always 2xx here on down so PayHook doesn't retry a callback we
++    // already understood — settleOrder failures below throw non-2xx
++    // (via processAppWebhook re-throwing), which DOES trigger PayHook's
++    // built-in retry, by design.
+     const result = await this.orderService.processAppWebhook(payload || {});
+     return result;
+   }
+ 
++  /**
++   * Verify the incoming PayHook webhook request: auth header (bearer /
++   * api_key / basic) and, if configured, the HMAC-SHA256 signature +
++   * timestamp anti-replay window. Throws UnauthorizedException on any
++   * mismatch — never silently continues.
++   */
++  private async verifyPayhookRequest(req: Request): Promise<void> {
++    const cfg = await this.paymentConfigService.getConfig();
++    const authType = cfg.payhookWebhookAuthType || 'none';
++
++    if (authType !== 'none') {
++      const token = cfg.payhookWebhookToken;
++      if (!token) {
++        throw new UnauthorizedException(
++          `Webhook auth type is "${authType}" but no token is configured in payment settings.`
++        );
++      }
++
++      if (authType === 'bearer') {
++        const header = req.header('authorization') || '';
++        if (!this.safeEqual(header, `Bearer ${token}`)) {
++          throw new UnauthorizedException('Invalid Bearer token');
++        }
++      } else if (authType === 'api_key') {
++        const headerName = (cfg.payhookWebhookHeaderName || 'X-API-Key').toLowerCase();
++        const provided = req.header(headerName) || '';
++        if (!this.safeEqual(provided, token)) {
++          throw new UnauthorizedException('Invalid API key');
++        }
++      } else if (authType === 'basic') {
++        // Per PayHook's spec this is `Basic base64(<token>)` — the token
++        // itself base64-encoded, not the usual "user:pass" Basic auth.
++        const header = req.header('authorization') || '';
++        const expected = `Basic ${Buffer.from(token).toString('base64')}`;
++        if (!this.safeEqual(header, expected)) {
++          throw new UnauthorizedException('Invalid Basic auth token');
++        }
++      }
++    }
++
++    if (cfg.payhookWebhookSecretKey) {
++      const timestamp = req.header('x-payhook-timestamp') || '';
++      const signature = req.header('x-payhook-signature') || '';
++      if (!timestamp || !signature) {
++        throw new UnauthorizedException('Missing HMAC signature headers');
++      }
++
++      const skewSeconds = Math.abs(Date.now() / 1000 - Number(timestamp));
++      if (!Number.isFinite(skewSeconds) || skewSeconds > 300) {
++        throw new UnauthorizedException('Webhook timestamp expired or invalid (anti-replay)');
++      }
++
++      const raw = (req as any).rawBody ? (req as any).rawBody.toString('utf8') : JSON.stringify(req.body);
++      const expected =
++        'sha256=' +
++        crypto.createHmac('sha256', cfg.payhookWebhookSecretKey).update(`${timestamp}.${raw}`).digest('hex');
++      if (!this.safeEqual(signature, expected)) {
++        throw new UnauthorizedException('Invalid HMAC signature');
++      }
++    }
++  }
++
++  /** Constant-time string compare (avoids leaking secret length/content via timing). */
++  private safeEqual(a: string, b: string): boolean {
++    const bufA = Buffer.from(a);
++    const bufB = Buffer.from(b);
++    if (bufA.length !== bufB.length) return false;
++    return crypto.timingSafeEqual(bufA, bufB);
++  }
++
+   // ── Public: create a voucher order (unique amount) ──────────────
+   @Post('api/qris/orders')
+   async createOrder(
+diff --git a/src/payment/payhook/voucher-order.service.ts b/src/payment/payhook/voucher-order.service.ts
+index e71302e..cd0454a 100644
+--- a/src/payment/payhook/voucher-order.service.ts
++++ b/src/payment/payhook/voucher-order.service.ts
+@@ -3,7 +3,8 @@ import {
+   Injectable,
+   Logger,
+   NotFoundException,
+-  Optional
++  Optional,
++  ServiceUnavailableException
+ } from '@nestjs/common';
+ import { InjectRepository } from '@nestjs/typeorm';
+ import { Repository } from 'typeorm';
+@@ -292,14 +293,41 @@ if (voucherTypeId && this.voucherTypeService) {
+   }> {
+     const rawPayload = JSON.stringify(payload || {});
+     const amount = this.normalizeAmount(payload);
++    const eventId = payload.event_id || null;
+ 
+     this.logger.log(
+-      `[PayHook-App] callback received amount=${amount} raw=${rawPayload}`
++      `[PayHook-App] callback received event_id=${eventId} amount=${amount} raw=${rawPayload}`
+     );
+ 
++    // 0. Idempotency: PayHook retries failed/timed-out deliveries with the
++    // SAME event_id. Only short-circuit if that event_id previously led to
++    // a TRULY completed (paid) order — not merely "matched", since a
++    // matched-but-failed settlement (e.g. router briefly down) must still
++    // be retryable. Checking the order's real status (not just the log's
++    // `matched` flag) is what makes the 503-triggers-retry behavior above
++    // actually useful instead of getting stuck after the first failure.
++    if (eventId) {
++      const already = await this.logRepo.findOne({ where: { eventId } });
++      if (already?.matchedOrderId) {
++        const relatedOrder = await this.orderRepo.findOne({ where: { orderId: already.matchedOrderId } });
++        if (relatedOrder?.status === 'paid') {
++          this.logger.log(`[PayHook-App] event_id=${eventId} already settled (order ${already.matchedOrderId}) — skipping`);
++          return {
++            matched: true,
++            orderId: already.matchedOrderId,
++            status: 'ALREADY_PROCESSED',
++            note: `Duplicate delivery of event_id ${eventId}, already settled as ${already.matchedOrderId}`
++          };
++        }
++        // Previous attempt with this event_id matched an order but didn't
++        // actually finish (still pending/failed) — fall through and retry.
++      }
++    }
++
+     // 1. Persist the callback log first (always record, even unmatched).
+     const logEntry = this.logRepo.create({
+       source: 'payhook-app',
++      eventId,
+       amount: amount || 0,
+       status: payload.status || (amount ? 'COMPLETED' : 'UNKNOWN'),
+       matched: false,
+@@ -350,7 +378,12 @@ if (voucherTypeId && this.voucherTypeService) {
+       logEntry.note = `Matched but settlement failed: ${e.message}`;
+       await this.logRepo.save(logEntry);
+       this.logger.error(`[QRIS] settle order ${order.orderId} failed: ${e.message}`, e.stack);
+-      return { matched: true, orderId: order.orderId, status: 'ERROR', note: logEntry.note };
++      // Re-throw (rather than returning 200 with status:'ERROR') so the
++      // controller responds with a non-2xx status. Per PayHook's docs,
++      // that makes the app automatically retry delivery — giving transient
++      // failures (e.g. router briefly unreachable) a free chance to
++      // self-heal without any admin action.
++      throw e;
+     }
+   }
+ 
+@@ -467,7 +500,7 @@ if (voucherTypeId && this.voucherTypeService) {
+           this.logger.warn(`Telegram notify failed: ${e.message}`);
+         }
+       }
+-      throw new BadRequestException(`Gagal membuat voucher di router: ${routerError}`);
++      throw new ServiceUnavailableException(`Gagal membuat voucher di router: ${routerError}`);
+     }
+ 
+     // Update the order record — only reached once the router confirmed the
+diff --git a/src/payment/payment-config.entity.ts b/src/payment/payment-config.entity.ts
+index 5b2df2e..1a33baf 100644
+--- a/src/payment/payment-config.entity.ts
++++ b/src/payment/payment-config.entity.ts
+@@ -81,6 +81,28 @@ export class PaymentConfigEntity {
+   /** Static GoPay Merchant QRIS string used to build dynamic QRIS payloads. */
+   @Column({ type: 'text', nullable: true })
+   payhookStaticQris: string;
++
++  // ── PayHook webhook authentication (see https://payhook.freehost.id/#autentikasi) ──
++
++  /** Auth type configured on the PayHook app's webhook: bearer | api_key | basic | none. */
++  @Column({ default: 'none' })
++  payhookWebhookAuthType: string;
++
++  /** Token/secret PayHook sends (must match the `token` field set in the PayHook app). */
++  @Column({ type: 'text', nullable: true })
++  payhookWebhookToken: string;
++
++  /** Header name used for `api_key` auth type (PayHook default: X-API-Key). */
++  @Column({ default: 'X-API-Key' })
++  payhookWebhookHeaderName: string;
++
++  /**
++   * Optional HMAC "Secret Key" — when set, PayHook signs every webhook with
++   * HMAC-SHA256 (X-Payhook-Signature) and this server verifies it. Strongly
++   * recommended for production per PayHook's docs.
++   */
++  @Column({ type: 'text', nullable: true })
++  payhookWebhookSecretKey: string;
+ }
+ 
+ 
+diff --git a/src/payment/payment-config.service.ts b/src/payment/payment-config.service.ts
+index ad5f9e8..019a6c4 100644
+--- a/src/payment/payment-config.service.ts
++++ b/src/payment/payment-config.service.ts
+@@ -48,6 +48,10 @@ duitkuExpiryMinutes: 10,
+       payhookWaDomain: null,
+       payhookWalledGardenHosts: 'cdn.jsdelivr.net, voucher.sysbill.ink',
+       payhookStaticQris: null,
++      payhookWebhookAuthType: 'none',
++      payhookWebhookToken: null,
++      payhookWebhookHeaderName: 'X-API-Key',
++      payhookWebhookSecretKey: null,
+     };
+ 
+     try {
+@@ -134,6 +138,19 @@ if (data.defaultProvider !== undefined) {
+     if (data.payhookStaticQris !== undefined && !String(data.payhookStaticQris).includes('****')) {
+       row.payhookStaticQris = data.payhookStaticQris || null;
+     }
++    if (data.payhookWebhookAuthType !== undefined) {
++      const t = String(data.payhookWebhookAuthType);
++      row.payhookWebhookAuthType = ['bearer', 'api_key', 'basic', 'none'].includes(t) ? t : 'none';
++    }
++    if (data.payhookWebhookToken !== undefined && !String(data.payhookWebhookToken).includes('****')) {
++      row.payhookWebhookToken = data.payhookWebhookToken || null;
++    }
++    if (data.payhookWebhookHeaderName !== undefined) {
++      row.payhookWebhookHeaderName = data.payhookWebhookHeaderName || 'X-API-Key';
++    }
++    if (data.payhookWebhookSecretKey !== undefined && !String(data.payhookWebhookSecretKey).includes('****')) {
++      row.payhookWebhookSecretKey = data.payhookWebhookSecretKey || null;
++    }
+ 
+     const saved = await this.configRepo.save(row);
+     this.logger.log('Payment gateway config updated');
+@@ -168,6 +185,12 @@ duitkuExpiryMinutes: c.duitkuExpiryMinutes,
+       payhookWaDomain: c.payhookWaDomain || '',
+       payhookWalledGardenHosts: c.payhookWalledGardenHosts || '',
+       payhookStaticQris: c.payhookStaticQris || '',
++      payhookWebhookAuthType: c.payhookWebhookAuthType || 'none',
++      payhookWebhookToken: mask(c.payhookWebhookToken),
++      payhookWebhookHasToken: !!c.payhookWebhookToken,
++      payhookWebhookHeaderName: c.payhookWebhookHeaderName || 'X-API-Key',
++      payhookWebhookSecretKey: mask(c.payhookWebhookSecretKey),
++      payhookWebhookHasSecretKey: !!c.payhookWebhookSecretKey,
+     };
+   }
+ 

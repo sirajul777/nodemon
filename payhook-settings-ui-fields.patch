@@ -1,0 +1,107 @@
+diff --git a/public/assets/app.js b/public/assets/app.js
+index a099f29..41314d2 100644
+--- a/public/assets/app.js
++++ b/public/assets/app.js
+@@ -6058,7 +6058,14 @@ async function loadPaymentSettings() {
+   setVal("ps-payhook-unique-digits", c.payhookUniqueDigits ?? 3);
+   setVal("ps-payhook-qris-expiry", c.payhookQrisExpiryMinutes ?? 15);
+   setChecked("ps-payhook-wa-enabled", c.payhookWaEnabled);
++  setVal("ps-payhook-wa-provider", c.payhookWaProvider || "fonnte");
++  setVal("ps-payhook-wa-token", c.payhookWaToken || "");
++  setVal("ps-payhook-wa-domain", c.payhookWaDomain || "");
+   setVal("ps-payhook-walled-garden", c.payhookWalledGardenHosts || "cdn.jsdelivr.net, voucher.sysbill.ink");
++  setVal("ps-payhook-webhook-authtype", c.payhookWebhookAuthType || "none");
++  setVal("ps-payhook-webhook-token", c.payhookWebhookToken || "");
++  setVal("ps-payhook-webhook-header", c.payhookWebhookHeaderName || "X-API-Key");
++  setVal("ps-payhook-webhook-secret", c.payhookWebhookSecretKey || "");
+ }
+ 
+ async function savePaymentSettings() {
+@@ -6091,8 +6098,22 @@ async function savePaymentSettings() {
+       Number(document.getElementById("ps-payhook-qris-expiry")?.value) || 15,
+     payhookWaEnabled:
+       document.getElementById("ps-payhook-wa-enabled")?.checked || false,
++    payhookWaProvider:
++      document.getElementById("ps-payhook-wa-provider")?.value || "fonnte",
++    payhookWaToken:
++      document.getElementById("ps-payhook-wa-token")?.value || "",
++    payhookWaDomain:
++      document.getElementById("ps-payhook-wa-domain")?.value || "",
+     payhookWalledGardenHosts:
+-      document.getElementById("ps-payhook-walled-garden")?.value || ""
++      document.getElementById("ps-payhook-walled-garden")?.value || "",
++    payhookWebhookAuthType:
++      document.getElementById("ps-payhook-webhook-authtype")?.value || "none",
++    payhookWebhookToken:
++      document.getElementById("ps-payhook-webhook-token")?.value || "",
++    payhookWebhookHeaderName:
++      document.getElementById("ps-payhook-webhook-header")?.value || "X-API-Key",
++    payhookWebhookSecretKey:
++      document.getElementById("ps-payhook-webhook-secret")?.value || ""
+   };
+ 
+   showL();
+diff --git a/views/page/payment/settings.eta b/views/page/payment/settings.eta
+index 3eb8e87..312a902 100644
+--- a/views/page/payment/settings.eta
++++ b/views/page/payment/settings.eta
+@@ -111,10 +111,59 @@
+             <label style="margin: 0">WA Notifikasi Customer</label>
+           </div>
+         </div>
++        <div class="g3">
++          <div class="fg">
++            <label>Provider WhatsApp</label>
++            <select id="ps-payhook-wa-provider">
++              <option value="fonnte">Fonnte</option>
++              <option value="wablas">Wablas</option>
++            </select>
++          </div>
++          <div class="fg">
++            <label>Token WA Gateway</label>
++            <input id="ps-payhook-wa-token" placeholder="token dari Fonnte/Wablas" />
++          </div>
++          <div class="fg">
++            <label>Domain Wablas (khusus Wablas)</label>
++            <input id="ps-payhook-wa-domain" placeholder="https://console.wablas.com" />
++          </div>
++        </div>
+         <div class="fg">
+           <label>Walled Garden Hosts (dipisah koma, untuk hotspot)</label>
+           <input id="ps-payhook-walled-garden" placeholder="cdn.jsdelivr.net, voucher.sysbill.ink" />
+         </div>
++
++        <hr style="border-color: var(--border); margin: 16px 0" />
++
++        <div style="margin-bottom: 10px">
++          <b style="font-size: 0.88rem"><i class="fa fa-lock"></i> Keamanan Webhook PayHook</b>
++          <p style="color: var(--muted); font-size: 0.78rem; margin: 4px 0 0">
++            Wajib diisi salah satu supaya endpoint webhook tidak bisa dipanggil sembarang orang. Samakan nilainya dengan pengaturan webhook di aplikasi PayHook Android.
++          </p>
++        </div>
++        <div class="g3">
++          <div class="fg">
++            <label>Tipe Autentikasi</label>
++            <select id="ps-payhook-webhook-authtype">
++              <option value="none">Tanpa Autentikasi (tidak disarankan)</option>
++              <option value="bearer">Bearer Token</option>
++              <option value="api_key">API Key (header custom)</option>
++              <option value="basic">Basic</option>
++            </select>
++          </div>
++          <div class="fg">
++            <label>Token / Secret</label>
++            <input id="ps-payhook-webhook-token" placeholder="samakan dengan token di app PayHook" />
++          </div>
++          <div class="fg">
++            <label>Nama Header (khusus API Key)</label>
++            <input id="ps-payhook-webhook-header" placeholder="X-API-Key" />
++          </div>
++        </div>
++        <div class="fg">
++          <label>HMAC Secret Key (opsional, disarankan untuk produksi)</label>
++          <input id="ps-payhook-webhook-secret" placeholder="isi jika Secret Key diaktifkan di app PayHook" />
++        </div>
+       </div>
+ 
+       <div style="margin-top: 20px; display: flex; gap: 8px">
