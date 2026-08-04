@@ -6292,7 +6292,7 @@ async function qmVerifyOrder(orderId) {
 
 async function qmViewOrder(orderId) {
   try {
-    const d = await req('/api/qris/orders/' + orderId);
+    const d = await req('/qris/orders/' + orderId);
     if (!d?.success || !d.order) {
       toast('Order tidak ditemukan', true);
       return;
