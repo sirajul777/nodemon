@@ -214,11 +214,11 @@ if (voucherTypeId && this.voucherTypeService) {
     // ever slips through, the webhook matcher picks the older order by
     // createdAt and the newer one simply expires unpaid, so it fails safe
     // rather than paying out the wrong order.
-    if(price > 5000){
+    if(price < 5000){
       // For prices above 5k, we only use 2 digits for unique code to avoid exceeding the maximum amount limit.
       min = 10; // 2 digits minimum
       max = 99; // 2 digits maximum
-    } else if (price > 10000){
+    } else if (price < 10000){
       // For prices above 10k, we only use 3 digits for unique code to avoid exceeding the maximum amount limit.
       min = 100;
       max = 499;
