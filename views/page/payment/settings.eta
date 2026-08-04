@@ -106,6 +106,12 @@
             <label>QRIS Expiry (menit)</label>
             <input id="ps-payhook-qris-expiry" type="number" min="5" max="60" placeholder="15" />
           </div>
+          <div class="fg">
+            <label>Auto-hapus Order Gagal (hari)</label>
+            <input id="ps-payhook-retention-days" type="number" min="0" max="90" placeholder="3" />
+          </div>
+        </div>
+        <div class="g3">
           <div class="fg" style="display: flex; align-items: center; gap: 6px; padding-top: 22px">
             <input type="checkbox" id="ps-payhook-wa-enabled" style="width: auto; accent-color: var(--acc2)" />
             <label style="margin: 0">WA Notifikasi Customer</label>

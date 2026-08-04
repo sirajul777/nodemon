@@ -6057,6 +6057,7 @@ async function loadPaymentSettings() {
   setVal("ps-payhook-static-qris", c.payhookStaticQris || "");
   setVal("ps-payhook-unique-digits", c.payhookUniqueDigits ?? 3);
   setVal("ps-payhook-qris-expiry", c.payhookQrisExpiryMinutes ?? 15);
+  setVal("ps-payhook-retention-days", c.payhookExpiredRetentionDays ?? 3);
   setChecked("ps-payhook-wa-enabled", c.payhookWaEnabled);
   setVal("ps-payhook-wa-provider", c.payhookWaProvider || "fonnte");
   setVal("ps-payhook-wa-token", c.payhookWaToken || "");
@@ -6096,6 +6097,10 @@ async function savePaymentSettings() {
       Number(document.getElementById("ps-payhook-unique-digits")?.value) || 3,
     payhookQrisExpiryMinutes:
       Number(document.getElementById("ps-payhook-qris-expiry")?.value) || 15,
+    payhookExpiredRetentionDays: (() => {
+      const v = Number(document.getElementById("ps-payhook-retention-days")?.value);
+      return isNaN(v) ? 3 : v;
+    })(),
     payhookWaEnabled:
       document.getElementById("ps-payhook-wa-enabled")?.checked || false,
     payhookWaProvider:

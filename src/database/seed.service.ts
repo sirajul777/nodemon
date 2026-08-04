@@ -511,6 +511,7 @@ export class DatabaseSeedService implements OnApplicationBootstrap {
 duitkuExpiryMinutes: 10,
       payhookUniqueDigits: 3,
       payhookQrisExpiryMinutes: 15,
+      payhookExpiredRetentionDays: 3,
       payhookWaEnabled: false,
       payhookWaProvider: 'fonnte',
       payhookWaToken: null,

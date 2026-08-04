@@ -697,6 +697,50 @@ if (order.voucherTypeId && this.voucherTypeService) {
     return affected;
   }
 
+  /**
+   * Permanently DELETE old EXPIRED/FAILED orders — carts that were never
+   * paid — after `payhookExpiredRetentionDays` (default 3, 0 = disabled).
+   * PAID orders are never touched here regardless of age; they're
+   * transaction records, not abandoned carts. Called periodically by
+   * `PayhookSchedulerService`, always after `expireStaleOrders()` so
+   * anything that just became 'expired' this run still has its full
+   * retention window before deletion.
+   */
+  async pruneOldUnpaidOrders(): Promise<number> {
+    const retentionDays = await this.getRetentionDays();
+    if (!retentionDays || retentionDays <= 0) return 0; // auto-delete disabled
+
+    const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000).toISOString();
+    const result = await this.orderRepo
+      .createQueryBuilder()
+      .delete()
+      .from(VoucherOrderEntity)
+      .where('status IN (:...statuses)', { statuses: ['expired', 'failed'] })
+      .andWhere('createdAt <= :cutoff', { cutoff })
+      .execute();
+    const affected = result.affected || 0;
+    if (affected > 0) {
+      this.logger.log(
+        `[QRIS] ${affected} order expired/failed (lebih dari ${retentionDays} hari) dihapus permanen dari database`
+      );
+    }
+    return affected;
+  }
+
+  private async getRetentionDays(): Promise<number> {
+    if (this.paymentConfigService) {
+      try {
+        const cfg = await this.paymentConfigService.getConfig();
+        if (cfg?.payhookExpiredRetentionDays !== undefined && cfg?.payhookExpiredRetentionDays !== null) {
+          return Number(cfg.payhookExpiredRetentionDays);
+        }
+      } catch {
+        // fall through to default
+      }
+    }
+    return 3;
+  }
+
   async listOrders(status?: string): Promise<VoucherOrderEntity[]> {
     const where = status ? { status } : {};
     return this.orderRepo.find({

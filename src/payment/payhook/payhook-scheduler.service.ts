@@ -2,8 +2,11 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { VoucherOrderService } from './voucher-order.service';
 
 /**
- * Periodically sweeps PENDING QRIS voucher orders whose `expiresAt` has
- * passed and marks them EXPIRED.
+ * Periodically sweeps PENDING/PROCESSING QRIS voucher orders whose
+ * `expiresAt` has passed and marks them EXPIRED — then permanently deletes
+ * EXPIRED/FAILED orders older than the configured retention window
+ * (`payhookExpiredRetentionDays`), keeping the table from growing forever
+ * with abandoned carts. PAID orders are never deleted by this sweep.
  *
  * This matters beyond housekeeping: as long as a stale order stays
  * "pending", its `uniqueAmount` stays reserved and could either block a
@@ -34,6 +37,11 @@ export class PayhookSchedulerService implements OnModuleInit {
       await this.orderService.expireStaleOrders();
     } catch (e: any) {
       this.logger.error(`Gagal menjalankan sweep order expired: ${e.message}`);
+    }
+    try {
+      await this.orderService.pruneOldUnpaidOrders();
+    } catch (e: any) {
+      this.logger.error(`Gagal menjalankan prune order lama: ${e.message}`);
     }
   }
 }

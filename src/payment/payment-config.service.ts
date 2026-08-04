@@ -42,6 +42,7 @@ export class PaymentConfigService {
 duitkuExpiryMinutes: 10,
       payhookUniqueDigits: 3,
       payhookQrisExpiryMinutes: 15,
+      payhookExpiredRetentionDays: 3,
       payhookWaEnabled: false,
       payhookWaProvider: 'fonnte',
       payhookWaToken: null,
@@ -122,6 +123,10 @@ if (data.defaultProvider !== undefined) {
       const m = Number(data.payhookQrisExpiryMinutes);
       if (!isNaN(m)) row.payhookQrisExpiryMinutes = Math.min(60, Math.max(5, Math.round(m)));
     }
+    if (data.payhookExpiredRetentionDays !== undefined) {
+      const d = Number(data.payhookExpiredRetentionDays);
+      if (!isNaN(d)) row.payhookExpiredRetentionDays = Math.min(90, Math.max(0, Math.round(d)));
+    }
     if (data.payhookWaEnabled !== undefined) row.payhookWaEnabled = !!data.payhookWaEnabled;
     if (data.payhookWaProvider !== undefined) {
       row.payhookWaProvider = data.payhookWaProvider === 'wablas' ? 'wablas' : 'fonnte';
@@ -178,6 +183,7 @@ if (data.defaultProvider !== undefined) {
 duitkuExpiryMinutes: c.duitkuExpiryMinutes,
       payhookUniqueDigits: c.payhookUniqueDigits,
       payhookQrisExpiryMinutes: c.payhookQrisExpiryMinutes,
+      payhookExpiredRetentionDays: c.payhookExpiredRetentionDays ?? 3,
       payhookWaEnabled: c.payhookWaEnabled,
       payhookWaProvider: c.payhookWaProvider || 'fonnte',
       payhookWaToken: mask(c.payhookWaToken),

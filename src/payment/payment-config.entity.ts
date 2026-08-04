@@ -58,6 +58,15 @@ export class PaymentConfigEntity {
   @Column({ default: 15 })
   payhookQrisExpiryMinutes: number;
 
+  /**
+   * Days to keep EXPIRED/FAILED (never-paid) QRIS orders before permanently
+   * deleting them from the database. PAID orders are never auto-deleted —
+   * this only prunes abandoned/failed carts. 0 disables auto-delete
+   * entirely (they just stay marked 'expired' forever).
+   */
+  @Column({ default: 3 })
+  payhookExpiredRetentionDays: number;
+
   /** Whether to send WhatsApp customer notifications. */
   @Column({ default: false })
   payhookWaEnabled: boolean;
