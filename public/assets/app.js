@@ -6173,7 +6173,7 @@ function qmSwitchTab(tab) {
 
 async function qmLoadStats() {
   try {
-    const d = await req('/api/qris/stats');
+    const d = await req('/qris/stats');
     if (!d?.success) return;
     const el = (id) => document.getElementById(id);
     el('qm-total-orders').textContent = d.totalOrders || 0;
@@ -6195,7 +6195,7 @@ async function qmLoadOrders() {
   try {
     const status = document.getElementById('qm-order-filter')?.value || '';
     const qs = status ? '?status=' + status : '';
-    const d = await req('/api/qris/orders' + qs);
+    const d = await req('/qris/orders' + qs);
     if (!d?.success) {
       tb.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--red);padding:20px">Gagal memuat data</td></tr>';
       return;
@@ -6243,7 +6243,7 @@ async function qmLoadCallbacks() {
   tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px"><i class="fa fa-spinner fa-spin"></i> Loading...</td></tr>';
 
   try {
-    const d = await req('/api/qris/callbacks?limit=200');
+    const d = await req('/qris/callbacks?limit=200');
     if (!d?.success) {
       tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--red);padding:20px">Gagal memuat data</td></tr>';
       return;
