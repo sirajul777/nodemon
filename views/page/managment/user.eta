@@ -10,8 +10,8 @@
     >
     <div
         style="
-        background: var(--acc) 18;
-        border: 1px solid var(--acc) 30;
+        background: rgba(79, 149, 255, 0.18);
+        border: 1px solid rgba(79, 149, 255, 0.35);
         border-radius: 8px;
         padding: 7px 12px;
         font-size: 0.77rem;
@@ -21,8 +21,8 @@
     </div>
     <div
         style="
-        background: var(--purple) 18;
-        border: 1px solid var(--purple) 30;
+        background: rgba(188, 140, 255, 0.18);
+        border: 1px solid rgba(188, 140, 255, 0.35);
         border-radius: 8px;
         padding: 7px 12px;
         font-size: 0.77rem;
@@ -33,8 +33,8 @@
     </div>
     <div
         style="
-        background: var(--green) 18;
-        border: 1px solid var(--green) 30;
+        background: rgba(87, 218, 104, 0.18);
+        border: 1px solid rgba(87, 218, 104, 0.35);
         border-radius: 8px;
         padding: 7px 12px;
         font-size: 0.77rem;

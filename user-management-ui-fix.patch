@@ -1,0 +1,55 @@
+diff --git a/public/assets/main.css b/public/assets/main.css
+index ba2c958..a349800 100644
+--- a/public/assets/main.css
++++ b/public/assets/main.css
+@@ -14,6 +14,13 @@
+   --font-mono: "JetBrains Mono", monospace; /* Add this *
+   /* Accent */
+   --acc: linear-gradient(135deg, #316ce8, #4f95ff);
++  /* Solid-color counterpart of --acc, for contexts that can't use a
++     gradient directly (plain text/icon color, border-color, accent-color
++     on checkboxes, etc). Used extensively across the app (voucher, mobile
++     API, topbar, reports, user management, ...) but was never actually
++     defined here — every one of those usages was silently falling back to
++     the browser default instead of the intended accent blue. */
++  --acc2: #4f95ff;
+   --acc-glow: 0 0 15px rgba(56, 139, 253, 0.35);
+ 
+   /* Text */
+diff --git a/views/page/managment/user.eta b/views/page/managment/user.eta
+index 0c58e24..3b9d1a0 100644
+--- a/views/page/managment/user.eta
++++ b/views/page/managment/user.eta
+@@ -10,8 +10,8 @@
+     >
+     <div
+         style="
+-        background: var(--acc) 18;
+-        border: 1px solid var(--acc) 30;
++        background: rgba(79, 149, 255, 0.18);
++        border: 1px solid rgba(79, 149, 255, 0.35);
+         border-radius: 8px;
+         padding: 7px 12px;
+         font-size: 0.77rem;
+@@ -21,8 +21,8 @@
+     </div>
+     <div
+         style="
+-        background: var(--purple) 18;
+-        border: 1px solid var(--purple) 30;
++        background: rgba(188, 140, 255, 0.18);
++        border: 1px solid rgba(188, 140, 255, 0.35);
+         border-radius: 8px;
+         padding: 7px 12px;
+         font-size: 0.77rem;
+@@ -33,8 +33,8 @@
+     </div>
+     <div
+         style="
+-        background: var(--green) 18;
+-        border: 1px solid var(--green) 30;
++        background: rgba(87, 218, 104, 0.18);
++        border: 1px solid rgba(87, 218, 104, 0.35);
+         border-radius: 8px;
+         padding: 7px 12px;
+         font-size: 0.77rem;

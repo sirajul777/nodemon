@@ -14,6 +14,13 @@
   --font-mono: "JetBrains Mono", monospace; /* Add this *
   /* Accent */
   --acc: linear-gradient(135deg, #316ce8, #4f95ff);
+  /* Solid-color counterpart of --acc, for contexts that can't use a
+     gradient directly (plain text/icon color, border-color, accent-color
+     on checkboxes, etc). Used extensively across the app (voucher, mobile
+     API, topbar, reports, user management, ...) but was never actually
+     defined here — every one of those usages was silently falling back to
+     the browser default instead of the intended accent blue. */
+  --acc2: #4f95ff;
   --acc-glow: 0 0 15px rgba(56, 139, 253, 0.35);
 
   /* Text */
